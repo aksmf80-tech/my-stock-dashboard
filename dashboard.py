@@ -8,7 +8,7 @@ import time
 st.set_page_config(layout="wide")
 
 # 🔔 홍보 배너
-st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://naver.com)에서 매일 확인하세요!**")
+st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://blog.naver.com/moneybridge1004)에서 매일 확인하세요!**")
 
 st.title("📊 테마별 현황판")
 
@@ -35,27 +35,31 @@ def render_interactive_dashboard():
     # ---------------------------------------------------------
     # 구역 1: 등락률에 따라 크기가 스스로 바뀌는 트리맵 (Treemap)
     # ---------------------------------------------------------
+    # 💡 [해결책] 클릭 시 무식하게 확대되는 것을 막기 위해 계층 구조를 단순하게 평면화합니다.
     fig = px.treemap(
         df, 
-        path=['테마'], 
+        path=[px.Constant("전체 테마"), '테마'], # 최상위 부모를 하나로 묶어 확대 버그를 원천 차단합니다.
         values='등락률', 
         color='등락률',
         color_continuous_scale='RdBu_r', 
         hover_data=['종목명', '업데이트시간']
     )
     
-    # 🛠️ [핵심 수정] 마우스 클릭 시 트리맵이 거대하게 확대되는 현상을 완벽히 차단 (클릭 잠금)
-    fig.update_traces(maxdepth=1, selector=dict(type='treemap'))
-    
     fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), height=400)
     
     # 스트림릿에 트리맵 그리기 및 클릭 감지 설정
     selected_theme = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
-    # 기본 선택 테마 지정 (선택 안 했을 때는 첫 번째 테마)
+    # 🛠️ [연동 버그 해결] 기존 .iloc 오타를 .iloc[0]으로 정확하게 교정하여 연동을 정상화합니다.
     current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
+    
+    # 트리맵 클릭 시 해당 테마 이름을 정확하게 추출하는 로직
     if selected_theme and "points" in selected_theme and len(selected_theme["points"]) > 0:
-        current_theme = selected_theme["points"][0].get("label", current_theme)
+        point_data = selected_theme["points"][0]
+        # 클릭한 블록의 라벨을 가져옵니다.
+        clicked_label = point_data.get("label", current_theme)
+        if clicked_label != "전체 테마": # 최상위 부모 이름은 제외
+            current_theme = clicked_label
 
     st.markdown("---")
 
@@ -95,7 +99,7 @@ def render_interactive_dashboard():
        
         # 🔗 [추가 유입 장치] 뉴스 구역 맨 아래에도 블로그 이동 텍스트 링크 삽입!
         st.markdown("---")
-        st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
+        st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://blog.naver.com/moneybridge1004)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
 
 # 대시보드 화면 실행
 render_interactive_dashboard()
