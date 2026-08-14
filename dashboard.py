@@ -18,18 +18,20 @@ DATA_FILE = "theme_data.csv"
 @st.fragment(run_every=60)
 def render_interactive_dashboard():
     if not os.path.exists(DATA_FILE):
-        st.warning("⏳ 데이터 파일(theme_data.csv)을 기다리는 중입니다. 수집 앱을 확인해 주세요.")
+        st.warning("⌛ 데이터 파일(theme_data.csv)을 기다리는 중입니다. 수집 앱을 확인해 주세요.")
         return
 
     # 최신 데이터 읽기
     df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
+
     # 데이터가 비어있거나 문제가 있을 때 에러를 방지하는 안전장치
-if df is None or df.empty or '테마' not in df.columns:
-    st.warning("📊 현재 표시할 주식 데이터가 없습니다. 장이 열리면 자동으로 갱신됩니다.")
-    return
+    if df is None or df.empty or '테마' not in df.columns:
+        st.warning("📊 현재 표시할 주식 데이터가 없습니다. 장이 열리면 자동으로 갱신됩니다.")
+        return
 
     # 상단에 갱신 시각 표시 (F5 없이 1분마다 스스로 바뀜)
     st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {time.strftime('%H:%M:%S')})")
+
 
     # ---------------------------------------------------------
     # 구역 1: 등락률에 따라 크기가 스스로 바뀌는 트리맵 (Treemap)
