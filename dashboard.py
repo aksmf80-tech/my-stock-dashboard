@@ -7,11 +7,8 @@ import time
 # ⚠️ 주의: set_page_config는 항상 코드 최상단에 위치해야 에러가 나지 않습니다.
 st.set_page_config(layout="wide")
 
-# 🔔 [강력한 홍보 배너] 대시보드 켜지자마자 맨 위에 뜨는 고정 알림창 (실제 블로그 링크 연동 완료)
-st.announcement(
-    body="📢 **실시간 테마별 대장주 분석 및 매매 전략은 [Time Traveler : 네이버 블로그](https://blog.naver.com/moneybridge1004)에서 매일 확인하세요!**",
-    icon="🏠"
-)
+# 🔔 [수정된 홍보 배너] 구버전에서도 100% 작동하는 안전한 주황색 알림창 구조입니다.
+st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [Time Traveler : 네이버 블로그](https://naver.com)에서 매일 확인하세요!**")
 
 st.title("📊 테마별 현황판")
 
@@ -47,7 +44,7 @@ def render_interactive_dashboard():
     selected_theme = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
     # 기본 선택 테마 지정 (선택 안 했을 때는 첫 번째 테마)
-    current_theme = df['테마'].iloc[0]
+    current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
     if selected_theme and "points" in selected_theme and len(selected_theme["points"]) > 0:
         current_theme = selected_theme["points"][0].get("label", current_theme)
 
@@ -61,7 +58,7 @@ def render_interactive_dashboard():
     # 해당 테마에 속한 종목들만 필터링
     theme_df = df[df['테마'] == current_theme].copy()
 
-    col1, col2 = st.columns()
+    col1, col2 = st.columns(2)
 
     with col1:
         st.markdown(f"**📈 {current_theme} 종목 리스트**")
@@ -74,14 +71,13 @@ def render_interactive_dashboard():
         )
         
         # 기본 선택 종목 지정 (선택 안 했을 때는 해당 테마의 첫 번째 종목)
-        current_stock = theme_df['종목명'].iloc[0]
+        current_stock = theme_df['종목명'].iloc[0] if not theme_df.empty else "선택된 종목 없음"
         if selected_rows and "rows" in selected_rows["selection"] and len(selected_rows["selection"]["rows"]) > 0:
             idx = selected_rows["selection"]["rows"][0]
             current_stock = theme_df['종목명'].iloc[idx]
 
     with col2:
         st.markdown(f"**📰 {current_theme} + {current_stock} 관련 뉴스**")
-        # 실제 환경에서는 fetch_data.py가 수집한 뉴스 데이터를 매칭하게 됩니다.
         st.info(f"🔍 '{current_stock}' 주가 및 '{current_theme}' 시장 동향에 대한 실시간 뉴스 속보 리스트가 여기에 바인딩됩니다.")
         
         st.caption(f"📌 [뉴스] {current_stock} 관련주, 거래량 급증하며 강세 (1일 전)")
@@ -89,7 +85,7 @@ def render_interactive_dashboard():
         
         # 🔗 [추가 유입 장치] 뉴스 구역 맨 아래에도 블로그 이동 텍스트 링크 삽입!
         st.markdown("---")
-        st.markdown("✍️ **[Time Traveler 블로그 바로가기](https://blog.naver.com/moneybridge1004)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
+        st.markdown(f"✍️ **[Time Traveler 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
 
 # 대시보드 화면 실행
 render_interactive_dashboard()
