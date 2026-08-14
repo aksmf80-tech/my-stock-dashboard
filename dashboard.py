@@ -36,7 +36,7 @@ def render_interactive_dashboard():
     # 구역 1: 핀업(FINUP) 스타일 ➡️ 클릭 시 화면이 꽉 차며 종목이 쪼개지는 트리맵
     # ---------------------------------------------------------
     # 💡 [핀업 완벽 재현 핵심] 
-    # 첫 화면에서 대분류 테마만 깔끔하게 보이고 클릭 시 꽉 차게 확대되도록 px.Constant와 maxdepth 조합을 사용합니다.
+    # 첫 화면에서 대분류 테마만 깔끔하게 보이고 클릭 시 꽉 차게 확대되도록 px.Constant와 계층을 연결합니다.
     fig = px.treemap(
         df, 
         path=[px.Constant("시장 전체"), '테마', '종목명'], 
@@ -46,14 +46,14 @@ def render_interactive_dashboard():
         hover_data=['업데이트시간']
     )
     
-    # maxdepth=2를 설정하여 처음에는 '시장 전체 -> 테마'까지만 보여주고 화면을 깔끔하게 유지합니다.
+    # maxdepth=2를 설정하여 처음에는 '시장 전체 ➡️ 테마'까지만 보여주고 화면을 깔끔하게 유지합니다.
     fig.update_traces(maxdepth=2, textinfo="label+value")
     fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), height=500)
     
     # 스트림릿에 트리맵 그리기 및 클릭 감지 설정
     selected_theme = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
-    # 🛠️ [iloc 오타 완벽 교정] 행 번호 [0]을 정확히 붙여서 데이터 누락 에러를 완벽하게 차단합니다.
+    # 🛠️ [iloc 오타 완벽 해결] 행 번호 [0]을 정확히 붙여서 인덱서 에러를 완전히 차단합니다.
     current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
     
     # 트리맵 클릭 시 유저가 탐색하는 화면의 단계를 추적하여 하단 정보와 실시간으로 동기화합니다.
