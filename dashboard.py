@@ -35,31 +35,28 @@ def render_interactive_dashboard():
     # ---------------------------------------------------------
     # 구역 1: 등락률에 따라 크기가 스스로 바뀌는 트리맵 (Treemap)
     # ---------------------------------------------------------
-    # 💡 [해결책] 클릭 시 무식하게 확대되는 것을 막기 위해 계층 구조를 단순하게 평면화합니다.
     fig = px.treemap(
         df, 
-        path=[px.Constant("전체 테마"), '테마'], # 최상위 부모를 하나로 묶어 확대 버그를 원천 차단합니다.
+        path=['테마'], # 원래의 깔끔하고 직관적인 구조로 롤백
         values='등락률', 
         color='등락률',
         color_continuous_scale='RdBu_r', 
         hover_data=['종목명', '업데이트시간']
     )
     
+    # 🛠️ [진짜 해결책] 트리맵 고유의 클릭 확대(Drill-down) 액션을 완전히 비활성화합니다.
+    fig.update_layout(clickmode='event') 
+    fig.data[0].on_click(None)
+    
     fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), height=400)
     
     # 스트림릿에 트리맵 그리기 및 클릭 감지 설정
     selected_theme = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
-    # 🛠️ [연동 버그 해결] 기존 .iloc 오타를 .iloc[0]으로 정확하게 교정하여 연동을 정상화합니다.
+    # 기본 선택 테마 지정 및 클릭 연동 정상화
     current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
-    
-    # 트리맵 클릭 시 해당 테마 이름을 정확하게 추출하는 로직
     if selected_theme and "points" in selected_theme and len(selected_theme["points"]) > 0:
-        point_data = selected_theme["points"][0]
-        # 클릭한 블록의 라벨을 가져옵니다.
-        clicked_label = point_data.get("label", current_theme)
-        if clicked_label != "전체 테마": # 최상위 부모 이름은 제외
-            current_theme = clicked_label
+        current_theme = selected_theme["points"][0].get("label", current_theme)
 
     st.markdown("---")
 
