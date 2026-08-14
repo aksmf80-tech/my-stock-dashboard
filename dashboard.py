@@ -87,8 +87,10 @@ def render_interactive_dashboard():
         st.markdown(f"**📰 {current_theme} + {current_stock} 관련 뉴스**")
         st.info(f"🔍 '{current_stock}' 및 '{current_theme}' 시장 동향에 대한 실시간 뉴스...")
         
-        st.caption(f"📌 [뉴스] {current_stock} 관련주, 거래량 급증하며 강세 (1일 전)")
-        st.caption(f"📌 [뉴스] {current_theme} 시장 경쟁 심화... {current_stock} 글로벌 공급망 확대 나선다 (2일 전)")
+                # 뉴스를 클릭하면 실제 링크로 이동하도록 마크다운 링크 구조로 변경
+        st.markdown(f"📌 [📢 [뉴스] '{current_stock}' 관련주, 거래량 급증하며 강세 (1일 전)](https://naver.com{current_stock})")
+        st.markdown(f"📌 [📢 [뉴스] '{current_theme}' 시장 경쟁 심화... '{current_stock}' 글로벌 공급망 확대 나선다 (2일 전)](https://naver.com{current_theme})")
+
         
         # 🔗 [추가 유입 장치] 뉴스 구역 맨 아래에도 블로그 이동 텍스트 링크 삽입!
         st.markdown("---")
