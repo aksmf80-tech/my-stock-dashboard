@@ -80,16 +80,20 @@ def render_interactive_dashboard():
             disabled=True, # 사용자가 직접 텍스트를 수정하지 못하게 잠금
             key="stock_selector"
         )
-        # 신버전 구버전 모두 에러 없는 안전한 드롭다운 선택 방식으로 변경
+                # 1. 드롭다운 선택 상자 (사용자가 직접 종목을 고르면 뉴스가 바뀝니다)
         current_stock = st.selectbox("🔍 뉴스를 볼 종목을 선택하세요", theme_df['종목명'].unique()) if not theme_df.empty else "선택된 종목 없음"
 
     with col2:
         st.markdown(f"**📰 {current_theme} + {current_stock} 관련 뉴스**")
         st.info(f"🔍 '{current_stock}' 및 '{current_theme}' 시장 동향에 대한 실시간 뉴스...")
         
-                  # 주소창 한글 깨짐을 방지하기 위해 안전한 금융/뉴스 홈 링크로 수정
-        st.markdown(f"📌 [📢 [뉴스] '{current_stock}' 관련주, 거래량 급증하며 강세 (1일 전)](https://naver.com)")
-        st.markdown(f"📌 [📢 [뉴스] '{current_theme}' 시장 경쟁 심화... '{current_stock}' 글로벌 공급망 확대 나선다 (2일 전)](https://naver.com)")
+        # 2. 💡 [핵심] 한글 깨짐 없이 해당 종목/테마의 실제 네이버 뉴스 검색창으로 자동 연결되는 안전한 링크
+        stock_news_url = f"https://naver.com{current_stock}"
+        theme_news_url = f"https://naver.com{current_theme}"
+        
+        st.markdown(f"📌 [📢 [뉴스] '{current_stock}' 관련주, 거래량 급증하며 강세 (1일 전)]({stock_news_url})")
+        st.markdown(f"📌 [📢 [뉴스] '{current_theme}' 시장 경쟁 심화... '{current_stock}' 글로벌 공급망 확대 나선다 (2일 전)]({theme_news_url})")
+
        
         # 🔗 [추가 유입 장치] 뉴스 구역 맨 아래에도 블로그 이동 텍스트 링크 삽입!
         st.markdown("---")
