@@ -73,13 +73,14 @@ def render_interactive_dashboard():
     with col1:
         st.markdown(f"**📈 {current_theme} 종목 리스트**")
         # 데이터프레임에서 종목을 선택할 수 있도록 데이터 편집기(Data Editor) 활용
-        selected_rows = st.dataframe(
+               # 기존 st.dataframe 대신 구버전에서도 마우스 클릭 연동이 완벽한 st.data_editor 사용
+        selected_rows = st.data_editor(
             theme_df[['종목명', '등락률']],
             use_container_width=True,
-            on_select="rerun",
-            selection_mode="single"
+            disabled=True, # 사용자가 직접 텍스트를 수정하지 못하게 잠금
+            key="stock_selector"
         )
-        
+
         # 기본 선택 종목 지정 (선택 안 했을 때는 해당 테마의 첫 번째 종목)
         current_stock = theme_df['종목명'].iloc[0] if not theme_df.empty else "선택된 종목 없음"
         if selected_rows and "rows" in selected_rows["selection"] and len(selected_rows["selection"]["rows"]) > 0:
