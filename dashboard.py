@@ -4,9 +4,16 @@ import plotly.express as px
 import os
 import time
 
-# 1. 화면 레이아웃 넓게 설정
+# ⚠️ 주의: set_page_config는 항상 코드 최상단에 위치해야 에러가 나지 않습니다.
 st.set_page_config(layout="wide")
-st.title("📊 실시간 주식 테마별 현황판")
+
+# 🔔 [강력한 홍보 배너] 대시보드 켜지자마자 맨 위에 뜨는 고정 알림창 (실제 블로그 링크 연동 완료)
+st.announcement(
+    body="📢 **실시간 테마별 대장주 분석 및 매매 전략은 [Time Traveler : 네이버 블로그](https://blog.naver.com/moneybridge1004)에서 매일 확인하세요!**",
+    icon="🏠"
+)
+
+st.title("📊 테마별 현황판")
 
 DATA_FILE = "theme_data.csv"
 
@@ -54,12 +61,11 @@ def render_interactive_dashboard():
     # 해당 테마에 속한 종목들만 필터링
     theme_df = df[df['테마'] == current_theme].copy()
 
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns()
 
     with col1:
         st.markdown(f"**📈 {current_theme} 종목 리스트**")
         # 데이터프레임에서 종목을 선택할 수 있도록 데이터 편집기(Data Editor) 활용
-        # ⚠️ 보드 안에 종목을 마우스로 클릭하면 라디오 버튼처럼 감지합니다.
         selected_rows = st.dataframe(
             theme_df[['종목명', '주가', '등락률']], 
             use_container_width=True,
@@ -75,14 +81,15 @@ def render_interactive_dashboard():
 
     with col2:
         st.markdown(f"**📰 {current_theme} + {current_stock} 관련 뉴스**")
-        # 💡 [뉴스 연동] 선택된 테마와 종목에 맞는 뉴스 목록을 가상으로 매칭하여 보여줍니다.
         # 실제 환경에서는 fetch_data.py가 수집한 뉴스 데이터를 매칭하게 됩니다.
         st.info(f"🔍 '{current_stock}' 주가 및 '{current_theme}' 시장 동향에 대한 실시간 뉴스 속보 리스트가 여기에 바인딩됩니다.")
         
-        # 스크린샷과 유사한 뉴스 형태 출력 예시
-        st.caption(f"📌 [뉴스] {current_stock} 관련주, '봄바람 살랑살랑' 거래량 급증하며 강세 (1일 전)")
+        st.caption(f"📌 [뉴스] {current_stock} 관련주, 거래량 급증하며 강세 (1일 전)")
         st.caption(f"📌 [뉴스] {current_theme} 시장 경쟁 심화... {current_stock} 글로벌 공급망 확대 나선다 (2일 전)")
-        st.caption(f"📌 [뉴스] 외국인·기관 코스닥 순매수 상위 종목에 {current_stock} 이름 올렸다 (3일 전)")
+        
+        # 🔗 [추가 유입 장치] 뉴스 구역 맨 아래에도 블로그 이동 텍스트 링크 삽입!
+        st.markdown("---")
+        st.markdown("✍️ **[Time Traveler 블로그 바로가기](https://blog.naver.com/moneybridge1004)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
 
 # 대시보드 화면 실행
 render_interactive_dashboard()
