@@ -74,7 +74,7 @@ def render_interactive_dashboard():
         st.markdown(f"**📈 {current_theme} 종목 리스트**")
         # 데이터프레임에서 종목을 선택할 수 있도록 데이터 편집기(Data Editor) 활용
         selected_rows = st.dataframe(
-            theme_df[['종목명', '주가', '등락률']], 
+            theme_df[['종목명', '등락률']],
             use_container_width=True,
             on_select="rerun",
             selection_mode="single"
@@ -88,7 +88,7 @@ def render_interactive_dashboard():
 
     with col2:
         st.markdown(f"**📰 {current_theme} + {current_stock} 관련 뉴스**")
-        st.info(f"🔍 '{current_stock}' 주가 및 '{current_theme}' 시장 동향에 대한 실시간 뉴스 속보 리스트가 여기에 바인딩됩니다.")
+        st.info(f"🔍 '{current_stock}' 및 '{current_theme}' 시장 동향에 대한 실시간 뉴스...")
         
         st.caption(f"📌 [뉴스] {current_stock} 관련주, 거래량 급증하며 강세 (1일 전)")
         st.caption(f"📌 [뉴스] {current_theme} 시장 경쟁 심화... {current_stock} 글로벌 공급망 확대 나선다 (2일 전)")
