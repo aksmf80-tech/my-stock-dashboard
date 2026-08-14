@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 st.set_page_config(layout="wide")
-st.title("📊 네이버 금융 테마별 등락률 대시보드")
+st.title("📊 테마별 현황판")
 
 # 📂 깃허브 자동화 로봇이 실시간으로 채워줄 데이터 파일 이름
 DATA_FILE = "theme_data.csv"
