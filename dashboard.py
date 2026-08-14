@@ -43,6 +43,10 @@ def render_interactive_dashboard():
         color_continuous_scale='RdBu_r', 
         hover_data=['종목명', '업데이트시간']
     )
+    
+    # 🛠️ [핵심 수정] 마우스 클릭 시 트리맵이 거대하게 확대되는 현상을 완벽히 차단 (클릭 잠금)
+    fig.update_traces(maxdepth=1, selector=dict(type='treemap'))
+    
     fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), height=400)
     
     # 스트림릿에 트리맵 그리기 및 클릭 감지 설정
@@ -82,7 +86,7 @@ def render_interactive_dashboard():
         st.markdown(f"**📰 {current_theme} + {current_stock} 관련 뉴스**")
         st.info(f"🔍 '{current_stock}' 및 '{current_theme}' 시장 동향에 대한 실시간 뉴스...")
         
-        # 💡 [해결 방법] 주소 뒤에 직접 문자열을 결합하여 공백과 깨짐 현상을 완벽하게 제거
+        # 주소 뒤에 직접 문자열을 결합하여 공백과 깨짐 현상을 완벽하게 제거
         stock_news_url = "https://naver.com" + str(current_stock)
         theme_news_url = "https://naver.com" + str(current_theme).replace(" ", "")
         
