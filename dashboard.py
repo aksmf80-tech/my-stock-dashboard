@@ -43,10 +43,10 @@ def render_interactive_dashboard():
     fig = px.treemap(
         df, 
         path=['테마'], 
-        values='등락률_절대값', # 상승/하락 폭이 클수록 칸이 스스로 커짐
+        values='등락률', # 상승/하락 폭이 클수록 칸이 스스로 커짐
         color='등락률',
         color_continuous_scale='RdBu_r', # 상승은 빨강, 하락은 파랑
-        hover_data=['종목명', '주가']
+        hover_data=['종목명', '업데이트시간']
     )
     fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), height=400)
     
