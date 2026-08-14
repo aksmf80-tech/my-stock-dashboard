@@ -8,7 +8,7 @@ import time
 st.set_page_config(layout="wide")
 
 # 🔔 홍보 배너
-st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://blog.naver.com/moneybridge1004)에서 매일 확인하세요!**")
+st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://naver.com)에서 매일 확인하세요!**")
 
 st.title("📊 테마별 현황판")
 
@@ -33,40 +33,29 @@ def render_interactive_dashboard():
     st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {time.strftime('%H:%M:%S')})")
 
     # ---------------------------------------------------------
-    # 구역 1: 핀업(FINUP) 스타일 ➡️ 클릭 시 화면이 꽉 차며 종목이 쪼개지는 트리맵
+    # 구역 1: 등락률에 따라 몸집만 커지고 클릭 확대는 안 되는 핀업 트리맵
     # ---------------------------------------------------------
-    # 💡 [핀업 완벽 재현 핵심] 
-    # 첫 화면에서 대분류 테마만 깔끔하게 보이고 클릭 시 꽉 차게 확대되도록 px.Constant와 계층을 연결합니다.
+    # 💡 [핵심 해결책] path를 단층 구조로 지정하여 클릭 시 확대될 하위 계층을 아예 없앱니다.
     fig = px.treemap(
         df, 
-        path=[px.Constant("시장 전체"), '테마', '종목명'], 
-        values='등락률', 
+        path=['테마'], # 단일 계층으로 설정하여 누르더라도 더 이상 확대되지 않습니다.
+        values='등락률', # 상승 종목이 많고 등락률이 클수록 박스 몸집이 스스로 커집니다!
         color='등락률',
         color_continuous_scale='RdBu_r', 
-        hover_data=['업데이트시간']
+        hover_data=['종목명', '업데이트시간']
     )
     
-    # maxdepth=2를 설정하여 처음에는 '시장 전체 ➡️ 테마'까지만 보여주고 화면을 깔끔하게 유지합니다.
-    fig.update_traces(maxdepth=2, textinfo="label+value")
-    fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), height=500)
+    # 🛠️ [확대 버그 완전 박멸] maxdepth를 1로 제한하여 마우스 클릭 시 화면이 주황색으로 커지는 액션을 완벽히 잠급니다.
+    fig.update_traces(maxdepth=1, textinfo="label+value")
+    fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), height=400)
     
     # 스트림릿에 트리맵 그리기 및 클릭 감지 설정
     selected_theme = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
-    # 🛠️ [iloc 오타 완벽 해결] 행 번호 [0]을 정확히 붙여서 인덱서 에러를 완전히 차단합니다.
+    # [교정] 기본 선택 테마 지정 및 클릭 연동 정상화
     current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
-    
-    # 트리맵 클릭 시 유저가 탐색하는 화면의 단계를 추적하여 하단 정보와 실시간으로 동기화합니다.
     if selected_theme and "points" in selected_theme and len(selected_theme["points"]) > 0:
-        point_data = selected_theme["points"][0]
-        clicked_label = point_data.get("label", current_theme)
-        
-        # 클릭한 구역이 실제 테마명이면 하단 정보를 변경
-        if clicked_label in df['테마'].values:
-            current_theme = clicked_label
-        # 더 안쪽의 개별 종목 구역까지 클릭해 들어간 상태라면 부모(parent)인 테마명을 추적하여 유지
-        elif "parent" in point_data and point_data["parent"] in df['테마'].values:
-            current_theme = point_data["parent"]
+        current_theme = selected_theme["points"][0].get("label", current_theme)
 
     st.markdown("---")
 
@@ -106,7 +95,7 @@ def render_interactive_dashboard():
        
         # 🔗 뉴스 구역 맨 아래에도 블로그 이동 텍스트 링크 삽입
         st.markdown("---")
-        st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://blog.naver.com/moneybridge1004)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
+        st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
 
 # 대시보드 화면 실행
 render_interactive_dashboard()
