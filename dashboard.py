@@ -8,7 +8,7 @@ import time
 st.set_page_config(layout="wide")
 
 # 🔔 홍보 배너
-st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://naver.com)에서 매일 확인하세요!**")
+st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://blog.naver.com/moneybridge1004)에서 매일 확인하세요!**")
 
 st.title("📊 테마별 현황판")
 
@@ -106,7 +106,7 @@ def render_interactive_dashboard():
        
         # 🔗 뉴스 구역 맨 아래에도 블로그 이동 텍스트 링크 삽입
         st.markdown("---")
-        st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
+        st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://blog.naver.com/moneybridge1004)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
 
 # 대시보드 화면 실행
 render_interactive_dashboard()
