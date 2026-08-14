@@ -23,14 +23,14 @@ def render_interactive_dashboard():
 
     # 최신 데이터 읽기
     df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
+  
 
-       # 25번 줄 df = pd.read_csv(...) 바로 아래에 덮어쓰기 하세요!
-    
-    # 필수 컬럼들이 모두 데이터에 존재하는지 검사하는 강력한 안전장치
+ 
     required_cols = ['테마', '종목명', '등락률']
     if df is None or df.empty or not all(col in df.columns for col in required_cols):
         st.warning("📊 현재 표시할 주식 데이터 형식이 올바르지 않거나 데이터가 없습니다. 장이 열리면 자동으로 갱신됩니다.")
         return
+
 
 
     # 상단에 갱신 시각 표시 (F5 없이 1분마다 스스로 바뀜)
