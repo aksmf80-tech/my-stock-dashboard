@@ -80,17 +80,8 @@ def render_interactive_dashboard():
             disabled=True, # 사용자가 직접 텍스트를 수정하지 못하게 잠금
             key="stock_selector"
         )
-
-                # 기본 선택 종목 지정 (선택 안 했을 때는 해당 테마의 첫 번째 종목)
-        current_stock = theme_df['종목명'].iloc[0] if not theme_df.empty else "선택된 종목 없음"
-        
-        # st.data_editor에서 마우스로 행을 클릭(선택)했을 때 해당 종목 추출하는 구버전 호환 로직
-        if selected_rows and "edited_rows" in selected_rows:
-            selected_indices = list(selected_rows["edited_rows"].keys())
-            if selected_indices:
-                idx = int(selected_indices[0])
-                current_stock = theme_df['종목명'].iloc[idx]
-
+        # 신버전 구버전 모두 에러 없는 안전한 드롭다운 선택 방식으로 변경
+        current_stock = st.selectbox("🔍 뉴스를 볼 종목을 선택하세요", theme_df['종목명'].unique()) if not theme_df.empty else "선택된 종목 없음"
 
     with col2:
         st.markdown(f"**📰 {current_theme} + {current_stock} 관련 뉴스**")
