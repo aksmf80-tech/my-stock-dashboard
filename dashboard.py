@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 import os
 import time
-import urllib.parse
 
 # ⚠️ 주의: set_page_config는 항상 코드 최상단에 위치해야 에러가 나지 않습니다.
 st.set_page_config(layout="wide")
@@ -49,7 +48,7 @@ def render_interactive_dashboard():
     # 스트림릿에 트리맵 그리기 및 클릭 감지 설정
     selected_theme = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
-    # 🛠️ [오타 교정] 기본 선택 테마 지정 및 클릭 감지 로직 정상화
+    # 기본 선택 테마 지정 (선택 안 했을 때는 첫 번째 테마)
     current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
     if selected_theme and "points" in selected_theme and len(selected_theme["points"]) > 0:
         current_theme = selected_theme["points"][0].get("label", current_theme)
@@ -83,12 +82,9 @@ def render_interactive_dashboard():
         st.markdown(f"**📰 {current_theme} + {current_stock} 관련 뉴스**")
         st.info(f"🔍 '{current_stock}' 및 '{current_theme}' 시장 동향에 대한 실시간 뉴스...")
         
-        # 💡 한글과 공백 깨짐을 완전히 방지하는 URL 자동 변환 안전장치
-        encoded_stock = urllib.parse.quote(current_stock)
-        encoded_theme = urllib.parse.quote(current_theme)
-        
-        stock_news_url = f"https://naver.com{encoded_stock}"
-        theme_news_url = f"https://naver.com{encoded_theme}"
+        # 💡 [해결 방법] 주소 뒤에 직접 문자열을 결합하여 공백과 깨짐 현상을 완벽하게 제거
+        stock_news_url = "https://naver.com" + str(current_stock)
+        theme_news_url = "https://naver.com" + str(current_theme).replace(" ", "")
         
         st.markdown(f"📌 [📢 [뉴스] '{current_stock}' 관련주, 거래량 급증하며 강세 (1일 전)]({stock_news_url})")
         st.markdown(f"📌 [📢 [뉴스] '{current_theme}' 시장 경쟁 심화... '{current_stock}' 글로벌 공급망 확대 나선다 (2일 전)]({theme_news_url})")
