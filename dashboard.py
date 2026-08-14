@@ -33,37 +33,37 @@ def render_interactive_dashboard():
     st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {time.strftime('%H:%M:%S')})")
 
     # ---------------------------------------------------------
-    # 구역 1: 테마 ➡️ 종목으로 이어지는 완전 연동형 트리맵 (Treemap)
+    # 구역 1: 핀업 사이트 스타일 ➡️ 테마 클릭 시 종목 바둑판으로 확대되는 트리맵
     # ---------------------------------------------------------
-    # 💡 [핵심 구현] path에 ['테마', '종목명']을 순서대로 넣어서 계층 구조를 만듭니다.
+    # 💡 path에 ['테마', '종목명']을 계층 구조로 명시하여 핀업 증권과 똑같은 화면 이동을 구현합니다.
     fig = px.treemap(
         df, 
-        path=['테마', '종목명'], # 테마를 누르면 그 안의 종목 바둑판으로 꽉 차게 확대됨
+        path=['테마', '종목명'], 
         values='등락률', 
         color='등락률',
         color_continuous_scale='RdBu_r', # 상승은 빨강, 하락은 파랑 동일 적용
         hover_data=['업데이트시간']
     )
     
-    # 글자가 네모 칸 안에서 예쁘게 정렬되도록 조정
+    # 텍스트 레이아웃 최적화 (네모칸 안에 라벨과 수치가 잘 보이도록 설정)
     fig.update_traces(textinfo="label+value")
     fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), height=500)
     
     # 스트림릿에 트리맵 그리기 및 클릭 감지 설정
     selected_theme = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
-    # 기본 선택 테마 지정 및 클릭 연동 정상화
+    # 🛠️ [iloc 오타 완전 해결] 기본 테마값을 추출하는 로직 정형화
     current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
     
-    # 트리맵에서 유저가 클릭한 위치를 추적하여 하단 정보와 동기화
+    # 사용자가 트리맵에서 어떤 계층(테마 또는 종목)을 탐색 중인지 정확히 추적하여 하단 정보와 실시간 동기화
     if selected_theme and "points" in selected_theme and len(selected_theme["points"]) > 0:
         point_data = selected_theme["points"][0]
-        # 클릭한 구역의 라벨을 가져와 테마 리스트 필터링에 적용
         clicked_label = point_data.get("label", current_theme)
         
-        # 만약 실제 테마명인 경우에만 세팅 (종목을 클릭했을 때는 부모 테마를 유지)
+        # 1. 클릭한 이름이 실제 테마 컬럼에 존재하면 해당 테마로 지정
         if clicked_label in df['테마'].values:
             current_theme = clicked_label
+        # 2. 만약 소속 종목을 클릭해서 들어간 상태라면 부모(parent)인 테마명을 추적
         elif "parent" in point_data and point_data["parent"] in df['테마'].values:
             current_theme = point_data["parent"]
 
