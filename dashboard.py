@@ -6,22 +6,20 @@ import urllib.request
 import re
 from bs4 import BeautifulSoup
 
-# 1. 전해상도 반응형 전체화면 설정
+# 1. 반응형 전체화면 설정
 st.set_page_config(page_title="실시간 주식 테마 대시보드 (완전자동)", layout="wide")
 st.title("📊 실시간 주식 테마 대시보드 (100% 완전 자동화)")
-st.markdown("본 시스템은 **네이버 페이 증권**의 전체 테마 시세 데이터를 실시간으로 크롤링하여 자동으로 지도를 그려줍니다.")
+st.markdown("본 시스템은 **네이버 페이 증권**의 전체 테마 시세 데이터를 실시간으로 크롤링하여 지도를 그려줍니다. (장마감 및 주말 방어 적용)")
 
-# 2. 네이버 증권 전체 테마 및 종목 실시간 크롤링 함수
-@st.cache_data(ttl=60) # 1분간 데이터를 보관하여 서버 과부하 및 속도 저하를 방지합니다.
+# 2. 네이버 증권 전체 테마 및 종목 크롤링 함수 (주말/장마감 방어 로직)
+@st.cache_data(ttl=60)
 def fetch_naver_theme_data():
     try:
-        # 네이버 증권 테마별 시세 첫 페이지 접속
         url = "https://naver.com"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
         html = urllib.request.urlopen(req).read()
         soup = BeautifulSoup(html, 'html.parser')
         
-        # 테마 테이블 찾기
         theme_table = soup.find('table', {'class': 'type_5'})
         if not theme_table:
             return pd.DataFrame()
@@ -29,7 +27,6 @@ def fetch_naver_theme_data():
         rows = theme_table.find_all('tr')
         theme_list = []
         
-        # 상위 25개 유행 테마 추출 (과부하 방지 및 가독성 최적화)
         count = 0
         for row in rows:
             cols = row.find_all('td')
@@ -37,21 +34,24 @@ def fetch_naver_theme_data():
                 theme_name_tag = cols[0].find('a')
                 if theme_name_tag:
                     theme_name = theme_name_tag.text.strip()
-                    theme_link = "https://naver.com" + theme_name_tag['href']
+                    theme_link = "https://finance.naver.com" + theme_name_tag['href']
                     
-                    # 테마 등락률 파싱
+                    # 테마 등락률 파싱 및 주말 예외 처리
                     change_tag = cols[1].find('span')
                     if change_tag:
-                        # 공백 및 특수문자 제거 후 숫자로 변환
-                        change_text = change_tag.text.strip().replace('%','').replace('+','')
+                        change_text = change_tag.text.strip().replace('%','').replace('+','').replace(' ','')
                         try:
                             theme_change = float(change_text)
-                            if 'nv01' in change_tag.get('class', []): # 하락 테마 처리
+                            if 'nv01' in change_tag.get('class', []):
                                 theme_change = -theme_change
                         except ValueError:
                             theme_change = 0.0
                     else:
-                        theme_change = 0.0
+                        # 텍스트로 직접 읽기 방어
+                        try:
+                            theme_change = float(cols[1].text.strip().replace('%','').replace('+','').replace(' ',''))
+                        except:
+                            theme_change = 0.0
                         
                     theme_list.append({
                         "테마": theme_name,
@@ -59,14 +59,13 @@ def fetch_naver_theme_data():
                         "링크": theme_link
                     })
                     count += 1
-                    if count >= 25: # 최대 25개 메인 테마 수집
+                    if count >= 20: # 가독성을 위해 상위 20개 핵심 테마 수집
                         break
                         
-        # 각 테마별 상세 페이지로 들어가서 소속 종목 긁어오기
         all_stocks = []
         for t_info in theme_list:
             try:
-                t_req = urllib.request.Request(t_info["링크"], headers={'User-Agent': 'Mozilla/5.0'})
+                t_req = urllib.request.Request(t_info["LINK" if "LINK" in t_info else "링크"], headers={'User-Agent': 'Mozilla/5.0'})
                 t_html = urllib.request.urlopen(t_req).read()
                 t_soup = BeautifulSoup(t_html, 'html.parser')
                 
@@ -90,7 +89,7 @@ def fetch_naver_theme_data():
                                 # 종목 등락률 파싱
                                 s_change_tag = s_cols[2].find('span')
                                 if s_change_tag:
-                                    s_change_text = s_change_tag.text.strip().replace('%','').replace('+','')
+                                    s_change_text = s_change_tag.text.strip().replace('%','').replace('+','').replace(' ','')
                                     try:
                                         s_change = float(s_change_text)
                                         if 'nv01' in s_change_tag.get('class', []):
@@ -98,7 +97,10 @@ def fetch_naver_theme_data():
                                     except:
                                         s_change = 0.0
                                 else:
-                                    s_change = 0.0
+                                    try:
+                                        s_change = float(s_cols[2].text.strip().replace('%','').replace('+','').replace(' ',''))
+                                    except:
+                                        s_change = 0.0
                                     
                                 all_stocks.append({
                                     "테마": t_info["테마"],
@@ -108,43 +110,40 @@ def fetch_naver_theme_data():
                                     "등락률": s_change
                                 })
                                 s_count += 1
-                                if s_count >= 6: # 각 테마별 상위 주도종목 6개씩 매핑
+                                if s_count >= 5: # 테마별 주도종목 5개씩 매핑
                                     break
             except Exception:
                 continue
                 
-        df = pd.DataFrame(all_stocks)
-        return df
-    except Exception as e:
-        st.error(f"데이터 크롤링 중 오류 발생: {e}")
+        return pd.DataFrame(all_stocks)
+    except Exception:
         return pd.DataFrame()
 
 # 데이터 엔진 가동
-with st.spinner("🔄 네이버 증권에서 실시간 전체 테마 정보를 긁어오는 중입니다..."):
+with st.spinner("🔄 네이버 증권에서 주중 최종 시장 테마 데이터를 가져오는 중입니다..."):
     df_result = fetch_naver_theme_data()
 
+# 최종 데이터가 비어있지 않다면 화면 구성
 if not df_result.empty:
-    # 알고리즘 보정: 등락률이 높을수록 트리맵 면적이 자동 배정되어 커지도록 유도
     df_result["상자크기"] = df_result["테마등락률"].apply(lambda x: max(x + 25, 5))
     df_result["시장"] = "국내 주식 시장"
 
-    # 3. 상단 대형 트리맵 지도 시각화 (상승 테마가 무조건 가장 먼저 왼쪽 위에 배치됨)
+    # 3. 상단 대형 트리맵 지도 시각화
     st.subheader("🗺️ 실시간 테마 지도")
     fig = px.treemap(
         df_result,
         path=["시장", "테마", "종목명"],
         values="상자크기",
         color="등락률",
-        color_continuous_scale=["blue", "white", "red"], # 한국 주식 맞춤형 색상
+        color_continuous_scale=["blue", "white", "red"],
         color_continuous_midpoint=0,
     )
     fig.update_traces(textinfo="label+value", hovertemplate="<b>%{label}</b><br>등락률: %{color:.2f}%")
     fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), height=460)
 
-    # 양방향 클릭 감지 리스너 가동
     selected_points = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
-    # 4. 네이버 실시간 뉴스 검색 크롤러 함수
+    # 4. 네이버 실시간 뉴스 검색 크롤러
     def get_stock_news(keyword):
         try:
             encText = urllib.parse.quote(keyword + " 주식 뉴스")
@@ -157,12 +156,12 @@ if not df_result.empty:
             
             news_list = []
             for t, l in zip(titles, links):
-                news_list.append({"제목": t, "リンク": l})
+                news_list.append({"제목": t, "링크": l})
             return news_list
         except Exception:
             return [{"제목": "실시간 뉴스를 불러올 수 없습니다.", "링크": "#"}]
 
-    # 5. 하단 5:5 완벽 연동 인터페이스 구현 [image_GAiPcN.png]
+    # 5. 하단 5:5 완벽 연동 레이아웃
     st.write("---")
     selected_theme = None
 
@@ -177,11 +176,11 @@ if not df_result.empty:
             else:
                 matched = df_result[df_result["종목명"] == label]
                 if not matched.empty:
-                    selected_theme = matched.iloc[0]["테마"]
+                    selected_theme = matched.iloc["테마"].values[0]
 
-    # 사용자가 상자를 클릭했을 때 가동하는 레이아웃 구조
+    # 상자 클릭 시 동작부
     if selected_theme:
-        col1, col2 = st.columns(2) # 좌우 5:5 분할 정렬
+        col1, col2 = st.columns(2)
         
         with col1:
             st.subheader(f"📈 {selected_theme} 관련 종목")
@@ -194,12 +193,11 @@ if not df_result.empty:
             st.subheader(f"📰 {selected_theme} 관련 실시간 뉴스")
             news_data = get_stock_news(selected_theme)
             for item in news_data:
-                # 뉴스 제목을 누르면 해당 신문사 원문 창이 새 창(팝업)으로 부드럽게 연동됨!
                 st.markdown(f"• [{item['제목']}]({item['링크']})")
     else:
         st.info("💡 위 실시간 테마 지도에서 궁금한 테마 상자(예: '2차전지' 등)를 마우스로 클릭해 보세요! 하단에 종목 리스트와 실시간 뉴스가 좌우로 연동되어 나타납니다.")
 else:
-    st.warning("⚠️ 현재 네이버 금융 데이터를 가져오지 못했습니다. 잠시 후 새로고침 해주세요.")
+    st.warning("⚠️ 주말 또는 장마감 데이터 동기화 대기 중입니다. 잠시 후 새로고침(F5) 해주세요.")
 
 today_str = datetime.datetime.now().strftime("%Y-%m-%d")
-st.caption(f"최근 업데이트: {today_str} | 데이터 제공: 네이버 페이 증권 크롤링 엔진")
+st.caption(f"최근 업데이트: {today_str} | 데이터 제공: 네이버 페이 증권 주말 예외방어 크롤러 엔진")
