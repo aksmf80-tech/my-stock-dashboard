@@ -8,7 +8,7 @@ import time
 st.set_page_config(layout="wide")
 
 # 🔔 홍보 배너
-st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://blog.naver.com/moneybridge1004)에서 매일 확인하세요!**")
+st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://naver.com)에서 매일 확인하세요!**")
 
 st.title("📊 테마별 현황판")
 
@@ -33,37 +33,37 @@ def render_interactive_dashboard():
     st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {time.strftime('%H:%M:%S')})")
 
     # ---------------------------------------------------------
-    # 구역 1: 등락률에 따라 크기가 스스로 바뀌는 트리맵 (Treemap)
+    # 구역 1: 절대 화면이 확대되지 않는 세련된 테마별 등락률 막대 현황판
     # ---------------------------------------------------------
-    fig = px.treemap(
-        df, 
-        path=['테마'], # 원래의 깔끔하고 직관적인 구조로 롤백
-        values='등락률', 
+    # 테마별 등락률을 직관적으로 보여주며, 클릭 시 확대 버그를 원천 차단합니다.
+    fig = px.bar(
+        df,
+        x='테마',
+        y='등락률',
         color='등락률',
-        color_continuous_scale='RdBu_r', 
+        color_continuous_scale='RdBu_r', # 상승은 빨강, 하락은 파랑 동일 적용
+        text='등락률', # 막대 위에 등락률 수치 표시
         hover_data=['종목명', '업데이트시간']
     )
     
-    # 🛠️ [진짜 해결책] 트리맵 고유의 클릭 확대(Drill-down) 액션을 완전히 비활성화합니다.
-    fig.update_layout(clickmode='event') 
-    fig.data[0].on_click(None)
+    # 그래프 디자인을 깔끔하게 다듬고 테두리 여백 조정
+    fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
+    fig.update_layout(margin=dict(t=30, l=10, r=10, b=10), height=400, xaxis_title=None, yaxis_title="등락률 (%)")
     
-    fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), height=400)
-    
-    # 스트림릿에 트리맵 그리기 및 클릭 감지 설정
+    # 스트림릿에 막대 그래프 그리기 및 클릭 감지 설정
     selected_theme = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
     # 기본 선택 테마 지정 및 클릭 연동 정상화
-    current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
+    current_theme = df['테마'].iloc if not df.empty else "선택된 테마 없음"
     if selected_theme and "points" in selected_theme and len(selected_theme["points"]) > 0:
-        current_theme = selected_theme["points"][0].get("label", current_theme)
+        current_theme = selected_theme["points"].get("x", current_theme)
 
     st.markdown("---")
 
     # ---------------------------------------------------------
     # 구역 2: 테마 클릭 시 아래에 목록이 주르륵 나오는 부분 & 뉴스 연동
     # ---------------------------------------------------------
-    st.subheader(f"📂 {current_theme} 관련 정보")
+    st.subheader(f"📂 {current_theme} 相关 정보")
     
     # 해당 테마에 속한 종목들만 필터링
     theme_df = df[df['테마'] == current_theme].copy()
@@ -96,7 +96,7 @@ def render_interactive_dashboard():
        
         # 🔗 [추가 유입 장치] 뉴스 구역 맨 아래에도 블로그 이동 텍스트 링크 삽입!
         st.markdown("---")
-        st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://blog.naver.com/moneybridge1004)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
+        st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
 
 # 대시보드 화면 실행
 render_interactive_dashboard()
