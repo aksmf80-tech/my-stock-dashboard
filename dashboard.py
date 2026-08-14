@@ -33,37 +33,38 @@ def render_interactive_dashboard():
     st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {time.strftime('%H:%M:%S')})")
 
     # ---------------------------------------------------------
-    # 구역 1: 핀업 사이트 스타일 ➡️ 테마 클릭 시 종목 바둑판으로 확대되는 트리맵
+    # 구역 1: 핀업(FINUP) 스타일 ➡️ 클릭 시 화면이 꽉 차며 종목이 쪼개지는 트리맵
     # ---------------------------------------------------------
-    # 💡 path에 ['테마', '종목명'] 계층 구조를 명시하여 핀업 증권과 똑같은 화면 확대를 구현합니다.
+    # 💡 [핀업 완벽 재현 핵심] 
+    # 첫 화면에서 대분류 테마만 깔끔하게 보이고 클릭 시 꽉 차게 확대되도록 px.Constant와 maxdepth 조합을 사용합니다.
     fig = px.treemap(
         df, 
-        path=['테마', '종목명'], 
+        path=[px.Constant("시장 전체"), '테마', '종목명'], 
         values='등락률', 
         color='등락률',
-        color_continuous_scale='RdBu_r', # 상승은 빨강, 하락은 파랑 동일 적용
+        color_continuous_scale='RdBu_r', 
         hover_data=['업데이트시간']
     )
     
-    # 텍스트 레이아웃 최적화 (네모칸 안에 라벨과 수치가 잘 보이도록 설정)
-    fig.update_traces(textinfo="label+value")
+    # maxdepth=2를 설정하여 처음에는 '시장 전체 -> 테마'까지만 보여주고 화면을 깔끔하게 유지합니다.
+    fig.update_traces(maxdepth=2, textinfo="label+value")
     fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), height=500)
     
     # 스트림릿에 트리맵 그리기 및 클릭 감지 설정
     selected_theme = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
-    # 🛠️ [iloc 오타 완벽 해결] 첫 행 데이터를 안전하게 가져오도록 교정합니다.
+    # 🛠️ [iloc 오타 완벽 교정] 행 번호 [0]을 정확히 붙여서 데이터 누락 에러를 완벽하게 차단합니다.
     current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
     
-    # 사용자가 트리맵에서 어떤 계층(테마 또는 종목)을 탐색 중인지 정확히 추적하여 하단 정보와 실시간 동기화
+    # 트리맵 클릭 시 유저가 탐색하는 화면의 단계를 추적하여 하단 정보와 실시간으로 동기화합니다.
     if selected_theme and "points" in selected_theme and len(selected_theme["points"]) > 0:
         point_data = selected_theme["points"][0]
         clicked_label = point_data.get("label", current_theme)
         
-        # 1. 클릭한 이름이 실제 테마 컬럼에 존재하면 해당 테마로 지정
+        # 클릭한 구역이 실제 테마명이면 하단 정보를 변경
         if clicked_label in df['테마'].values:
             current_theme = clicked_label
-        # 2. 만약 소속 종목을 클릭해서 들어간 상태라면 부모(parent)인 테마명을 추적
+        # 더 안쪽의 개별 종목 구역까지 클릭해 들어간 상태라면 부모(parent)인 테마명을 추적하여 유지
         elif "parent" in point_data and point_data["parent"] in df['테마'].values:
             current_theme = point_data["parent"]
 
@@ -72,7 +73,6 @@ def render_interactive_dashboard():
     # ---------------------------------------------------------
     # 구역 2: 테마 클릭 시 아래에 목록이 주르륵 나오는 부분 & 뉴스 연동
     # ---------------------------------------------------------
-    # 🛠️ [중국어 오타 완벽 박멸] '관련 정보'로 깨끗하게 출력됩니다.
     st.subheader(f"📂 {current_theme} 관련 정보")
     
     # 해당 테마에 속한 종목들만 필터링
