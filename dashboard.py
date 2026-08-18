@@ -6,7 +6,7 @@ import os
 import time
 
 # =========================================================================
-# 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정 (6px 매니큐어 바 고정)
+# 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정 (상단 글자 잘림 완벽 해결)
 # =========================================================================
 st.set_page_config(
     page_title="1분 연동 핀업 스타일 주식 테마 대시보드",
@@ -16,7 +16,8 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    .block-container { padding-top: 2.5rem !important; padding-bottom: 0.5rem !important; }
+    /* 🚨 [천장 잘림 방지 패치] padding-top을 4.2rem으로 늘려 상단 타이틀 글자가 절대 잘리지 않도록 안전 여백 확보 */
+    .block-container { padding-top: 4.2rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.5rem 0 !important; }
     
@@ -66,6 +67,7 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
 # =========================================================================
 # 1. 📂 데이터 로드 및 정제 구역 (1분 장중 무한 실시간 동기화 데이터 풀)
 # =========================================================================
