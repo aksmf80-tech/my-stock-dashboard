@@ -217,16 +217,20 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [오타 완전 박멸] 에러를 내던 무의미한 영문 파편 "Glen"을 완벽하게 삭제 청소했습니다.
+        # 🎯 [연동 마비 영구 격파] points_list[0] 배열 슬롯을 정밀 타격하여
+        # 마우스 클릭 즉시 순수 한글 테마명을 100% 가로채 세션에 주입하는 신형 엔진 코딩 고정
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    p_target = points_list
+                    p_target = points_list[0]
                     if "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
+                        if isinstance(p_target["customdata"], list):
+                            st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
+                        else:
+                            st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
                 except Exception:
                     pass
     else:
@@ -252,7 +256,7 @@ with right_layout:
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
-    # 파이썬 순정 소팅 가드로 정렬 고정
+    # 🎯 기억2 고유의 최고 사양 정렬 로직 고정
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
