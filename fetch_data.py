@@ -9,7 +9,7 @@ def get_naver_data():
     네이버 금융 테마별 시세 테이블을 데이터프레임으로 직관적으로 추출하여
     테마명, 대장주, 실제 테마 등락률을 정확하게 매핑합니다.
     """
-    url = "https://naver.com"
+    url = "https://finance.naver.com/sise/theme.nhn"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
     }
