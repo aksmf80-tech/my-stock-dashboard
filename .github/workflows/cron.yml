@@ -21,20 +21,16 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas plotly pykrx beautifulsoup4 requests streamlit>=1.37.0
+          pip install pandas plotly yfinance beautifulsoup4 requests streamlit
 
       - name: Run Crawler Engine
         run: python fetch_data.py
 
-      # 🎯 [0.0 지옥 완전 종결 핵심]
-      # 깃허브 추적 오류를 완전히 우회하기 위해, 파일 변경을 감지하지 않고 
-      # 무조건 강제로(Force) 파일을 저장소에 등록하고 main 브랜치에 밀어 넣습니다.
+      # 🎯 [이름표 고정] 문자열 꼬임 현상을 완전히 차단하고 정품 이름인 theme_data.csv로 무조건 강제 푸시합니다.
       - name: Commit and Force Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@://github.com"
-          
-          # 강제로 파일 추적을 밀어붙이는 파이프라인
-          git add -A
-          git commit -m "🔄 [실시간 해방] 진짜 당일 주가 퍼센트 데이터 전면 갱신 완료" || echo "No changes"
+          git add theme_data.csv
+          git commit -m "🔄 [글로벌 해방] 정품 이름으로 실시간 데이터 전면 갱신 완료" || echo "No changes"
           git push origin main --force
