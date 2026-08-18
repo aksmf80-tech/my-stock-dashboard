@@ -217,13 +217,11 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [연동 마비 영구 격파] points_list[0] 배열 슬롯을 정밀 타격하여
-        # 마우스 클릭 즉시 순수 한글 테마명을 100% 가로채 세션에 주입하는 신형 엔진 코딩 고정
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    p_target = points_list[0]
+                    p_target = points_list
                     if "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "customdata" in p_target and p_target["customdata"]:
@@ -256,16 +254,37 @@ with right_layout:
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
-    # 🎯 기억2 고유의 최고 사양 정렬 로직 고정
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
+    
+    # 🎯 [핵심 그래픽 패치] 버튼 크기를 1%도 변형시키지 않고 내부 바탕색과 글자색만 정밀 타격 염색하는 순정 CSS 주입
+    st.markdown("""
+        <style>
+        div[data-testid="stHorizontalBlock"] button[key^="up_btn_"] {
+            background-color: rgba(220, 38, 38, 0.2) !important;
+            border: 1px solid rgba(220, 38, 38, 0.4) !important;
+        }
+        div[data-testid="stHorizontalBlock"] button[key^="up_btn_"] p {
+            color: #FF6B6B !important;
+            font-weight: bold !important;
+        }
+        div[data-testid="stHorizontalBlock"] button[key^="down_btn_"] {
+            background-color: rgba(37, 99, 235, 0.2) !important;
+            border: 1px solid rgba(37, 99, 235, 0.4) !important;
+        }
+        div[data-testid="stHorizontalBlock"] button[key^="down_btn_"] p {
+            color: #64B5FF !important;
+            font-weight: bold !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     
     st.markdown("#### 🔺 상승 종목")
     if up_stocks:
         up_cols = st.columns(2)
         for u_idx, (s_name, s_rate) in enumerate(up_stocks[:13]):
             with up_cols[u_idx % 2]:
-                st.button(f"🔺 {s_name} (+{s_rate}%)", key=f"up_btn_fixed_{u_idx}_{s_name}", use_container_width=True)
+                st.button(f"🔺 {s_name} (+{s_rate}%)", key=f"up_btn_{u_idx}_{s_name}", use_container_width=True)
     else:
         st.text("상승 종목이 없습니다.")
         
@@ -276,7 +295,7 @@ with right_layout:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate) in enumerate(down_stocks[:13]):
             with down_cols[d_idx % 2]:
-                st.button(f"🔹 {s_name} ({s_rate}%)", key=f"down_btn_fixed_{d_idx}_{s_name}", use_container_width=True)
+                st.button(f"🔹 {s_name} ({s_rate}%)", key=f"down_btn_{d_idx}_{s_name}", use_container_width=True)
     else:
         st.text("하락 종목이 없습니다.")
 
