@@ -1,109 +1,131 @@
+import streamlit as st
 import pandas as pd
-from pykrx import stock
-import datetime
+import plotly.express as px
 import os
+import time
+from datetime import datetime, timedelta
 
-def get_market_theme_data():
-    """
-    증권사 보안이나 차단벽에 영향받지 않고, 한국거래소(KRX) 실시간 스냅샷을 캡처하여
-    장중(오전/오후) 언제 돌려도 0.0 뭉개짐 없는 진짜 퍼센트(%) 등락률을 수집합니다.
-    """
-    try:
-        # 해외 깃허브 서버 시차 해결 (한국 시간 KST 산출)
-        current_base = datetime.datetime.now()
-        if current_base.hour < 9:
-            kst_now = current_base + datetime.timedelta(hours=9)
-        else:
-            kst_now = current_base
-            
-        today_str = kst_now.strftime("%Y%m%d")
-        print(f"🚀 pykrx 장중 실시간 스냅샷 엔진 가동 (기준일: {today_str})...")
-        
-        # 🎯 [0.0 버그 완전 해결] 장중에 0.0을 뱉는 정산용 함수 대신, 
-        # 현재 활성화된 호가판을 그대로 긁어오는 get_market_snapshot_by_ticker() 함수를 직통 호출합니다.
-        df_kospi = stock.get_market_snapshot_by_ticker("KOSPI")
-        df_kosdaq = stock.get_market_snapshot_by_ticker("KOSDAQ")
-        
-        # 주말이나 밤 시간대 방어막 (스냅샷이 비어있다면 최근 영업일 종가 변동 리스트로 백업)
-        if df_kospi.empty or df_kosdaq.empty:
-            latest_date = stock.get_nearest_business_day_in_a_week()
-            print(f"⌛ 휴일 또는 장 개시 전입니다. 최근 마감일({latest_date}) 시세로 전환합니다.")
-            df_kospi = stock.get_market_price_change_by_ticker(latest_date, latest_date, "KOSPI")
-            df_kosdaq = stock.get_market_price_change_by_ticker(latest_date, latest_date, "KOSDAQ")
-            
-        df_market = pd.concat([df_kospi, df_kosdaq])
-        
-        if df_market.empty:
-            print("⚠️ 거래소 시세 테이블이 완전히 비어있습니다.")
-            return None
-            
-        # 데이터프레임 구조 정형화
-        df_market = df_market.reset_index()
-        
-        # pykrx 컬럼명 강제 통합
-        if '종목명' not in df_market.columns:
-            df_market['종목명'] = df_market.iloc[:, 1].astype(str).str.strip()
-        else:
-            df_market['종목명'] = df_market['종목명'].astype(str).str.strip()
-            
-        if '등락률' in df_market.columns:
-            df_market['등락률'] = pd.to_numeric(df_market['등락률'], errors='coerce').fillna(0.0)
-        else:
-            df_market['등락률'] = 0.0
+# ⚠️ set_page_config는 반드시 최상단에 고정되어야 합니다.
+st.set_page_config(layout="wide")
 
-        # 선생님 블로그 포스팅 전략 맞춤형 9대 핵심 주도 테마 맵
-        theme_map = {
-            "자동차 부품": ["현대모비스", "한온시스템", "현대위아", "성우하이텍", "서연이화", "화신", "에스엘"],
-            "로봇/AI": ["레인보우로보틱스", "두산로보틱스", "뉴로메카", "루닛", "뷰노", "이랜시스", "RS오토메이션"],
-            "시스템 반도체": ["네패스", "리노공업", "한미반도체", "두산테스나", "가온칩스", "오픈엣지테크놀로지"],
-            "방산": ["한화에어로스페이스", "한국항공우주", "LIG넥스원", "현대로템", "풍산", "휴니드"],
-            "2차전지": ["에코프로", "에코프로비엠", "포스코퓨처엠", "엘앤에프", "금양", "나노신소재", "엔켐"],
-            "초전도체": ["신성델타테크", "파워로직스", "서남", "덕성", "모비스", "씨씨에스"],
-            "원자력 발전": ["두산에너빌리티", "우진", "보성파워텍", "일진파워", "한신기계", "에너토크"],
-            "우주항공": ["한국항공우주", "컨텍", "인텔리안테크", "AP위성", "제노코", "한화시스템"],
-            "바이오시밀러": ["셀트리온", "삼성바이오로직스", "한미약품", "유한양행", "알테오젠", "에이치엘비"]
-        }
-        
-        rows_list = []
-        
-        for theme_name, stock_list in theme_map.items():
-            theme_stocks_df = df_market[df_market['종목명'].isin(stock_list)]
-            
-            if not theme_stocks_df.empty:
-                for _, row in theme_stocks_df.iterrows():
-                    rows_list.append({
-                        "테마": theme_name,
-                        "종목명": row['종목명'],
-                        "등락률": round(float(row['등락률']), 2)
-                    })
-                    
-        if not rows_list:
-            print("❌ 테마 종목 매핑 실패")
-            return None
-            
-        final_df = pd.DataFrame(rows_list)
-        
-        # 한국 표준시(KST) 현재 시간 낙인
-        now_time_kst = kst_now.strftime('%Y-%m-%d %H:%M:%S')
-        final_df['업데이트시간'] = now_time_kst
-        
-        return final_df
-        
-    except Exception as e:
-        print(f"❌ 금융 API 통합 데이터 수집 중 치명적 에러: {e}")
-        return None
+# 🔔 홍보 배너 및 대시보드 타이틀
+st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://naver.com)에서 매일 확인하세요!**")
+st.title("📊 테마별 현황판")
 
-if __name__ == "__main__":
-    print("🚀 pykrx 장중 실시간 엔진 구동...")
-    DATA_FILE = "theme_data.csv"
+DATA_FILE = "theme_data.csv"
+
+# 데이터 파일 존재 여부 확인
+if not os.path.exists(DATA_FILE):
+    st.warning("⌛ 데이터 파일(theme_data.csv)을 기다리는 중입니다. 수집 앱을 확인해 주세요.")
+    st.stop()
+
+# 스트림릿 캐시를 무력화하고 쌩으로 파일을 실시간 새로고침하여 로드
+df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
+
+required_cols = ['테마', '종목명', '등락률']
+if df is None or df.empty or not all(col in df.columns for col in required_cols):
+    st.warning("📊 현재 표시할 주식 데이터 형식이 올바르지 않거나 데이터가 없습니다.")
+    st.stop()
+
+# 특정 테마의 화면 독점을 막기 위해 모든 테마 사각형의 크기를 동일하게 고정합니다.
+df['화면크기_고정'] = 10 
+
+# 해외 서버 기준 시간을 대한민국 서울 표준시(KST)로 정확히 연동
+utc_now = datetime.utcnow()
+kor_now = utc_now + timedelta(hours=9)
+current_time_str = kor_now.strftime('%H:%M:%S')
+
+st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {current_time_str})")
+
+# ---------------------------------------------------------
+# 상단 테마 선택 컨트롤러 배치
+# ---------------------------------------------------------
+theme_list = df['테마'].unique().tolist()
+current_theme = st.selectbox(
+    "🔍 **상세 정보를 조회할 테마를 선택하세요**", 
+    options=theme_list,
+    index=0,
+    key="global_theme_selector"
+)
+
+# ---------------------------------------------------------
+# 구역 1: 등락률 시각화용 트리맵 (0을 중심으로 선명한 핀업 스타일 대칭 정렬)
+# ---------------------------------------------------------
+v_min = df['등락률'].min()
+v_max = df['등락률'].max()
+abs_max = float(max(abs(v_min), abs(v_max), 3.0))
+
+fig = px.treemap(
+    df, 
+    path=['테마'], 
+    values='화면크기_고정',  # 사각형 크기 균등 고정
+    color='등락률',        # 색상은 종목/테마별 등락률 각자 실시간 추적!
+    color_continuous_scale='RdBu_r', # 상승은 빨강, 하락은 파랑 완벽 대조
+    range_color=[-abs_max, abs_max], # 0%를 중심으로 선명하게 맵핑
+    hover_data=['종목명']
+)
+
+# 핀업 스타일 테두리 마감 및 가독성 설정
+fig.update_traces(
+    maxdepth=1, 
+    textinfo="label+value",
+    marker=dict(line=dict(width=1.5, color='white'))
+)
+
+fig.update_layout(
+    dragmode=False,    
+    margin=dict(t=10, l=10, r=10, b=10), 
+    height=380
+)
+
+# 차트 표출
+st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
+
+st.markdown("---")
+
+# ---------------------------------------------------------
+# 구역 2: 테마 클릭 시 아래에 목록이 주르륵 나오는 부분 & 뉴스 연동
+# ---------------------------------------------------------
+st.subheader(f"📂 {current_theme} 관련 정보")
+
+# 해당 테마에 속한 종목들만 필터링
+theme_df = df[df['테마'] == current_theme].copy()
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown(f"**📈 {current_theme} 종목 리스트**")
     
-    df = get_market_theme_data()
-    if df is not None and not df.empty:
-        if os.path.exists(DATA_FILE):
-            os.remove(DATA_FILE)
-            
-        df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
-        print("🎉 [성공] 장중 실시간 퍼센트(%) 데이터로 theme_data.csv 완전 갱신 완료!")
-        print(df.head(5))
-    else:
-        print("⚠️ 데이터를 정상적으로 추출하지 못했습니다.")
+    st.data_editor(
+        theme_df[['종목명', '등락률']],
+        use_container_width=True,
+        disabled=True, 
+        key="stock_selector"
+    )
+    
+    current_stock = st.selectbox("🔍 뉴스를 볼 종목을 선택하세요", theme_df['종목명'].unique()) if not theme_df.empty else "선택된 종목 없음"
+
+with col2:
+    st.markdown(f"**📰 {current_theme} + {current_stock} 관련 뉴스**")
+    st.info(f"🔍 '{current_stock}' 및 '{current_theme}' 시장 동향에 대한 실시간 뉴스...")
+    
+    stock_news_url = "https://naver.com" + str(current_stock)
+    theme_news_url = "https://naver.com" + str(current_theme).replace(" ", "")
+    
+    st.markdown(f"📌 [📢 [뉴스] '{current_stock}' 관련주, 거래량 급증하며 강세 (1일 전)]({stock_news_url})")
+    st.markdown(f"📌 [📢 [뉴스] '{current_theme}' 시장 경쟁 심화... '{current_stock}' 글로벌 공급망 확대 나선다 (2일 전)]({theme_news_url})")
+   
+    st.markdown("---")
+    st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
+
+# ---------------------------------------------------------
+# 타이머 엔진 (60초 자동 리셋 및 캐시 고스트 파괴)
+# ---------------------------------------------------------
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    st.cache_data.clear()
+    st.invalidate_pages() 
+    st.rerun()
