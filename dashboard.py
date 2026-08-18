@@ -61,20 +61,39 @@ selected_theme = st.plotly_chart(
     config={'displayModeBar': False, 'scrollZoom': False}
 )
 
-# 🛠️ [완전 교정] 기본 선택 테마 지정 시 iloc[0]로 정확히 첫 행 인덱스 지정
-current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
+# 🛠️ 세션 변수가 아예 없을 때만 최초 기본값(첫 행 테마) 지정
+if "chosen_theme" not in st.session_state:
+    st.session_state["chosen_theme"] = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
 
-# 🛠️ [버그 완전 박멸] 구조 분해 및 리스트 0번째 딕셔너리 안전 접근 로직 최종 수정
+# 🛠️ [클릭 트래킹 완전 보완] 모든 데이터 추출 경로 예외처리
 if selected_theme:
+    points = []
+    # 구조 분해하여 points 리스트 추출
     if hasattr(selected_theme, "selection") and selected_theme.selection:
         points = selected_theme.selection.get("points", [])
-        if points and len(points) > 0:
-            # 리스트 내부의 0번째 딕셔너리 객체에서 label을 안전하게 가져옵니다.
-            current_theme = points[0].get("label", current_theme)
     elif isinstance(selected_theme, dict) and "selection" in selected_theme:
         points = selected_theme["selection"].get("points", [])
-        if points and len(points) > 0:
-            current_theme = points[0].get("label", current_theme)
+        
+    if points and len(points) > 0:
+        point_data = points[0]
+        
+        # 💡 트리맵 종류에 따라 label, id, root 등에 값이 다르게 맵핑되므로 순차적으로 탐색합니다.
+        clicked_label = (
+            point_data.get("label") or 
+            point_data.get("id") or 
+            point_data.get("root")
+        )
+        
+        # 만약 'id' 경로에 '/'가 포함되어 들어오는 경우(예: "자동차 부품/현대모비스") 텍스트를 정제합니다.
+        if clicked_label and "/" in str(clicked_label):
+            clicked_label = str(clicked_label).split("/")[-1]
+            
+        # 정상적인 값이 추출되었을 때만 세션 상태를 변경하여 화면을 유지합니다.
+        if clicked_label and str(clicked_label).strip() != "" and clicked_label in df['테마'].values:
+            st.session_state["chosen_theme"] = clicked_label
+
+# 무조건 세션에 기록된 최종 테마를 화면에 바인딩
+current_theme = st.session_state["chosen_theme"]
 
 st.markdown("---")
 
