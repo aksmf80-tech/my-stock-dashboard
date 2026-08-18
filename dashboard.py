@@ -162,5 +162,4 @@ if "last_refresh" not in st.session_state:
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
-    st.invalidate_pages() 
-    st.rerun()
+    st.rerun() # 🎯 에러 유발 함수를 지우고 깔끔하게 바로 리런시킵니다.
