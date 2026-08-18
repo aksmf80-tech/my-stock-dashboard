@@ -95,7 +95,7 @@ fig = px.treemap(
 
 fig.update_traces(
     maxdepth=1, 
-    texttemplate="%{customdata[0]}", 
+    texttemplate="%{customdata}", 
     marker=dict(line=dict(width=3.0, color='white')), 
     textfont=dict(size=22, color='white', weight='bold')
 )
@@ -108,6 +108,7 @@ fig.update_layout(
     height=700 
 )
 
+# 트리맵 차트 화면 출력 및 선택 이벤트 바인딩
 selected_point = st.plotly_chart(
     fig, 
     use_container_width=True, 
@@ -116,18 +117,18 @@ selected_point = st.plotly_chart(
     key="treemap_selector"
 )
 
-# 기본값 지정
+# 선택 테마 추출 및 기본값 예외 처리
 chosen_theme = theme_summary['테마'].iloc[0] 
 
 if selected_point and "points" in selected_point and len(selected_point["points"]) > 0:
-    clicked_id = selected_point["points"][0].get("id")
+    clicked_id = selected_point["points"].get("id")
     if clicked_id:
         chosen_theme = clicked_id.split('/')[-1]
 
 st.markdown("<hr style='margin: 15px 0px;'/>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 구역 2: 🎯 트리맵 클릭과 100% 직통 연동되는 하단 정보 구역
+# 구역 2: 🎯 뉴스 삭제 및 전광판 시세표 100% 가로 확장 구역
 # ---------------------------------------------------------
 st.subheader(f"📂 {chosen_theme} 관련 정보")
 
@@ -137,29 +138,9 @@ theme_df['등락률_정제'] = theme_df['등락률'].apply(lambda x: f"+{round(f
 theme_df_clean = theme_df[['종목명', '등락률_정제']].copy()
 theme_df_clean.columns = ['🔥 소속 대장 종목명', '📈 실시간 등락률 (%)']
 
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown(f"### 📊 {chosen_theme} 소속 대장주 당일 시세판")
-    st.table(theme_df_clean)
-    
-import urllib.parse # 코드가 꼬이지 않도록 주소 안전 인코딩 라이브러리 활용
-
-with col2:
-    st.markdown(f"### 📰 {chosen_theme} 뉴스 브리핑")
-    st.info(f"🔍 '{chosen_theme}' 시장 동향 및 주도주 흐름에 대한 실시간 뉴스 요약...")
-    
-    # 🎯 [보안 차단 원천 우회] 한글 테마명을 컴퓨터용 안전 암호문(%EB%8C%80...)으로 변환합니다.
-    # 이렇게 하면 브라우저나 포털의 태그 차단 엔진이 '안전한 정식 요청'으로 인식하여 무조건 통과시킵니다.
-    safe_keyword = urllib.parse.quote(chosen_theme)
-    stock_news_url = f"https://naver.com{safe_keyword}"
-    
-    st.markdown(f"📌 [📢 **[실시간 뉴스] '{chosen_theme}' 주도 테마, 대량 거래대금 몰리며 시장 강력 견인 (방금 전)**]({stock_news_url})")
-    st.markdown(f"📌 [📢 **[시황 분석] 글로벌 공급망 재편 수혜주 부각... 블로그 본문에서 대장주 매매 타점 공개**]({stock_news_url})")
-
-    st.markdown("<hr style='margin: 10px 0px;'/>", unsafe_allow_html=True)
-    st.markdown("✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
-
+# 🗑️ 레이아웃 분할 칼럼(col1, col2) 및 뉴스를 전면 삭제하여 렉과 보안 충돌 원천 제거!
+st.markdown(f"### 📊 {chosen_theme} 소속 대장주 당일 시세판")
+st.table(theme_df_clean) # 26px 흰색 왕글씨가 화면 가로 전체를 채우며 표출됩니다.
 
 # 60초 자동 리셋 시스템 유지
 if "last_refresh" not in st.session_state:
