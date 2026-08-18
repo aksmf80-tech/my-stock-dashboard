@@ -20,7 +20,7 @@ st.markdown("""
         max-width: 100% !important;
     }
     
-    /* 타이틀 마진 축소 */
+    /* 타이틀 마진 및 잘림 방지 수정 완료 */
     h1 {
         margin-top: 15px !important;
         margin-bottom: 15px !important;
@@ -44,13 +44,6 @@ st.markdown("""
         background-color: #1A1D24 !important;
     }
     
-    /* 선택 상자 텍스트 크기 확대 */
-    div[data-testid="stSelectbox"] label p {
-        font-size: 20px !important;
-        font-weight: bold !important;
-        color: #FFD700 !important;
-    }
-    
     /* 서브 타이틀 대형화 */
     .stMarkdown h3 {
         font-size: 28px !important;
@@ -62,9 +55,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# 🗑️ [기존 상단 st.info 홍보 배너 및 st.success 동기화 알림 완전 제거]
-# ---------------------------------------------------------
 st.title("📊 테마별 현황판")
 
 DATA_FILE = "theme_data.csv"
@@ -89,33 +79,24 @@ def make_pinup_label(row):
 theme_summary['핀업라벨'] = theme_summary.apply(make_pinup_label, axis=1)
 
 # ---------------------------------------------------------
-# 직통 연동 선택 박스
-# ---------------------------------------------------------
-theme_list = theme_summary['테마'].unique().tolist()
-chosen_theme = st.selectbox(
-    "🔍 상세 정보를 조회할 테마를 선택하세요 (하단 시세판 자동 연동)", 
-    options=theme_list,
-    index=0,
-    key="global_theme_selector"
-)
-
-# ---------------------------------------------------------
-# 구역 1: 핀업 바둑판 트리맵 차트 (높이를 700으로 대폭 확대하여 전면 배치)
+# 구역 1: 핀업 바둑판 트리맵 차트 (높이 700 유지 및 클릭 이벤트 활성화)
 # ---------------------------------------------------------
 COLOR_LIMIT = 5.0 
 
+# 💡 클릭 이벤트 추적을 위해 ID가 부여된 일반 테마명('테마') 컬럼을 id로 매핑합니다.
 fig = px.treemap(
     theme_summary, 
-    path=['핀업라벨'], 
+    path=['테마'], 
     values='화면크기_가중치',    
-    color='등락률',        # 🎯 오타 수정: '등rak률' ➡️ '등락률'로 변경 완료
+    color='등락률',        
     color_continuous_scale='RdBu_r', 
-    range_color=[-COLOR_LIMIT, COLOR_LIMIT], 
+    range_color=[-COLOR_LIMIT, COLOR_LIMIT],
+    custom_data=['핀업라벨'] # 텍스트 표출용 라벨을 커스텀 데이터로 숨겨둡니다.
 )
 
 fig.update_traces(
     maxdepth=1, 
-    textinfo="label",      
+    texttemplate="%{customdata[0]}", # 🎯 화면에는 기존처럼 이쁜 '핀업라벨'이 크게 나옵니다.
     marker=dict(line=dict(width=3.0, color='white')), 
     textfont=dict(size=22, color='white', weight='bold')
 )
@@ -128,10 +109,30 @@ fig.update_layout(
     height=700 
 )
 
-st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
+# 🗑️ [기존 st.selectbox 완전 삭제 완료]
+# 🎯 [트리맵 자체 클릭 이벤트 연동 배치] on_select="rerun" 시스템 가동!
+selected_point = st.plotly_chart(
+    fig, 
+    use_container_width=True, 
+    config={'displayModeBar': False, 'scrollZoom': False},
+    on_select="rerun",
+    key="treemap_selector"
+)
+
+# 🎯 클릭 데이터 추출 및 예외처리 (아무것도 안 눌렀을 때는 거래대금/등락률 1위 테마 자동 선택)
+chosen_theme = theme_summary['테마'].iloc[0] # 기본값 지정
+
+if selected_point and "points" in selected_point and len(selected_point["points"]) > 0:
+    # 클릭한 블록의 id값(테마명)을 가져옵니다.
+    clicked_id = selected_point["points"][0].get("id")
+    if clicked_id:
+        # Plotly 트리맵의 내부 경로 구분자('/')가 섞여 들어오는 것을 정제합니다.
+        chosen_theme = clicked_id.split('/')[-1]
+
+st.markdown("<hr style='margin: 15px 0px;'/>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 구역 2: 하단 종목 시세판 및 뉴스 구역 (글자 크기 및 컴포넌트 업그레이드)
+# 구역 2: 🎯 트리맵 클릭과 100% 직통 연동되는 하단 정보 구역
 # ---------------------------------------------------------
 st.subheader(f"📂 {chosen_theme} 관련 정보")
 
@@ -145,7 +146,7 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.markdown(f"### 📊 {chosen_theme} 소속 대장주 당일 시세판")
-    st.table(theme_df_clean) # CSS 효과로 26px 크기의 대형 활자로 출력됩니다.
+    st.table(theme_df_clean)
     
 with col2:
     st.markdown(f"### 📰 {chosen_theme} 뉴스 브리핑")
@@ -162,4 +163,4 @@ if "last_refresh" not in st.session_state:
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
-    st.rerun() # 🎯 에러 유발 함수를 지우고 깔끔하게 바로 리런시킵니다.
+    st.rerun()
