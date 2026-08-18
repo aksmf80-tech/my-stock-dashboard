@@ -6,7 +6,7 @@ import os
 import time
 
 # =========================================================================
-# 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정 (왼쪽 매니큐어 띠 장착)
+# 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정 (왼쪽 포인트 컬러 바)
 # =========================================================================
 st.set_page_config(
     page_title="핀업 스타일 주식 테마 대시보드",
@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🎯 버튼의 크기 변형 없이 왼쪽 테두리에만 5px 두께로 빨강/파랑 매니큐어 띠 컬 주입
+# 🎯 [최종 디자인 패치] 테두리 크기 변경 전혀 없이 버튼 내측 왼쪽에만 6px 두께 매니큐어 컬러 바 주입
 st.markdown("""
     <style>
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
@@ -32,9 +32,9 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 🔺 상승 종목 버튼 왼쪽 테두리에만 매니큐어 빨간 띠 색칠 */
+    /* 🔺 상승 종목 버튼 왼쪽 테두리에만 6px 두께 강렬한 레드 매니큐어 바 주입 (사이즈 변동 0%) */
     div[data-testid="stHorizontalBlock"] button[key^="up_btn_"] {
-        border-left: 5px solid #EF4444 !important;
+        border-left: 6px solid #EF4444 !important;
         border-top: 1px solid #1E293B !important;
         border-right: 1px solid #1E293B !important;
         border-bottom: 1px solid #1E293B !important;
@@ -45,9 +45,9 @@ st.markdown("""
         font-weight: bold !important;
     }
     
-    /* 🔹 하락 종목 버튼 왼쪽 테두리에만 매니큐어 파란 띠 색칠 */
+    /* 🔹 하락 종목 버튼 왼쪽 테두리에만 6px 두께 시원한 블루 매니큐어 바 주입 (사이즈 변동 0%) */
     div[data-testid="stHorizontalBlock"] button[key^="down_btn_"] {
-        border-left: 5px solid #3B82F6 !important;
+        border-left: 6px solid #2563EB !important;
         border-top: 1px solid #1E293B !important;
         border-right: 1px solid #1E293B !important;
         border-bottom: 1px solid #1E293B !important;
@@ -65,10 +65,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
-# =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (26개 규모 대장주 백업 풀 보존)
-# =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
@@ -184,7 +180,7 @@ def load_market_data():
 
 raw_df, status_df = load_market_data()
 
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
 with title_col:
@@ -211,14 +207,9 @@ if "selected_theme_click" not in st.session_state:
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
-# 📌 파일 내 'left_layout, right_layout = ...' 바로 아랫줄부터 맨 밑바닥까지 전부 지우고 이 아래를 붙여넣으세요.
-
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
-        if '등락률' in top_25_themes.columns:
-            top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
-            
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -243,8 +234,6 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [대혁신 연동 브릿지] 리스트의 0번째 원소인 딕셔너리를 명확하게 지정([0])하여
-        # 누르는 즉시 외계어 없이 한글 라벨 텍스트명만 안전하게 세션에 고정 주입합니다.
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
@@ -253,10 +242,7 @@ with left_layout:
                     if "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "customdata" in p_target and p_target["customdata"]:
-                        if isinstance(p_target["customdata"], list):
-                            st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
-                        else:
-                            st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
+                        st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
                 except Exception:
                     pass
     else:
@@ -293,7 +279,6 @@ with right_layout:
                 st.button(f"🔺 {s_name} (+{s_rate}%)", key=f"up_btn_{u_idx}_{s_name}", use_container_width=True)
     else:
         st.text("상승 종목이 없습니다.")
-        
     st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
     st.markdown("#### 🔹 하락 종목")
