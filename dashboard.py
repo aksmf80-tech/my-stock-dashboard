@@ -49,19 +49,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역
+# 1. 📂 데이터 로드 및 정제 구역 (KeyError 버그 완전 제거)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
 @st.cache_data(ttl=5)
 def load_market_data():
+    # 1. 종목 및 등락률 데이터 결합 및 가공
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
         base_df.columns = [str(col).strip().lower() for col in base_df.columns]
         base_df = base_df.rename(columns={'테마': 'theme', '종목명': 'name', '시장': 'market', '종목코드': 'code', '등락률': 'rate'})
     else:
-        # 데이터가 없을 때 작동할 방어용 샘플 데이터셋
+        # 💡 [KeyError 해결] 샘플 데이터의 열 이름을 정확히 'theme' 소문자로 설정
         sample_rows = []
         mock_stocks = {
             '대북/남북경협': [('코데즈컴바인', 30.00), ('좋은사람들', 30.00), ('인디에프', 29.81)],
@@ -77,10 +78,15 @@ def load_market_data():
                 sample_rows.append({'theme': theme, 'name': name, 'rate': rate})
         base_df = pd.DataFrame(sample_rows)
         
+    # 만약 원본 데이터에 등락률(rate)이 없다면 가상으로 안전 패치
     if 'rate' not in base_df.columns:
         base_df['rate'] = np.random.uniform(-15, 30, size=len(base_df)).round(2)
-    base_df['theme'] = base_df['theme'].astype(str).str.strip()
+        
+    # 공백 제거 안전 조치 실행
+    if 'theme' in base_df.columns:
+        base_df['theme'] = base_df['theme'].astype(str).str.strip()
 
+    # 2. 실시간 테마 상태 데이터 로드
     if os.path.exists(STATUS_FILE) and os.path.getsize(STATUS_FILE) > 0:
         status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
         if '테마' in status_df.columns:
@@ -153,16 +159,22 @@ if not top_25_themes.empty and '테마' in top_25_themes.columns:
     
     side_space1, center_map, side_space2 = st.columns([0.2, 9.6, 0.2])
     with center_map:
-        # 🎯 [순정 기능 클릭 추적] on_select="rerun" 속성을 사용해 박스 클릭 이벤트를 감지합니다.
+        # 🎯 최신 Streamlit 순정 인터랙션 연동 모드 실행
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
+        # 클릭 이벤트 감지 루프
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list:
                 try:
-                    clicked_index = points_list[0]["point_number"]
-                    clicked_theme = top_25_themes['테마'].iloc[clicked_index]
-                    st.session_state.selected_theme_click = clicked_theme
+                    clicked_point = points_list[0]
+                    # 트리맵 계층 구조 내에서 선택된 포인트 넘버 매핑 보정
+                    if "point_number" in clicked_point:
+                        clicked_index = clicked_point["point_number"]
+                        # 최상위 루트 노드 인덱스 필터 처리 예외 방어
+                        if clicked_index < len(top_25_themes):
+                            clicked_theme = top_25_themes['테마'].iloc[clicked_index]
+                            st.session_state.selected_theme_click = clicked_theme
                 except Exception:
                     pass
 else:
