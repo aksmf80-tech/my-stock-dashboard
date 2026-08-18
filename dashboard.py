@@ -72,18 +72,11 @@ def load_synchronized_market_data():
     else:
         sample_rows = []
         mock_stocks = {
-            '대북/남북경협': [('코데즈컴바인', 30.00), ('좋은사람들', 30.00), ('인디에프', 29.81), ('일신석재', 22.24)],
-            '반도체 후공정': [('한미반도체', 14.20), ('리노공업', 5.12), ('이오테크닉스', 3.45)],
-            '시스템 반도체': [('삼성전자', -1.20), ('SK하이닉스', -2.50), ('DB하이텍', 0.85)],
-            '수소차': [('현대차', 2.10), ('일진하이솔루스', -0.50)],
-            '전기차 부품': [('에코프로비엠', 4.35), ('엘앤에프', -3.10)],
-            '로봇': [('레인보우로보틱스', 8.90), ('두산로보틱스', 11.20)],
-            '제약/바이오': [('삼성바이오로직스', -0.80), ('셀트리온', 1.50)]
+            'theme': ['대북/남북경협', '대북/남북경협', '반도체 후공정', '시스템 반도체', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오'],
+            'name': ['코데즈컴바인', '좋은사람들', '한미반도체', '삼성전자', '코데즈컴바인', '현대차', '에코프로비엠', '레인보우로보틱스', '셀트리온'],
+            'rate': [30.00, 30.00, 14.20, -1.20, 25.40, 2.10, 4.35, 8.90, 1.50]
         }
-        for theme, stocks in mock_stocks.items():
-            for name, rate in stocks:
-                sample_rows.append({'theme': theme, 'name': name, 'rate': rate})
-        base_df = pd.DataFrame(sample_rows)
+        base_df = pd.DataFrame(mock_stocks)
         
     if 'rate' not in base_df.columns:
         for col in base_df.columns:
@@ -115,7 +108,7 @@ raw_df, status_df = load_synchronized_market_data()
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
 # =========================================================================
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
 with title_col:
@@ -141,7 +134,7 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
@@ -165,23 +158,21 @@ with left_layout:
             textposition="middle center"
         )
         
-        # 🎯 [핵심 패치 1] 박스가 위로 커지는 Zoom-in 현상을 완전히 차단하는 강력한 차트 인터랙션 리셋 속성 부여
+        # 🎯 박스 혼자 대형으로 화면 전환 및 확대되는 Zoom 현상 강력 차단 옵션 고정
         fig.update_layout(
             margin=dict(t=2, b=2, l=2, r=2), 
             height=520,
             treemapcolorway=["#1E293B"],
-            clickmode='event+select' # 📌 내부 화면 전환 확장 모드를 전면 비활성화
+            clickmode='event+select'
         )
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [핵심 패치 2] 순정 컴포넌트의 클릭 신호 배열 정밀 매핑으로 튕김 현상 원천 봉쇄
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    # 선택된 박스의 원본 고유 point_number 색인 파싱
-                    first_point = points_list[0]
+                    first_point = points_list
                     if "point_number" in first_point:
                         clicked_index = first_point["point_number"]
                         if clicked_index < len(top_25_themes):
@@ -222,7 +213,7 @@ with right_layout:
                         </div>
                     """, unsafe_allow_html=True)
         else:
-            # 실시간 유실 대비용 하드웨어 7대 대장주 백업 풀 가동
+            # 🎯 [들여쓰기 버그 완벽 수리 완료] 공백 간격을 철저하게 맞추어 Indentation 에러를 완전히 도려냈습니다.
             backup_pool = {
                 "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
                 "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
@@ -234,3 +225,14 @@ with right_layout:
             }
             active_list = backup_pool.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
             for idx, (s_name, s_rate) in enumerate(active_list):
+                rate_class = "rate-up" if s_rate >= 0 else "rate-down"
+                rate_sign = "+" if s_rate >= 0 else ""
+                with right_sub_cols[idx % 2]:
+                    st.markdown(f"""
+                        <div class="stock-card">
+                            <span class="stock-name">▪️ {s_name}</span>
+                            <span class="stock-rate {rate_class}">{rate_sign}{s_rate}%</span>
+                        </div>
+                    """, unsafe_allow_html=True)
+    except Exception:
+        pass
