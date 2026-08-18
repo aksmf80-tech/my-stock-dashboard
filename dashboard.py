@@ -6,7 +6,7 @@ import os
 import time
 
 # =========================================================================
-# 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정
+# 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정 (왼쪽 매니큐어 띠 장착)
 # =========================================================================
 st.set_page_config(
     page_title="핀업 스타일 주식 테마 대시보드",
@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
+# 🎯 버튼의 크기 변형 없이 왼쪽 테두리에만 5px 두께로 빨강/파랑 매니큐어 띠 컬 주입
 st.markdown("""
     <style>
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
@@ -32,6 +32,32 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
+    /* 🔺 상승 종목 버튼 왼쪽 테두리에만 매니큐어 빨간 띠 색칠 */
+    div[data-testid="stHorizontalBlock"] button[key^="up_btn_"] {
+        border-left: 5px solid #EF4444 !important;
+        border-top: 1px solid #1E293B !important;
+        border-right: 1px solid #1E293B !important;
+        border-bottom: 1px solid #1E293B !important;
+        background-color: #0F172A !important;
+    }
+    div[data-testid="stHorizontalBlock"] button[key^="up_btn_"] p {
+        color: #FF6B6B !important;
+        font-weight: bold !important;
+    }
+    
+    /* 🔹 하락 종목 버튼 왼쪽 테두리에만 매니큐어 파란 띠 색칠 */
+    div[data-testid="stHorizontalBlock"] button[key^="down_btn_"] {
+        border-left: 5px solid #3B82F6 !important;
+        border-top: 1px solid #1E293B !important;
+        border-right: 1px solid #1E293B !important;
+        border-bottom: 1px solid #1E293B !important;
+        background-color: #0F172A !important;
+    }
+    div[data-testid="stHorizontalBlock"] button[key^="down_btn_"] p {
+        color: #64B5FF !important;
+        font-weight: bold !important;
+    }
+    
     /* 히트맵 글자 중앙 정렬 보정 */
     g.treemaptext text {
         text-anchor: middle !important;
@@ -41,14 +67,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (🎯 대장주 백업 풀 데이터 26개 규모 세팅)
+# 1. 📂 데이터 로드 및 정제 구역 (26개 규모 대장주 백업 풀 보존)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
 BACKUP_STOCK_POOL = {
     "대북/남북경협": [
-        ("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24), 
+        ("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24),
         ("부산산업", 18.50), ("제이에스티나", 15.30), ("신원", 12.10), ("재영솔루텍", 9.80),
         ("아난티", 8.40), ("현대로템", 7.15), ("한일현대시멘트", 5.20), ("쌍용C&E", 4.10),
         ("성신양회", 3.85), ("특수건설", 2.10), ("우원개발", 1.45), ("남광토건", -0.80),
@@ -185,14 +211,9 @@ if "selected_theme_click" not in st.session_state:
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
-# 📌 기존 파일의 'with left_layout:' 구역부터 맨 밑바닥까지 전부 지우고 이 아래를 붙여넣으세요.
-
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
-        if '등락률' in top_25_themes.columns:
-            top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
-            
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -221,14 +242,11 @@ with left_layout:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    p_target = points_list
+                    p_target = points_list[0]
                     if "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "customdata" in p_target and p_target["customdata"]:
-                        if isinstance(p_target["customdata"], list):
-                            st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
-                        else:
-                            st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
+                        st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
                 except Exception:
                     pass
     else:
@@ -257,28 +275,6 @@ with right_layout:
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
-    # 🎯 [핵심 그래픽 패치] 버튼 크기를 1%도 변형시키지 않고 내부 바탕색과 글자색만 정밀 타격 염색하는 순정 CSS 주입
-    st.markdown("""
-        <style>
-        div[data-testid="stHorizontalBlock"] button[key^="up_btn_"] {
-            background-color: rgba(220, 38, 38, 0.2) !important;
-            border: 1px solid rgba(220, 38, 38, 0.4) !important;
-        }
-        div[data-testid="stHorizontalBlock"] button[key^="up_btn_"] p {
-            color: #FF6B6B !important;
-            font-weight: bold !important;
-        }
-        div[data-testid="stHorizontalBlock"] button[key^="down_btn_"] {
-            background-color: rgba(37, 99, 235, 0.2) !important;
-            border: 1px solid rgba(37, 99, 235, 0.4) !important;
-        }
-        div[data-testid="stHorizontalBlock"] button[key^="down_btn_"] p {
-            color: #64B5FF !important;
-            font-weight: bold !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
     st.markdown("#### 🔺 상승 종목")
     if up_stocks:
         up_cols = st.columns(2)
@@ -306,3 +302,4 @@ if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
     st.rerun()
+
