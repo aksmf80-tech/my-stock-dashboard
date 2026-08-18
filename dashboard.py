@@ -158,7 +158,7 @@ def load_market_data():
 
 raw_df, status_df = load_market_data()
 
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
 with title_col:
@@ -181,13 +181,11 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
 with left_layout:
-    st.markdown("### 🗺️ 실시간 테마 히트맵")
-    with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
         fig = px.treemap(
@@ -218,14 +216,11 @@ with left_layout:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    p_target = points_list
+                    p_target = points_list[0]
                     if "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
+                        st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
                     elif "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "point_number" in p_target:
                         c_idx = p_target["point_number"]
                         if c_idx < len(top_25_themes):
-                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[c_idx]
-                except Exception as e:
-                    pass
