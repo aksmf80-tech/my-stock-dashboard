@@ -5,14 +5,14 @@ import plotly.express as px
 import os
 import time
 
-# 1. 스트림릿 페이지 레이아웃 및 뼈대 빌드
+# 1. 스트림릿 페이지 레이아웃 및 컴팩트 뼈대 세팅
 st.set_page_config(
     page_title="1분 연동 핀업 스타일 주식 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 2. 형님의 초경량 컴팩트 그리드 + 대장주 정중앙 전광판 전용 CSS 인젝션
+# 2. 형님의 초경량 컴팩트 그리드 + 대장주 대형 가로형 1줄 전광판 통합 CSS
 st.markdown("""
     <style>
     .block-container { padding-top: 4.2rem !important; padding-bottom: 0.5rem !important; }
@@ -62,34 +62,32 @@ st.markdown("""
         dominant-baseline: central !important;
     }
 
-    /* 🏛️ 시장 주도 마스터 보드 전용 초강력 정중앙 정렬 및 크기 치환 패치 */
+    /* 🏛️ [가로형 1줄 배포 긴급 수정본] 시장 주도 마스터 보드 가로형 정렬 및 대형 스케일업 */
     .master-box-up {
         border-left: 8px solid #EF4444 !important;
         background-color: #1E293B !important;
-        padding: 22px 20px !important;
+        padding: 24px 28px !important;
         border-radius: 6px !important;
         margin-bottom: 6px !important;
         display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
         align-items: center !important;
-        gap: 6px !important;
     }
     .master-box-down {
         border-left: 8px solid #3B82F6 !important;
         background-color: #1E293B !important;
-        padding: 22px 20px !important;
+        padding: 24px 28px !important;
         border-radius: 6px !important;
         margin-bottom: 6px !important;
         display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
         align-items: center !important;
-        gap: 6px !important;
     }
-    .master-name { color: #FFFFFF !important; font-weight: 800 !important; font-size: 22px !important; }
-    .master-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 28px !important; }
-    .master-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 28px !important; }
+    .master-name { color: #FFFFFF !important; font-weight: 800 !important; font-size: 24px !important; }
+    .master-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 26px !important; }
+    .master-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 26px !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -143,7 +141,7 @@ BACKUP_STOCK_POOL = {
         ("한올바이오", 5.30), ("신풍제약", -2.15), ("보령", 1.10), ("광동제약", -0.45)
     ]
 }
-# 3. 5초 캐시 타임아웃 데이터 로딩 및 인덱싱 매핑 자동화 구조
+# 3. 5초 타임아웃 초고속 캐시 데이터 로더 및 유연한 인덱싱 변환 구조
 @st.cache_data(ttl=5)
 def load_market_data():
     base_df = pd.DataFrame()
@@ -207,7 +205,7 @@ def load_market_data():
 raw_df, status_df = load_market_data()
 update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
 
-# 🔗 구글 파이낸스용 KRX 표준 6자리 코드 브릿지 함수
+# 🔗 구글 파이낸스 고속 다이렉트 연동 함수
 def make_google_link_v2(stock_name):
     try:
         if not raw_df.empty and 'code' in raw_df.columns:
@@ -218,7 +216,7 @@ def make_google_link_v2(stock_name):
     except:
         return "https://google.com005930:KRX"
 
-# 4. 상단 타이틀 앤 5대 대장 테마 스캔 보드
+# 4. 상단 헤더 및 5대 대장 주도 테마 스코어보드 출력 (단일 세트)
 title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
@@ -235,7 +233,7 @@ for i in range(min(5, len(status_df))):
 
 st.markdown("---")
 
-# 🚨 [형님의 특급 오더] 2층: 삼성전자 & SK하이닉스 글씨 획기적 전광판 확대 + 정중앙 배치 구역 (중복 삭제 완료)
+# 🏛️ [완벽 보정형] 2층: 삼성전자 & SK하이닉스 1줄 가로형 특대 전광판 (중복 코드 완벽 제거 완료)
 st.markdown("### 🏛️ 시장 주도 마스터 보드 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
 master_cols = st.columns(2)
 
@@ -271,7 +269,7 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             )
 
 st.markdown("---")
-# 5. 하단 메인 바디: 좌트리맵 / 우종목 상세 바인딩 구조화
+# 5. 하단 레이아웃: 왼쪽 실시간 트리맵 히트맵 / 오른쪽 선택 테마 상세 소속 종목 24선 그리드
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
@@ -345,7 +343,7 @@ with right_layout:
                 )
     else: st.text("하락 종목이 없습니다.")
 
-# 6. 대시보드 60초 주기 무한 롤링 맥박 동기화 엔진
+# 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 if time.time() - st.session_state.last_refresh > 60:
