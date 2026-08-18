@@ -2,8 +2,9 @@ name: Naver Stock Data Crawler
 
 on:
   schedule:
-    # 평일 장중에 주기적으로 자동 실행되는 크론탭 설정
-    - cron: '0 0-7 * * 1-5'
+    # 🎯 [수정] 한국 시간(KST) 평일 오전 9시 0분 ~ 오후 3시 50분까지 '10분 주기'로 자동 실행
+    # UTC 기준으로는 00:00 ~ 06:50에 해당합니다.
+    - cron: '*/10 0-6 * * 1-5'
   workflow_dispatch: # 언제든 수동으로 실행할 수 있는 버튼을 활성화합니다.
 
 jobs:
@@ -27,11 +28,11 @@ jobs:
       - name: Run Crawler Engine
         run: python fetch_data.py
 
-      # 🎯 [핵심 교정] 크롤러가 수집한 15개 최신 데이터를 내 레포지토리에 강제로 업데이트(Push)합니다.
+      # 🎯 크롤러가 수집한 15개 최신 데이터를 내 레포지토리에 강제로 업데이트(Push)합니다.
       - name: Commit and Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@://github.com"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add theme_data.csv
           # 변경사항이 있을 때만 안전하게 커밋하고 푸시합니다.
           git diff --quiet && git diff --staged --quiet || (git commit -m "🔄 네이버 금융 15개 테마 실시간 자동 갱신" && git push)
