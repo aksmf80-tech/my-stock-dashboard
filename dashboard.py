@@ -46,7 +46,7 @@ st.markdown("""
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-# 실시간 파일 공백 시 엔진과 대칭으로 자동 연동될 무결점 백업 데이터 풀
+# 실시간 파일 공백 시 자동 매핑될 순정 4대 대장주 백업 풀
 BACKUP_STOCK_POOL = {
     "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
     "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
@@ -101,13 +101,12 @@ def load_market_data():
         
     return base_df, status_df
 
-# 🎯 오리지널 순정 함수 호출부 매핑 복원 완결
 raw_df, status_df = load_market_data()
 
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
 # =========================================================================
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
 with title_col:
@@ -132,8 +131,9 @@ st.markdown("---")
 # =========================================================================
 top_25_themes = status_df.head(25).copy()
 
+# 🎯 [버그 영구 제거] iloc 뒤에 [0]을 정확히 붙여 인덱서 객체가 튀어나오는 문법 오류를 완벽하게 고쳤습니다.
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = str(top_25_themes['테마'].iloc[0]).strip() if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
@@ -148,11 +148,11 @@ with left_layout:
             color='등락률',             
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
-            custom_data=['등락률']
+            custom_data=['테마']
         )
         
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br>%{customdata:.2f}%",
+            texttemplate="<b>%{label}</b><br>%{color:.2f}%",
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
@@ -165,23 +165,26 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
+        # 🎯 [클릭 파싱 고정] 외계어 문자열 변환 필터링 방어선 구축
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    first_point = points_list
-                    if "label" in first_point:
+                    first_point = points_list[0]
+                    if "customdata" in first_point and first_point["customdata"]:
+                        st.session_state.selected_theme_click = str(first_point["customdata"][0]).strip()
+                    elif "label" in first_point and first_point["label"]:
                         st.session_state.selected_theme_click = str(first_point["label"]).strip()
                     elif "point_number" in first_point:
                         clicked_index = first_point["point_number"]
                         if clicked_index < len(top_25_themes):
-                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[clicked_index]
+                            st.session_state.selected_theme_click = str(top_25_themes['테마'].iloc[clicked_index]).strip()
                 except Exception:
                     pass
     else:
         st.info("테마 데이터를 로드하는 중입니다...")
 
-# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (가장 잘 되던 구조 복구) ---
+# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (오리지널 복원 완결) ---
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -200,11 +203,11 @@ with right_layout:
     else:
         final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
         
-    # 복구 완료: 문법 에러를 영구 배제하고 완벽히 동기화되는 순정 st.button 형태 출력
+    # 복구 마감: 에러 없이 실시간으로 칼동기화되는 순정 버튼 레이아웃 출력
     for idx, (s_name, s_rate) in enumerate(final_stock_list):
         rate_sign = "+" if s_rate >= 0 else ""
         with right_sub_cols[idx % 2]:
-            st.button(f"▪️ {s_name} ({rate_sign}{s_rate}%)", key=f"stock_btn_rollback_{idx}_{s_name}", use_container_width=True)
+            st.button(f"▪️ {s_name} ({rate_sign}{s_rate}%)", key=f"stock_btn_fixed_final_{idx}_{s_name}", use_container_width=True)
 
 # =========================================================================
 # 5. ⏱️ 세션 타이머 제어
