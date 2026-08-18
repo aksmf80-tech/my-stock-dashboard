@@ -5,14 +5,14 @@ import plotly.express as px
 import os
 import time
 
+# 1. 스트림릿 페이지 레이아웃 및 뼈대 빌드
 st.set_page_config(
     page_title="1분 연동 핀업 스타일 주식 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# st.set_page_config() 바로 아래 줄부터 교체하시면 됩니다.
-
+# 2. 형님의 초경량 컴팩트 그리드 + 대장주 정중앙 전광판 전용 CSS 인젝션
 st.markdown("""
     <style>
     .block-container { padding-top: 4.2rem !important; padding-bottom: 0.5rem !important; }
@@ -61,7 +61,7 @@ st.markdown("""
         text-anchor: middle !important;
         dominant-baseline: central !important;
     }
-    
+
     /* 🏛️ 시장 주도 마스터 보드 전용 초강력 정중앙 정렬 및 크기 치환 패치 */
     .master-box-up {
         border-left: 8px solid #EF4444 !important;
@@ -91,13 +91,12 @@ st.markdown("""
     .master-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 28px !important; }
     .master-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 28px !important; }
     </style>
-""", unsafe_allow_html=True) # 👈 이 부분의 문자열 닫기 문법을 철저하게 보정 완료했습니다!
+""", unsafe_allow_html=True)
 
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-
-# 🚨 [5종목 커트 완벽 해결] 형님이 심어두신 진짜 전 종목 풀을 100% 원본 복원했습니다.
+# 형님의 4,115개 마스터 뼈대 복원용 오리지널 백업 데이터 테이블
 BACKUP_STOCK_POOL = {
     "대북/남북경협": [
         ("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24),
@@ -144,6 +143,7 @@ BACKUP_STOCK_POOL = {
         ("한올바이오", 5.30), ("신풍제약", -2.15), ("보령", 1.10), ("광동제약", -0.45)
     ]
 }
+# 3. 5초 캐시 타임아웃 데이터 로딩 및 인덱싱 매핑 자동화 구조
 @st.cache_data(ttl=5)
 def load_market_data():
     base_df = pd.DataFrame()
@@ -156,6 +156,7 @@ def load_market_data():
                 if '테마' in col_str or 'theme' in col_str: rename_map[col] = 'theme'
                 elif '종목' in col_str or 'name' in col_str: rename_map[col] = 'name'
                 elif '등락' in col_str or 'rate' in col_str: rename_map[col] = 'rate'
+                elif '코드' in col_str or 'code' in col_str: rename_map[col] = 'code'
             base_df = base_df.rename(columns=rename_map)
         except Exception:
             base_df = pd.DataFrame()
@@ -164,7 +165,7 @@ def load_market_data():
         sample_rows = []
         for theme_key, stocks in BACKUP_STOCK_POOL.items():
             for name, rate in stocks:
-                sample_rows.append({'theme': theme_key, 'name': name, 'rate': rate})
+                sample_rows.append({'theme': theme_key, 'name': name, 'rate': rate, 'code': '005930'})
         base_df = pd.DataFrame(sample_rows)
         
     if 'rate' not in base_df.columns:
@@ -203,36 +204,27 @@ def load_market_data():
         
     return base_df, status_df
 
-# [앞선 1번 CSS 설정 및 2번 데이터 로드(load_market_data) 구역은 동일하게 유지됩니다]
-
 raw_df, status_df = load_market_data()
 update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
 
-# 🔗 구글 파이낸스 링크 변환 함수
+# 🔗 구글 파이낸스용 KRX 표준 6자리 코드 브릿지 함수
 def make_google_link_v2(stock_name):
     try:
         if not raw_df.empty and 'code' in raw_df.columns:
             s_code = raw_df[raw_df['name'] == stock_name]['code'].iloc[0]
         else:
-            # 뼈대 데이터나 코드 수동 매핑 백업
             s_code = "005930" if stock_name == "삼성전자" else "000660"
         return f"https://google.com{str(s_code).strip().zfill(6)}:KRX"
     except:
         return "https://google.com005930:KRX"
 
-# =========================================================================
-# 2. 📊 상단 메트릭 전광판 및 레이아웃 출력 구역
-# =========================================================================
+# 4. 상단 타이틀 앤 5대 대장 테마 스캔 보드
 title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
     st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 1분 무한 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
-# 1층: 테마 톱5 전광판
-# 🚨 [중복 박멸] 기존에 꼬여있던 두 세트를 다 지우고 이 코드로 딱 한 번만 나오게 교체하세요!
-
-# 1층: 상단 5대 테마 전광판 (딱 1줄만 출력)
 theme_cols = st.columns(5)
 for i in range(min(5, len(status_df))):
     t_name = status_df['테마'].iloc[i]
@@ -243,7 +235,7 @@ for i in range(min(5, len(status_df))):
 
 st.markdown("---")
 
-# 2층: 삼성전자 & SK하이닉스 웅장한 정중앙 대형 전광판 (딱 1줄만 출력)
+# 🚨 [형님의 특급 오더] 2층: 삼성전자 & SK하이닉스 글씨 획기적 전광판 확대 + 정중앙 배치 구역 (중복 삭제 완료)
 st.markdown("### 🏛️ 시장 주도 마스터 보드 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
 master_cols = st.columns(2)
 
@@ -259,108 +251,27 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     with master_cols[idx]:
         if m_rate >= 0:
             st.markdown(
-                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
-                f"<div class='master-box-up'>"
-                f"  <span class='master-name'>🏛️ {m_name}</span>"
-                f"  <span class='master-rate-up'>+{m_rate}%</span>"
-                f"</div></a>", 
+                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>\n"
+                f"  <div class='master-box-up'>\n"
+                f"    <span class='master-name'>🏛️ {m_name}</span>\n"
+                f"    <span class='master-rate-up'>+{m_rate}%</span>\n"
+                f"  </div>\n"
+                f"</a>", 
                 unsafe_allow_html=True
             )
         else:
             st.markdown(
-                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
-                f"<div class='master-box-down'>"
-                f"  <span class='master-name'>🏛️ {m_name}</span>"
-                f"  <span class='master-rate-down'>{m_rate}%</span>"
-                f"</div></a>", 
-                unsafe_allow_html=True
-            )
-
-st.markdown("---") # 👈 이 줄 바로 밑에는 "top_25_themes = status_df.head(25).copy()" 코드가 와야 합니다!
-
-# 2번 소스 코드 중 중반부 레이아웃 구역
-theme_cols = st.columns(5)
-for i in range(min(5, len(status_df))):
-    t_name = status_df['테마'].iloc[i]
-    t_rate = status_df['등락률'].iloc[i]
-    with theme_cols[i]:
-        if t_rate >= 0: st.metric(label=f"🔺 {t_name}", value=f"+{t_rate}%")
-        else: st.metric(label=f"🔻 {t_name}", value=f"{t_rate}%")
-
-st.markdown("---") # 👈 이 첫 번째 가로줄 바로 아래에 배치합니다!
-
-# 🎯 여기서부터 기존 master_cols 구역을 지우고 아래 패치 버전으로 싹 갈아 끼우세요!
-st.markdown("### 🏛️ 시장 주도 마스터 보드 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
-master_cols = st.columns(2)
-
-for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
-    m_rate = 0.0
-    if not raw_df.empty and 'name' in raw_df.columns:
-        target_row = raw_df[raw_df['name'] == m_name]
-        if not target_row.empty:
-            m_rate = float(target_row['rate'].iloc[0]) # 🚨 [안전패치] iloc 뒤에 [0]이나 .item()을 붙여주면 에러가 안 납니다!
-            
-    m_url = make_google_link_v2(m_name)
-    
-    with master_cols[idx]:
-        if m_rate >= 0:
-            st.markdown(
-                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
-                f"<div class='master-box-up'>"
-                f"  <span class='master-name'>🏛️ {m_name}</span>"
-                f"  <span class='master-rate-up'>+{m_rate}%</span>"
-                f"</div></a>", 
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
-                f"<div class='master-box-down'>"
-                f"  <span class='master-name'>🏛️ {m_name}</span>"
-                f"  <span class='master-rate-down'>{m_rate}%</span>"
-                f"</div></a>", 
-                unsafe_allow_html=True
-            )
-
-st.markdown("---") # 두 번째 가로줄로 이어짐
-
-# 🚨 [형님의 핵심 피드백] 2층: 삼성전자 & SK하이닉스 2대장 상시 고정 전광판 개설!
-st.markdown("### 🏛️ 시장 주도 마스터 보드 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
-master_cols = st.columns(2)
-
-for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
-    # 마스터 CSV 데이터프레임에서 실시간 가격/등락률 파싱
-    m_rate = 0.0
-    if not raw_df.empty and 'name' in raw_df.columns:
-        target_row = raw_df[raw_df['name'] == m_name]
-        if not target_row.empty:
-            m_rate = float(target_row['rate'].iloc[0])
-            
-    m_url = make_google_link_v2(m_name)
-    
-    with master_cols[idx]:
-        if m_rate >= 0:
-            st.markdown(
-                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
-                f"<div class='stock-box-up' style='padding: 14px 20px !important; border-left: 8px solid #EF4444 !important;'>"
-                f"<span class='stock-name-up' style='font-size:18px !important;'>🏛️ {m_name}</span>"
-                f"<span class='stock-rate-up' style='font-size:20px !important; font-weight:900;'>+{m_rate}%</span>"
-                f"</div></a>", 
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
-                f"<div class='stock-box-down' style='padding: 14px 20px !important; border-left: 8px solid #3B82F6 !important;'>"
-                f"<span class='stock-name-down' style='font-size:18px !important;'>🏛️ {m_name}</span>"
-                f"<span class='stock-rate-down' style='font-size:20px !important; font-weight:900;'>{m_rate}%</span>"
-                f"</div></a>", 
+                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>\n"
+                f"  <div class='master-box-down'>\n"
+                f"    <span class='master-name'>🏛️ {m_name}</span>\n"
+                f"    <span class='master-rate-down'>{m_rate}%</span>\n"
+                f"  </div>\n"
+                f"</a>", 
                 unsafe_allow_html=True
             )
 
 st.markdown("---")
-
-# 3층: 좌축 히트맵 / 우측 소속 종목 쪼개기 레이아웃
+# 5. 하단 메인 바디: 좌트리맵 / 우종목 상세 바인딩 구조화
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
@@ -411,8 +322,8 @@ with right_layout:
             g_url = make_google_link_v2(s_name)
             with up_cols[u_idx % 2]:
                 st.markdown(
-                    f"<a href='{g_url}' target='_blank' style='text-decoration:none;'>"
-                    f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name}</span><span class='stock-rate-up'>+{s_rate}%</span></div>"
+                    f"<a href='{g_url}' target='_blank' style='text-decoration:none;'>\n"
+                    f"  <div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name}</span><span class='stock-rate-up'>+{s_rate}%</span></div>\n"
                     f"</a>", 
                     unsafe_allow_html=True
                 )
@@ -427,19 +338,14 @@ with right_layout:
             g_url = make_google_link_v2(s_name)
             with down_cols[d_idx % 2]:
                 st.markdown(
-                    f"<a href='{g_url}' target='_blank' style='text-decoration:none;'>"
-                    f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name}</span><span class='stock-rate-down'>{s_rate}%</span></div>"
+                    f"<a href='{g_url}' target='_blank' style='text-decoration:none;'>\n"
+                    f"  <div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name}</span><span class='stock-rate-down'>{s_rate}%</span></div>\n"
                     f"</a>", 
                     unsafe_allow_html=True
                 )
     else: st.text("하락 종목이 없습니다.")
 
-# [하단 60초 무한 동력 캐시 클리어 및 st.rerun() 루틴 유지]
-
-
-# =========================================================================
-# 🔄 60초 주기 무한 롤링 대시보드 리프레시 엔진 구역
-# =========================================================================
+# 6. 대시보드 60초 주기 무한 롤링 맥박 동기화 엔진
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 if time.time() - st.session_state.last_refresh > 60:
