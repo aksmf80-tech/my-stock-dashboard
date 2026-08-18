@@ -8,7 +8,7 @@ import time
 st.set_page_config(layout="wide")
 
 # 🔔 홍보 배너
-st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://blog.naver.com/moneybridge1004)에서 매일 확인하세요!**")
+st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://naver.com)에서 매일 확인하세요!**")
 st.title("📊 테마별 현황판")
 
 DATA_FILE = "theme_data.csv"
@@ -28,8 +28,7 @@ def render_interactive_dashboard():
         st.warning("📊 현재 표시할 주식 데이터 형식이 올바르지 않거나 데이터가 없습니다. 장이 열리면 자동으로 갱신됩니다.")
         return
 
-    # 🛠️ [버그 방지 1] 마이너스 등락률로 인한 트리맵 붕괴 막기 (면적용 절댓값 계산)
-    # 등락률이 0이거나 음수여도 박스가 보일 수 있도록 최소 크기(0.1) 보정
+    # 🛠️ 마이너스 등락률로 인한 트리맵 붕괴 막기 (면적용 절댓값 계산)
     df['등락률_절댓값'] = df['등락률'].abs().apply(lambda x: max(x, 0.1))
 
     # 상단에 갱신 시각 표시 (F5 없이 1분마다 스스로 바뀜)
@@ -41,13 +40,13 @@ def render_interactive_dashboard():
     fig = px.treemap(
         df, 
         path=['테마'], 
-        values='등락률_절댓값', # 💡 음수 에러를 막기 위해 절댓값 컬럼 사용
+        values='등락률_절댓값', 
         color='등락률',
         color_continuous_scale='RdBu_r', 
         hover_data=['종목명']
     )
     
-    # 🛠️ maxdepth를 1로 잠그고 조작 제한
+    # maxdepth를 1로 잠그고 조작 제한
     fig.update_traces(maxdepth=1, textinfo="label+value")
     fig.update_layout(
         clickmode='event', 
@@ -60,18 +59,18 @@ def render_interactive_dashboard():
     selected_theme = st.plotly_chart(
         fig, 
         use_container_width=True, 
-        on_select="rerun", # 💡 클릭 시 내부 리런 유도
+        on_select="rerun", 
         config={'displayModeBar': False, 'scrollZoom': False}
     )
 
-    # 기본 선택 테마 지정
+    # 🛠️ [버그 수정 1] .iloc[0] 으로 첫 번째 행 값을 정상 추출하도록 수정
     current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
     
-    # 🛠️ [버그 방지 2] 신버전 Streamlit SelectionState 객체 안전 접근법으로 수정
-    if selected_theme and hasattr(selected_theme, "selection") and selected_theme.selection.get("points"):
-        points = selected_theme.selection["points"]
-        if len(points) > 0:
-            current_theme = points[0].get("label", current_theme)
+    # 🛠️ [버그 수정 2] 리스트 내부 딕셔너리에 안전하게 접근하도록 수정
+    if selected_theme and hasattr(selected_theme, "selection"):
+        selection_data = selected_theme.selection
+        if "points" in selection_data and len(selection_data["points"]) > 0:
+            current_theme = selection_data["points"][0].get("label", current_theme)
 
     st.markdown("---")
 
@@ -108,7 +107,7 @@ def render_interactive_dashboard():
         st.markdown(f"📌 [📢 [뉴스] '{current_theme}' 시장 경쟁 심화... '{current_stock}' 글로벌 공급망 확대 나선다 (2일 전)]({theme_news_url})")
        
         st.markdown("---")
-        st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://blog.naver.com/moneybridge1004)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
+        st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
 
 # 대시보드 화면 실행
 render_interactive_dashboard()
