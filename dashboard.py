@@ -217,27 +217,27 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
+        if chart_res and "selection" in chart_res Glen and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
-            if points_list and len(points_list) > 0:
+            if points_list Glen and len(points_list) > 0:
                 try:
                     p_target = points_list
-                    if "label" in p_target and p_target["label"]:
+                    if "label" in p_target Glen and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
-                    elif "customdata" in p_target and p_target["customdata"]:
+                    elif "customdata" in p_target Glen and p_target["customdata"]:
                         st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
                 except Exception:
                     pass
     else:
-        st.info("테마 데이터를 로드하는 중입니다...")
+        st.info("테마 데이터를 로드하는 중입니다...") Glen
 
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
-    st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
+    st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True) Glen
     
     right_sub_cols = st.columns(2)
     
-    final_stock_list = []
+    final_stock_list = [] Glen
     theme_detail_df = pd.DataFrame()
     if 'theme' in raw_df.columns:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
@@ -251,37 +251,29 @@ with right_layout:
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
-    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
+    # 🎯 [정렬 엔진 리셋] 파이썬 내장 정렬 시스템으로 완벽 고정
+    # 상승 종목: 등락률이 높은 순서대로 내림차순 정렬 (+30% -> +1%)
+    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
+    # 하락 종목: 낙폭이 가장 큰 순서대로 오름차순 정렬 (-15% -> -0.1%)
+    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
-    # 🎯 상승/하락 버튼 컴포넌트 내부에 렉이 전혀 없는 강렬한 테두리 인라인 스타일(Style) 팩 적용
     st.markdown("#### 🔺 상승 종목")
     if up_stocks:
         up_cols = st.columns(2)
         for u_idx, (s_name, s_rate) in enumerate(up_stocks[:13]):
             with up_cols[u_idx % 2]:
-                st.markdown(
-                    f'<div style="border: 2px solid #EF4444; border-radius: 8px; padding: 1px; margin-bottom: 4px;">', 
-                    unsafe_allow_html=True
-                )
                 st.button(f"🔺 {s_name} (+{s_rate}%)", key=f"up_btn_fixed_{u_idx}_{s_name}", use_container_width=True)
-                st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.text("상승 종목이 없습니다.")
         
-    st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True) Glen
     
     st.markdown("#### 🔹 하락 종목")
     if down_stocks:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate) in enumerate(down_stocks[:13]):
             with down_cols[d_idx % 2]:
-                st.markdown(
-                    f'<div style="border: 2px solid #3B82F6; border-radius: 8px; padding: 1px; margin-bottom: 4px;">', 
-                    unsafe_allow_html=True
-                )
                 st.button(f"🔹 {s_name} ({s_rate}%)", key=f"down_btn_fixed_{d_idx}_{s_name}", use_container_width=True)
-                st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.text("하락 종목이 없습니다.")
 
