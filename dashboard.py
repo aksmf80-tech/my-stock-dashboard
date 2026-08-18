@@ -23,7 +23,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 수집 엔진 출력 데이터 로드 구역
+# 1. 📂 수집 엔진 출력 데이터 로드 구역 (ValueError 방어 완료)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
@@ -45,11 +45,12 @@ def load_market_data():
     if os.path.exists(STATUS_FILE):
         status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
     else:
-        # 데이터가 없을 때 방어용 샘플 생성
+        # 💡 [수정 완료] 모든 리스트의 원소 개수를 3개로 통일하여 ValueError 원천 차단
+        current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
         status_df = pd.DataFrame({
             '테마': ['대북/남북경협', '반도체 후공정', '시스템 반도체'],
             '등락률': [24.75, 16.37, -11.09],
-            '업데이트시간': [time.strftime('%Y-%m-%d %H:%M:%S')]
+            '업데이트시간': [current_time_str, current_time_str, current_time_str]
         })
         
     return base_df, status_df
@@ -62,7 +63,7 @@ raw_df, status_df = load_market_data()
 st.title("📊 실시간 주식 테마 대시보드")
 
 # 최근 갱신 시간 표시
-update_time = status_df['업데이트시간'].iloc[0] if '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 st.caption(f"⚙️ 수집 엔진 연동 완료 | 최근 데이터 갱신 시간: {update_time}")
 
 # 수집 엔진이 뽑아준 테마 목록 가져오기
