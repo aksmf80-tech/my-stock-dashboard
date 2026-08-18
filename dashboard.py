@@ -61,7 +61,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역
+# 1. 📂 데이터 로드 및 정제 구역 (🎯 KeyError 방지형 표준화 엔진 탑재)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
@@ -70,9 +70,20 @@ STATUS_FILE = "realtime_theme_status.csv"
 def load_synchronized_market_data():
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
+        
+        # 🎯 [KeyError 해결의 핵심] 모든 컬럼명을 공백 제거 후 소문자로 강제 표준화
         base_df.columns = [str(col).strip().lower() for col in base_df.columns]
-        base_df = base_df.rename(columns={'테마': 'theme', '종목명': 'name', '시장': 'market', '종목코드': 'code', '등락률': 'rate'})
+        
+        # 한글 컬럼 이름으로 수집되었을 경우를 대비해 2중 안전 변환 매핑
+        base_df = base_df.rename(columns={
+            '테마': 'theme', 'theme': 'theme',
+            '종목명': 'name', 'name': 'name',
+            '시장구분': 'market', 'market': 'market',
+            '종목코드': 'code', 'code': 'code',
+            '등락률': 'rate', 'rate': 'rate'
+        })
     else:
+        # 파일 수집 딜레이 시 메모리 크래시를 완전히 막아주는 안전 샘플 데이터셋
         sample_rows = []
         mock_stocks = {
             'theme': ['대북/남북경협', '대북/남북경협', '대북/남북경협', '대북/남북경협', '반도체 후공정', '반도체 후공정', '시스템 반도체', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오'],
@@ -81,6 +92,7 @@ def load_synchronized_market_data():
         }
         base_df = pd.DataFrame(mock_stocks)
         
+    # 등락률 'rate' 컬럼 강제 보정 구조
     if 'rate' not in base_df.columns:
         for col in base_df.columns:
             if '등락' in col or 'rate' in col:
@@ -193,28 +205,31 @@ with right_layout:
     
     right_sub_cols = st.columns(2)
     
-    # 🎯 말썽 부리던 백업용 로직 다 치우고 가장 완벽하게 작동하던 단순 동기화 뼈대만 깔끔하게 남겼습니다.
-    theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
-    
-    if not theme_detail_df.empty:
-        theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
+    # 🎯 [KeyError 원천 진압 구역] 컬럼 정비가 끝난 raw_df에서 정확히 필터링 수행
+    if 'theme' in raw_df.columns:
+        theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
-        for idx, row in theme_detail_df.head(14).iterrows():
-            s_name = row['name']
-            s_rate = row['rate']
+        if not theme_detail_df.empty:
+            theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
             
-            rate_class = "rate-up" if s_rate >= 0 else "rate-down"
-            rate_sign = "+" if s_rate >= 0 else ""
-            
-            with right_sub_cols[idx % 2]:
-                st.markdown(f"""
-                    <div class="stock-card">
-                        <span class="stock-name">▪️ {s_name}</span>
-                        <span class="stock-rate {rate_class}">{rate_sign}{s_rate}%</span>
-                    </div>
-                """, unsafe_allow_html=True)
+            for idx, row in theme_detail_df.head(14).iterrows():
+                s_name = row['name']
+                s_rate = row['rate']
+                
+                rate_class = "rate-up" if s_rate >= 0 else "rate-down"
+                rate_sign = "+" if s_rate >= 0 else ""
+                
+                with right_sub_cols[idx % 2]:
+                    st.markdown(f"""
+                        <div class="stock-card">
+                            <span class="stock-name">▪ fly {s_name}</span>
+                            <span class="stock-rate {rate_class}">{rate_sign}{s_rate}%</span>
+                        </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.warning(f"⚠️ 현재 '{chosen_theme}' 테마에 매핑된 실시간 종목이 없습니다.")
     else:
-        st.warning(f"⚠️ 현재 '{chosen_theme}' 테마에 매핑된 실시간 종목이 없습니다.")
+        st.error("데이터셋 로드에 심각한 오류가 감지되었습니다. 'theme' 컬럼 매핑 실패.")
 
 # =========================================================================
 # 5. ⏱️ 세션 타이머 제어
