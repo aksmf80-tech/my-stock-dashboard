@@ -59,6 +59,44 @@ st.markdown("""
         text-anchor: middle !important;
         dominant-baseline: central !important;
     }
+   58   g.treemaptext text {
+59       text-anchor: middle !important;
+60       dominant-baseline: central !important;
+61   }
+     
+     /* 🎯 61번 줄 바로 아래 여기에 그대로 붙여넣으세요! */
+     .master-box-up {
+         border-left: 8px solid #EF4444 !important;
+         background-color: #1E293B !important;
+         padding: 22px 20px !important;
+         border-radius: 6px !important;
+         margin-bottom: 6px !important;
+         display: flex !important;
+         flex-direction: column !important;
+         justify-content: center !important;
+         align-items: center !important;
+         gap: 6px !important;
+     }
+     .master-box-down {
+         border-left: 8px solid #3B82F6 !important;
+         background-color: #1E293B !important;
+         padding: 22px 20px !important;
+         border-radius: 6px !important;
+         margin-bottom: 6px !important;
+         display: flex !important;
+         flex-direction: column !important;
+         justify-content: center !important;
+         align-items: center !important;
+         gap: 6px !important;
+     }
+     .master-name { color: #FFFFFF !important; font-weight: 800 !important; font-size: 22px !important; }
+     .master-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 28px !important; }
+     .master-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 28px !important; }
+
+62   </style>
+63 """, unsafe_allow_html=True)
+64 BASE_FILE = "theme_data.csv"
+
     </style>
 """, unsafe_allow_html=True)
 BASE_FILE = "theme_data.csv"
@@ -206,6 +244,51 @@ for i in range(min(5, len(status_df))):
         else: st.metric(label=f"🔻 {t_name}", value=f"{t_rate}%")
 
 st.markdown("---")
+# 2번 소스 코드 중 중반부 레이아웃 구역
+theme_cols = st.columns(5)
+for i in range(min(5, len(status_df))):
+    t_name = status_df['테마'].iloc[i]
+    t_rate = status_df['등락률'].iloc[i]
+    with theme_cols[i]:
+        if t_rate >= 0: st.metric(label=f"🔺 {t_name}", value=f"+{t_rate}%")
+        else: st.metric(label=f"🔻 {t_name}", value=f"{t_rate}%")
+
+st.markdown("---") # 👈 이 첫 번째 가로줄 바로 아래에 배치합니다!
+
+# 🎯 여기서부터 기존 master_cols 구역을 지우고 아래 패치 버전으로 싹 갈아 끼우세요!
+st.markdown("### 🏛️ 시장 주도 마스터 보드 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
+master_cols = st.columns(2)
+
+for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
+    m_rate = 0.0
+    if not raw_df.empty and 'name' in raw_df.columns:
+        target_row = raw_df[raw_df['name'] == m_name]
+        if not target_row.empty:
+            m_rate = float(target_row['rate'].iloc[0]) # 🚨 [안전패치] iloc 뒤에 [0]이나 .item()을 붙여주면 에러가 안 납니다!
+            
+    m_url = make_google_link_v2(m_name)
+    
+    with master_cols[idx]:
+        if m_rate >= 0:
+            st.markdown(
+                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
+                f"<div class='master-box-up'>"
+                f"  <span class='master-name'>🏛️ {m_name}</span>"
+                f"  <span class='master-rate-up'>+{m_rate}%</span>"
+                f"</div></a>", 
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
+                f"<div class='master-box-down'>"
+                f"  <span class='master-name'>🏛️ {m_name}</span>"
+                f"  <span class='master-rate-down'>{m_rate}%</span>"
+                f"</div></a>", 
+                unsafe_allow_html=True
+            )
+
+st.markdown("---") # 두 번째 가로줄로 이어짐
 
 # 🚨 [형님의 핵심 피드백] 2층: 삼성전자 & SK하이닉스 2대장 상시 고정 전광판 개설!
 st.markdown("### 🏛️ 시장 주도 마스터 보드 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
