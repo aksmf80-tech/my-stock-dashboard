@@ -14,7 +14,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
 st.markdown("""
     <style>
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
@@ -32,7 +31,6 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 히트맵 글자 중앙 정렬 보정 */
     g.treemaptext text {
         text-anchor: middle !important;
         dominant-baseline: central !important;
@@ -41,7 +39,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (🎯 대장주 백업 풀 데이터 26개 규모 정밀 확보)
+# 1. 📂 데이터 로드 및 정제 구역 (최대 26개 대장주 백업 풀 데이터)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
@@ -87,8 +85,8 @@ BACKUP_STOCK_POOL = {
         ("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20), ("상신이디피", 5.40),
         ("삼기", 3.15), ("엠에스오토텍", 2.10), ("우수AMS", -1.10), ("명신산업", -2.85),
         ("아진산업", 3.40), ("구영테크", 0.95), ("대유에이텍", -1.20), ("영화테크", 2.15),
-        ("계양전기", 1.40), ("화신", -0.55), ("성우하이텍", 4.10), ("한온시스템", -1.25),
-        ("우리산업", 2.30), ("대유플러스", -3.10), ("모베이스전자", 1.15), ("티에이치엔", -0.90),
+        ("계양전기", 1.40), ("화신", -0.55), ("성우하이텍", 4.10), ("한on시스템", -1.25),
+        ("우리산업", 2.30), ("대유플러스", -3.10), ("모베이스전자", 1.15), ("티에스이엔", -0.90),
         ("상신브레이크", 0.40), ("평화정공", 1.85), ("코다코", -2.40), ("디아이씨", 3.10),
         ("대원강업", -0.85), ("두올", 1.20)
     ],
@@ -158,9 +156,6 @@ def load_market_data():
 
 raw_df, status_df = load_market_data()
 
-# =========================================================================
-# 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
-# =========================================================================
 update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
@@ -181,9 +176,6 @@ for i in range(min(5, len(status_df))):
 
 st.markdown("---")
 
-# =========================================================================
-# 3. 🗺️ 공간 설계 구역: [좌 히트맵 5.5 : 우 종목 카드 4.5] 사이드바이사이드 구조
-# =========================================================================
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
@@ -191,7 +183,6 @@ if "selected_theme_click" not in st.session_state:
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
-# --- [좌측 구역] 테마 히트맵 배치 ---
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
@@ -225,3 +216,10 @@ with left_layout:
                 try:
                     p_target = points_list
                     if "customdata" in p_target and p_target["customdata"]:
+                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
+                    elif "label" in p_target and p_target["label"]:
+                        st.session_state.selected_theme_click = str(p_target["label"]).strip()
+                    elif "point_number" in p_target:
+                        c_idx = p_target["point_number"]
+                        if c_idx < len(top_25_themes):
+                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[c_idx]
