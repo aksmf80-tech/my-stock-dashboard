@@ -41,7 +41,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (30개 규모 데이터 풀 완전 고정)
+# 1. 📂 데이터 로드 및 정제 구역 (30개 규모 백업 데이터 풀 고정)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
@@ -77,7 +77,7 @@ BACKUP_STOCK_POOL = {
         ("아진산업", 3.40), ("구영테크", 0.95), ("대유에이텍", -1.20), ("영화테크", 2.15)
     ],
     "로봇": [
-        ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15),
+        ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("ロ보티즈", 3.15),
         ("티보로보틱스", 2.80), ("유진로봇", 1.45), ("로보스타", -0.90), ("스맥", -2.35),
         ("휴림로봇", 4.10), ("에브리봇", -1.50), ("로보로보", 0.85), ("디엔에이치", 2.30)
     ],
@@ -163,7 +163,7 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
@@ -178,7 +178,7 @@ with left_layout:
             color='등락률',             
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
-            custom_data=['테마'] # 📌 클릭 역추적을 위한 순수 테마 문자열 전용 슬롯 마운트
+            custom_data=['테마']
         )
         
         fig.update_traces(
@@ -195,23 +195,15 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [대혁신 기민 연동 솔루션] 
-        # 사용자가 마우스로 박스를 누르면 발생하는 모든 수신 데이터 객체를 
-        # 구조 분해하여 텍스트명을 즉시 발굴해내는 전방위 스캐너 엔진 작동
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_data = chart_res["selection"]["points"]
             if points_data and len(points_data) > 0:
                 try:
-                    # 첫 번째 포인트 엘리먼트 타격
-                    p_info = points_data[0]
-                    
-                    # 1안: 등록된 수집기 커스텀 데이터 채널에서 추출
+                    p_info = points_data
                     if "customdata" in p_info and p_info["customdata"]:
-                        st.session_state.selected_theme_click = str(p_info["customdata"][0]).strip()
-                    # 2안: 라벨 필드에서 다이렉트 텍스트 낚아채기
+                        st.session_state.selected_theme_click = str(p_info["customdata"]).strip()
                     elif "label" in p_info and p_info["label"]:
                         st.session_state.selected_theme_click = str(p_info["label"]).strip()
-                    # 3안: 인덱스 번호를 기반으로 순위 테이블 대칭 스캔
                     elif "point_number" in p_info:
                         clicked_idx = p_info["point_number"]
                         if clicked_idx < len(top_25_themes):
@@ -221,7 +213,7 @@ with left_layout:
     else:
         st.info("테마 데이터를 로드하는 중입니다...")
 
-# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (최대 30개 규모 완결) ---
+# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (최대 30개 대칭 동기화) ---
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -233,4 +225,12 @@ with right_layout:
     if 'theme' in raw_df.columns:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
+    # 🎯 [들여쓰기 오류 완전 정착 수리 구역]
+    # 문법을 깨뜨리던 if-else 블록 내부의 띄어쓰기 오프셋을 4칸 규격에 맞춰 자석 정렬했습니다.
     if not theme_detail_df.empty:
+        theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
+        for _, row in theme_detail_df.head(30).iterrows():
+            final_stock_list.append((row['name'], row['rate']))
+    else:
+        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
+        
