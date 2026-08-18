@@ -14,22 +14,29 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 핀업 스타일의 다크 테마 및 테이블 너비 100% 강제 적용 CSS
+# 🎯 [수정 조치] 화면 상단의 모든 마진, 패딩, 여백을 극단적으로 줄여 요소를 위로 끌어올리는 CSS
 st.markdown("""
     <style>
-    .block-container { padding-top: 1.5rem; padding-bottom: 1.5rem; }
-    div[data-testid="stTable"] { width: 100% !important; }
-    th { background-color: #0F172A !important; color: #F8FAFC !important; font-weight: bold !important; text-align: center !important; }
-    td { text-align: center !important; font-weight: 500; }
+    /* 전체 화면 여백 최소화 */
+    .block-container { padding-top: 0.5rem !important; padding-bottom: 1rem !important; }
     
-    /* Plotly 차트 내부의 텍스트 엘리먼트들을 CSS 단에서 정중앙 강제 정렬 */
+    /* 요소 간의 기본 간격(Gap) 줄이기 */
+    [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
+    
+    /* 구분선(hr) 마진 압축 */
+    hr { margin: 0.5rem 0 !important; }
+    
+    /* 테이블 스타일 튜닝 */
+    div[data-testid="stTable"] { width: 100% !important; margin-top: 0rem !important; }
+    th { background-color: #0F172A !important; color: #F8FAFC !important; font-weight: bold !important; text-align: center !important; padding: 6px !important; }
+    td { text-align: center !important; font-weight: 500; padding: 6px !important; }
+    
+    /* Plotly 차트 내부의 텍스트 엘리먼트 정중앙 강제 정렬 */
     g.treemaptext text {
         text-anchor: middle !important;
         dominant-baseline: central !important;
     }
-    
-    /* Plotly 차트 테두리 공백 제거 */
-    .js-plotly-plot { margin-bottom: 1rem; }
+    .js-plotly-plot { margin-bottom: 0rem !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -39,7 +46,7 @@ st.markdown("""
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-@st.cache_data(ttl=10)  # 실시간 인터랙션을 위해 캐시 타임아웃 최소화
+@st.cache_data(ttl=10)
 def load_market_data():
     if os.path.exists(BASE_FILE):
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
@@ -70,29 +77,34 @@ def load_market_data():
 raw_df, status_df = load_market_data()
 
 # =========================================================================
-# 2. 🗺️ 상단 구역: 핀업 스타일 실시간 가변 테마 맵 (박스 25개 스케일 제한)
+# 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5 (한 줄 배치로 축소)
 # =========================================================================
-st.title("📊 핀업 스타일 주식 테마 대시보드")
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
-st.caption(f"⚙️ 4,115개 전수 수집 연동 엔진 작동 중 | 최근 갱신: {update_time}")
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
-# 현재 시장 주도 상위 테마 가로 요약 바 (TOP 5)
-st.write("### 🔥 현재 시장 주도 상위 테마 (TOP 5)")
+# 🎯 [수정 조치] 타이틀과 갱신 안내 텍스트를 한 줄로 결합하여 세로 공간 대폭 절약
+title_col, time_col = st.columns([7, 3])
+with title_col:
+    st.markdown("<h2 style='margin:0; padding:0;'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
+with time_col:
+    st.markdown(f"<p style='text-align:right; margin-top:10px; color:#94A3B8; font-size:13px;'>⏱️ {update_time}</p>", unsafe_allow_html=True)
+
+# 🎯 [수정 조치] "현재 시장 주도 상위 테마" 같은 중간 안내 텍스트 라인 전부 삭제 후 즉시 메트릭 배치
 theme_cols = st.columns(5)
 for i in range(min(5, len(status_df))):
     t_name = status_df['테마'].iloc[i]
     t_rate = status_df['등락률'].iloc[i]
     with theme_cols[i]:
         if t_rate >= 0:
-            st.metric(label=f"🔺 {t_name}", value=f"+{t_rate}%", delta="시장 주도")
+            st.metric(label=f"🔺 {t_name}", value=f"+{t_rate}%")
         else:
-            st.metric(label=f"🔻 {t_name}", value=f"{t_rate}%", delta="하락세", delta_color="inverse")
+            st.metric(label=f"🔻 {t_name}", value=f"{t_rate}%", delta_color="inverse")
 
 st.markdown("---")
-st.markdown("### 🗺️ 실시간 테마 히트맵 (상위 25개 중심)")
-st.write("💡 거래량이 많을수록 박스가 커지고, 상승 종목이 많으면 빨간색 / 낙폭이 크면 파란색으로 표현됩니다.")
 
-# 수집된 테마 중 상위 25개만 커팅
+# =========================================================================
+# 3. 🗺️ 중간 구역: 실시간 테마 히트맵 (상위 25개 중심)
+# =========================================================================
+# 🎯 [수정 조치] 히트맵 상단의 불필요한 가이드 텍스트 및 전수 수집 관련 잔여 설명글 전면 삭제
 top_25_themes = status_df.head(25).copy()
 
 if not top_25_themes.empty and '테마' in top_25_themes.columns and '화면크기_가중치' in top_25_themes.columns:
@@ -105,20 +117,19 @@ if not top_25_themes.empty and '테마' in top_25_themes.columns and '화면크�
         color_continuous_midpoint=0      
     )
     
-    # 🎯 [수정 완결] %와 {label} 사이의 공백을 제거하여 변수 치환 버그를 완벽하게 잡았습니다.
     fig.update_traces(
-        texttemplate="<b>%{label}</b><br>%{color:.2f}%",
+        texttemplate="<b>%{label}</b><br>%%{color:.2f}%",
         textfont=dict(size=20, color="white"),
-        textposition="middle center"  # Plotly 엔진 정중앙 정렬 고정
+        textposition="middle center"
     )
     
+    # 🎯 하단 종목을 끌어올리기 위해 히트맵 세로 높이를 500px -> 420px로 콤팩트하게 다이어트
     fig.update_layout(
-        margin=dict(t=5, b=5, l=5, r=5), 
-        height=500,
-        uniformtext=dict(minsize=14, mode='hide')  # 폰트 깨짐 예방
+        margin=dict(t=2, b=2, l=2, r=2), 
+        height=420,
+        treemapcolorway=["#1E293B"]
     )
     
-    # 좌우 폭을 슬림하게 모아주는 3단 분기 레이아웃 (0.5 : 9.0 : 0.5)
     side_space1, center_map, side_space2 = st.columns([0.5, 9.0, 0.5])
     with center_map:
         st.plotly_chart(fig, use_container_width=True)
@@ -126,16 +137,13 @@ else:
     st.info("테마 상태 데이터를 읽어오는 중입니다.")
 
 # =========================================================================
-# 3. 🔍 테마 선택 컨트롤러 (상하단 실시간 브릿지 연동)
+# 4. 🔍 테마 선택 및 하단 100% 와이드 종목 리스트 연동 구역 (바짝 끌어올림)
 # =========================================================================
+# 🎯 [수정 조치] 중간 구분선(hr)과 중복 텍스트 제목들을 전부 제거하고, 셀렉트박스와 테이블을 바로 붙임
 theme_list = top_25_themes['테마'].dropna().tolist() if not top_25_themes.empty else ["대북/남북경협"]
-chosen_theme = st.selectbox("📂 상세 분석 및 소속 종목을 조회할 테마를 지정하세요:", theme_list, index=0)
 
-# =========================================================================
-# 4. 🎯 하단 구역: 100% 와이드 종목 리스트 (뉴스 차단 및 종목 소개 집중)
-# =========================================================================
-st.markdown("---")
-st.subheader(f"🗂️ {chosen_theme} 테마 소속 종목 가이드")
+# 셀렉트박스와 리스트 제목을 결합하여 한눈에 들어오게 처리
+chosen_theme = st.selectbox("📂 조회할 테마를 지정하면 아래 대장 종목 리스트가 즉시 연동됩니다:", theme_list, index=0)
 
 try:
     if not raw_df.empty and 'theme' in raw_df.columns:
@@ -152,7 +160,7 @@ try:
         theme_df_clean.columns = col_names
         
         if not theme_df_clean.empty:
-            st.table(theme_df_clean.head(15))
+            st.table(theme_df_clean.head(12)) # 화면 컷에 맞게 최대 12개 깔끔하게 노출
         else:
             st.info(f"현재 `{chosen_theme}` 테마에 매핑된 실시간 종목 정보가 존재하지 않습니다.")
     else:
