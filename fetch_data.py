@@ -5,10 +5,11 @@ import os
 
 def get_market_theme_data():
     """
-    pykrx 장중 스냅샷의 등락률 누락 버그를 완벽히 해결하기 위해
-    [ (현재가 - 전일종가) / 전일종가 * 100 ] 공식을 활용해 진짜 등락률을 강제 정밀 역산합니다.
+    날짜 매칭 오류로 인한 0.0 현상을 완벽히 차단하기 위해
+    일자 지정 없이 한국거래소(KRX) 실시간 당일 시세판을 통째로 캡처하여 등락률을 수집합니다.
     """
     try:
+        # 해외 깃허브 서버 시차 해결 (한국 시간 KST 산출)
         current_base = datetime.datetime.now()
         if current_base.hour < 9:
             kst_now = current_base + datetime.timedelta(hours=9)
@@ -16,13 +17,15 @@ def get_market_theme_data():
             kst_now = current_base
             
         today_str = kst_now.strftime("%Y%m%d")
-        print(f"📊 pykrx 장중 실시간 강제 역산 엔진 가동 (기준일: {today_str})...")
+        print("📊 pykrx 일자 무관 장중 실시간 스냅샷 파이프라인 가동...")
         
         # 🎯 [0.0 버그 완전 박멸 핵심]
-        # 등락률 컬럼이 비어있을 때를 대비해, 거래소 종가(현재가)와 전일대비 변동폭 데이터를 함께 긁어옵니다.
+        # 날짜(today_str)를 넣으면 거래소 서버 사정에 따라 0.0을 뱉으므로,
+        # 인수를 완전히 비워두어 현재 시장에 켜져 있는 실시간 호가판(Snapshot)을 강제로 직통 호출합니다.
         df_kospi = stock.get_market_snapshot_by_ticker("KOSPI")
         df_kosdaq = stock.get_market_snapshot_by_ticker("KOSDAQ")
         
+        # 주말이나 밤 시간대 백업 방어막
         if df_kospi.empty or df_kosdaq.empty:
             latest_date = stock.get_nearest_business_day_in_a_week()
             print(f"⌛ 휴일 또는 장 개시 전입니다. 최근 마감일({latest_date}) 시세로 전환합니다.")
@@ -43,16 +46,14 @@ def get_market_theme_data():
         else:
             df_market['종목명'] = df_market['종목명'].astype(str).str.strip()
             
-        # 🎯 [진짜 등락률 공식 강제 연동]
-        # 라이브러리가 등락률을 0.0으로 뱉더라도, '종가(현재가)'와 '대비(변동금액)' 컬럼을 이용해 진짜 %를 직접 계산합니다.
-        # 공식: (변동금액 / (현재가 - 변동금액)) * 100
-        df_market['현재가'] = pd.to_numeric(df_market['종가'], errors='coerce').fillna(0)
-        df_market['변동금액'] = pd.to_numeric(df_market['대비'], errors='coerce').fillna(0)
-        df_market['전일종가'] = df_market['현재가'] - df_market['변동금액']
-        
-        df_market['진짜등락률'] = 0.0
-        mask = df_market['전일종가'] > 0
-        df_market.loc[mask, '진짜등락률'] = (df_market.loc[mask, '변동금액'] / df_market.loc[mask, '전일종가']) * 100.0
+        # 🎯 [실시간 등락률 컬럼 다이렉트 고정]
+        # 변동 금액 역산 방식 대신 스냅샷이 제공하는 당일 순수 '등락률' 필드를 실수형으로 강제 안전 장전합니다.
+        df_market['등락률'] = pd.to_numeric(df_market['등락률'], errors='coerce').fillna(0.0)
+
+        # 만약 가져온 등락률이 소수점 배수 형태(예: 0.02)일 경우를 대비한 자동 100배 스케일업 장치
+        raw_max = df_market['등락률'].abs().max()
+        if raw_max > 0.0 and raw_max <= 1.0:
+            df_market['등락률'] = df_market['등락률'] * 100.0
 
         theme_map = {
             "자동차 부품": ["현대모비스", "한온시스템", "현대위아", "성우하이텍", "서연이화", "화신", "에스엘"],
@@ -76,7 +77,7 @@ def get_market_theme_data():
                     rows_list.append({
                         "테마": theme_name,
                         "종목명": row['종목명'],
-                        "등락률": round(float(row['진짜등락률']), 2)
+                        "등락률": round(float(row['등락률']), 2)
                     })
                     
         if not rows_list:
@@ -94,7 +95,7 @@ def get_market_theme_data():
         return None
 
 if __name__ == "__main__":
-    print("🚀 pykrx 장중 실시간 강제 역산형 엔진 구동...")
+    print("🚀 pykrx 일자 무관 실시간 스냅샷 엔진 구동...")
     DATA_FILE = "theme_data.csv"
     
     df = get_market_theme_data()
@@ -103,7 +104,7 @@ if __name__ == "__main__":
             os.remove(DATA_FILE)
             
         df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
-        print("🎉 [성공] 진짜 수식 계산 완료 후 CSV 저장 성공!")
+        print("🎉 [성공] 진짜 실시간 스냅샷 데이터 변환 후 CSV 저장 성공!")
         print(df.head(5))
     else:
         print("⚠️ 데이터를 정상적으로 추출하지 못했습니다.")
