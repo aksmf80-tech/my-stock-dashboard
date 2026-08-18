@@ -7,19 +7,23 @@ import numpy as np
 import requests
 from bs4 import BeautifulSoup
 import urllib.parse
+import datetime
 
-# ⚠️ 최상단 페이지 설정 (화면을 100% 꽉 차게 넓게 씁니다)
+# =========================================================================
+# 1. 전역 페이지 세팅 및 디자인 CSS (화면 가로폭 제한 및 정중앙 정렬 핵심)
+# =========================================================================
 st.set_page_config(layout="wide")
 
-# 🎯 핀업 전광판 스타일 대형화 레이아웃 CSS 스타일링
 st.markdown("""
     <style>
+    /* 💡 기존 max-width: 100%를 1400px로 제한하고 정중앙 정렬(margin: 0 auto)로 대시보드를 모아줍니다 */
     .block-container {
         padding-top: 0.5rem !important;
         padding-bottom: 0.5rem !important;
         padding-left: 1.5rem !important;
         padding-right: 1.5rem !important;
-        max-width: 100% !important;
+        max-width: 1400px !important;
+        margin: 0 auto !important;
     }
     h1 {
         margin-top: 15px !important;
@@ -54,7 +58,7 @@ st.markdown("""
         color: #FFFFFF !important;
         margin-top: 20px !important;
     }
-    /* 뉴스 스타일 세팅 */
+    /* 뉴스 카드 스타일 세팅 */
     .news-box {
         background-color: #14161D !important;
         padding: 15px !important;
@@ -91,9 +95,7 @@ if not os.path.exists(RAW_DATA_FILE):
 # 뼈대 데이터 로드 
 raw_df = pd.read_csv(RAW_DATA_FILE, encoding="utf-8-sig")
 
-# 🚨 [TypeError 원천 삭제] 말썽을 부리던 복잡한 유연화/rename 코드를 완전히 제거하고
-# 엑셀의 열 이름을 우리가 제어하기 쉬운 고정 문자열로 강제 주입합니다.
-# 우리가 수집했던 파일 구조: 테마, 종목코드, 종목명, 야후티커, 시장구분 등 순서 매핑
+# 열 이름 무결점 강제 표준화 시스템
 new_columns = []
 for col in raw_df.columns:
     c_lower = str(col).strip().lower()
@@ -108,10 +110,11 @@ for col in raw_df.columns:
     else:
         new_columns.append(c_lower)
 
-# 새롭게 판정된 무결점 컬럼 리스트 강제 적용 (오류 소지 0%)
 raw_df.columns = new_columns
 
-# 데이터 파일 로드 및 랭킹 정렬
+# =========================================================================
+# 2. 데이터 파일 로드 및 상단 핀업 바둑판 트리맵 구성 구역
+# =========================================================================
 if os.path.exists(THEME_STATUS_FILE):
     try:
         theme_summary = pd.read_csv(THEME_STATUS_FILE, encoding="utf-8-sig")
@@ -119,7 +122,7 @@ if os.path.exists(THEME_STATUS_FILE):
         os.remove(THEME_STATUS_FILE)
         st.rerun()
 else:
-    # 수집 완료 전 임시 배치 데이터
+    # 수집 완료 전 임시 배치 백업 데이터
     theme_list = raw_df['theme'].dropna().unique() if 'theme' in raw_df.columns else ["DDR5", "화장품", "2차전지"]
     theme_summary = pd.DataFrame({
         '테마': theme_list,
@@ -131,7 +134,7 @@ else:
 if '테마' not in theme_summary.columns and 'theme' in theme_summary.columns:
     theme_summary = theme_summary.rename(columns={'theme': '테마'})
 
-# 핀업 스타일로 주도 22개 테마 엄선
+# 주도 22개 테마 정렬 엄선
 if not theme_summary.empty:
     if '화면크기_가중치' in theme_summary.columns:
         theme_summary = theme_summary.sort_values(by='화면크기_가중치', ascending=False)
@@ -147,9 +150,7 @@ def make_pinup_label(row):
 
 theme_summary['핀업라벨'] = theme_summary.apply(make_pinup_label, axis=1)
 
-# ---------------------------------------------------------
-# 구역 1: 핀업 바둑판 트리맵 차트 (완벽한 고대비 컬러 매핑 및 레이아웃 고정)
-# ---------------------------------------------------------
+# 트리맵 시각화 레이아웃 고정
 fig = px.treemap(
     theme_summary, 
     path=['테마'], 
@@ -168,15 +169,13 @@ fig.update_traces(
 )
 fig.update_traces(textposition="middle center") 
 
-# 클릭 시 확대/축소 기능을 차단하는 핵심 속성 주입 (핀업 고정형 완성)
 fig.update_layout(
     dragmode=False, 
     margin=dict(t=5, l=5, r=5, b=5), 
-    height=650, 
+    height=450, # 💡 모니터 비율 최적화를 위해 높이를 450으로 약간 패킹했습니다
     coloraxis_showscale=False
 )
 
-# 차트 자체가 줌인(Drill-down)되지 않고 원래 모양을 굳건히 유지
 fig.update_traces(root_color="lightgrey", hoverinfo="none")
 
 selected_point = st.plotly_chart(
@@ -190,83 +189,83 @@ selected_point = st.plotly_chart(
 # 기본 선택 테마 지정
 chosen_theme = theme_summary['테마'].iloc[0] if not theme_summary.empty else "데이터 없음"
 
-# 레이아웃 변화 없이 텍스트 데이터만 가로채기
 if selected_point and "points" in selected_point and len(selected_point["points"]) > 0:
     try:
-        clicked_id = selected_point["points"].get("id")
+        clicked_id = selected_point["points"][0].get("id")
         if clicked_id:
             chosen_theme = clicked_id.split('/')[-1]
-    except:
+    except Exception:
         pass
 
 st.markdown("<hr style='margin: 15px 0px; border-color: #2A2F3A;'/>", unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# 구역 2: 🎯 테마 클릭 시 하단 종목 및 뉴스 동시 가변 연동 구역
-# ---------------------------------------------------------
+# =========================================================================
+# 3. 🎯 하단 종목 및 뉴스 동시 가변 연동 구역 (가변 분기 핵심 로직)
+# =========================================================================
 st.subheader(f"📂 {chosen_theme} 테마 상세분석 정보")
 
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown(f"### 🔥 {chosen_theme} 소속 대장 종목 리스트")
+@st.cache_data(ttl=600)
+def fetch_theme_news(keyword):
+    news_list = []
     try:
-        if 'theme' in raw_df.columns:
-            theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
+        encoded_keyword = urllib.parse.quote(keyword)
+        # 💡 네이버 실시간 뉴스 검색 주소 절대경로 정상화 완료
+        url = f"https://naver.com{encoded_keyword}&sm=tab_srt&sort=1"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        
+        res = requests.get(url, headers=headers, timeout=3)
+        soup = BeautifulSoup(res.text, "html.parser")
+        
+        articles = soup.select("ul.list_news > li.bx")
+        for idx, article in enumerate(articles):
+            if idx >= 5: break
             
-            # 존재하는 열들만 안전하게 필터링하여 에러 방지
-            avail_cols = []
-            col_names = []
-            if 'name' in theme_detail_df.columns: 
-                avail_cols.append('name'); col_names.append('종목명')
-            if 'code' in theme_detail_df.columns: 
-                avail_cols.append('code'); col_names.append('종목코드')
-            if 'market' in theme_detail_df.columns: 
-                avail_cols.append('market'); col_names.append('시장구분')
-                
-            theme_df_clean = theme_detail_df[avail_cols].reset_index(drop=True)
-            theme_df_clean.columns = col_names
-            st.table(theme_df_clean)
-        else:
-            st.info("데이터셋에 theme 열이 존재하지 않습니다.")
-    except Exception:
-        st.info("종목 데이터를 읽어오는 중입니다...")
+            title_elem = article.select_one("a.news_tit")
+            info_elem = article.select_one("a.info")
+            dsc_elem = article.select_one("div.news_dsc")
+            
+            if title_elem:
+                title = title_elem.text
+                link = title_elem['href']
+                press = info_elem.text if info_elem else "네이버 뉴스"
+                summary = dsc_elem.text if dsc_elem else ""
+                news_list.append({"title": title, "link": link, "press": press, "summary": summary})
+    except Exception as e:
+        print(f"뉴스 크롤링 실패: {e}")
+    return news_list
 
-with col2:
-    st.markdown(f"### 📰 {chosen_theme} 관련 실시간 뉴스 정보")
+# 뉴스 크롤링 데이터 확보
+current_news = fetch_theme_news(chosen_theme)
+
+# 💡 [가변 레이아웃 조건 처리] 뉴스가 검색되었을 때와 완전히 비어있을 때의 소스를 나눕니다.
+if current_news:
+    # 📰 실시간 뉴스가 존재함 -> 5:5 비율로 화면 분할 레이아웃 작동
+    col1, col2 = st.columns(2)
     
-    @st.cache_data(ttl=600)
-    def fetch_theme_news(keyword):
-        news_list = []
+    with col1:
+        st.markdown(f"### 🔥 {chosen_theme} 소속 대장 종목 리스트")
         try:
-            encoded_keyword = urllib.parse.quote(keyword)
-            url = f"https://naver.com{encoded_keyword}&sm=tab_srt&sort=1"
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-            
-            res = requests.get(url, headers=headers)
-            soup = BeautifulSoup(res.text, "html.parser")
-            
-            articles = soup.select("ul.list_news > li.bx")
-            for idx, article in enumerate(articles):
-                if idx >= 5: break
-                
-                title_elem = article.select_one("a.news_tit")
-                info_elem = article.select_one("a.info")
-                dsc_elem = article.select_one("div.news_dsc")
-                
-                if title_elem:
-                    title = title_elem.text
-                    link = title_elem['href']
-                    press = info_elem.text if info_elem else "네이버 뉴스"
-                    summary = dsc_elem.text if dsc_elem else ""
-                    news_list.append({"title": title, "link": link, "press": press, "summary": summary})
-        except Exception as e:
-            print(f"뉴스 크롤링 실패: {e}")
-        return news_list
+            if 'theme' in raw_df.columns:
+                theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
+                avail_cols = []
+                col_names = []
+                if 'name' in theme_detail_df.columns: 
+                    avail_cols.append('name'); col_names.append('종목명')
+                if 'code' in theme_detail_df.columns: 
+                    avail_cols.append('code'); col_names.append('종목코드')
+                if 'market' in theme_detail_df.columns: 
+                    avail_cols.append('market'); col_names.append('시장구분')
+                    
+                theme_df_clean = theme_detail_df[avail_cols].reset_index(drop=True)
+                theme_df_clean.columns = col_names
+                st.table(theme_df_clean.head(7)) # 화면 절반 크기에 맞춰 7개 노출
+            else:
+                st.info("데이터셋에 theme 열이 존재하지 않습니다.")
+        except Exception:
+            st.info("종목 데이터를 읽어오는 중입니다...")
 
-    current_news = fetch_theme_news(chosen_theme)
-    
-    if current_news:
+    with col2:
+        st.markdown(f"### 📰 {chosen_theme} 관련 실시간 뉴스 정보")
         for news in current_news:
             st.markdown(f"""
                 <div class="news-box">
@@ -274,13 +273,16 @@ with col2:
                     <div class="news-info">📰 {news['press']} | {chosen_theme} 관련 이슈</div>
                 </div>
             """, unsafe_allow_html=True)
-    else:
-        st.write("⌛ 해당 테마와 관련된 최신 뉴스를 탐색 중입니다.")
 
-if "last_refresh" not in st.session_state:
-    st.session_state.last_refresh = time.time()
-
-if time.time() - st.session_state.last_refresh > 60:
-    st.session_state.last_refresh = time.time()
-    st.cache_data.clear()
-    st.rerun()
+else:
+    # 💡 실시간 뉴스가 완전히 없음 -> st.columns 분할을 건너뛰고 단독 100% 레이아웃 강제 활성화!
+    st.markdown(f"### 🔥 {chosen_theme} 소속 대장 종목 리스트 (실시간 뉴스 없음)")
+    try:
+        if 'theme' in raw_df.columns:
+            theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
+            avail_cols = []
+            col_names = []
+            if 'name' in theme_detail_df.columns: 
+                avail_cols.append('name'); col_names.append('종목명')
+            if 'code' in theme_detail_df.columns: 
+                avail_cols.append('code'); col_names.append('종목코드')
