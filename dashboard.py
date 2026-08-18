@@ -188,7 +188,7 @@ with left_layout:
             color='등락률',             
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
-            custom_data=['등락률']
+            custom_data=['등rak률'] if '등rak률' in top_25_themes.columns else ['등락률']
         )
         
         fig.update_traces(
@@ -205,7 +205,7 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        if chart_res and "selection" in chart_res Glen and "points" in chart_res["selection"]:
+        if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
@@ -238,5 +238,4 @@ with right_layout:
         for _, row in theme_detail_df.head(30).iterrows():
             final_stock_list.append((row['name'], row['rate']))
     else:
-        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
-        
+        # 🎯 [들여쓰기 버그 완전 박멸] 스크린샷에 나온 바깥쪽의 불필요한 설명 파편 글씨를 완전 삭제하고
