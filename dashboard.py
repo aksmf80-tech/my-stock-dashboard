@@ -4,23 +4,25 @@ import numpy as np
 import plotly.express as px
 import os
 import time
+import yfinance as yf  # 🎯 [기억 3 라이브] 야후 파이낸스 실시간 직동기화 엔진 주입
 
 # =========================================================================
-# 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정 (타이틀 간격 겹침 완벽 해결)
+# 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정 (기억 3 황금 간격 적용)
 # =========================================================================
 st.set_page_config(
-    page_title="1분 연동 핀업 스타일 주식 테마 대시보드",
+    page_title="1분 연동 핀업 스타일 라이브 주식 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 st.markdown("""
     <style>
+    /* 천장 잘림 절대 방지 안전 여백 고정 */
     .block-container { padding-top: 4.2rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.5rem 0 !important; }
     
-    /* 🚨 [간격 겹침 해결 패치] margin-bottom을 1.8rem으로 늘려 하단 메트릭 카드들과의 간격을 시원하게 떨어뜨립니다. */
+    /* 타이틀과 하단 메트릭 카드의 간격을 시원하게 벌리는 기억 3 마진 규격 */
     .dashboard-title {
         margin: 0 !important;
         padding: 0 !important;
@@ -33,7 +35,7 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 16px !important; font-weight: 700 !important; color: #94A3B8 !important; }
     [data-testid="stMetricValue"] { font-size: 28px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 🔺 상승 종목 버튼 왼쪽 테두리에만 6px 두께 강렬한 레드 매니큐어 바 주입 */
+    /* 🔺 상승 종목 버튼 왼쪽 테두리 6px 강렬한 레드 매니큐어 바 */
     .stock-box-up {
         border-left: 6px solid #EF4444 !important;
         background-color: #1E293B !important;
@@ -47,7 +49,7 @@ st.markdown("""
     .stock-name-up { color: #FFF !important; font-weight: 700 !important; font-size: 14px !important; }
     .stock-rate-up { color: #F87171 !important; font-weight: 800 !important; font-size: 14px !important; }
     
-    /* 🔹 하락 종목 버튼 왼쪽 테두리에만 6px 두께 시원한 블루 매니큐어 바 주입 */
+    /* 🔹 하락 종목 버튼 왼쪽 테두리 6px 시원한 블루 매니큐어 바 */
     .stock-box-down {
         border-left: 6px solid #3B82F6 !important;
         background-color: #1E293B !important;
@@ -71,116 +73,100 @@ st.markdown("""
 
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (1분 장중 무한 실시간 동기화 데이터 풀)
+# 1. 📂 데이터 로드 및 정제 구역 (형님 4,115개 뼈대 + 야후 1분 직동기화 융합 엔진)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-BACKUP_STOCK_POOL = {
-    "대북/남북경협": [
-        ("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24),
-        ("부산산업", 18.50), ("제이에스티나", 15.30), ("신원", 12.10), ("재영솔루텍", 9.80),
-        ("아난티", 8.40), ("현대로템", 7.15), ("한일현대시멘트", 5.20), ("쌍용C&E", 4.10),
-        ("성신양회", 3.85), ("특수건설", 2.10), ("우원개발", 1.45), ("남광토건", -0.80),
-        ("삼부토건", -1.20), ("동아지질", -2.50), ("서암기계공업", -3.10), ("대호에이엘", -4.20),
-        ("일성건설", 3.40), ("범양건영", -0.90), ("동신건설", 1.20), ("신원우", 2.55),
-        ("서희건설", 0.45), ("남화토건", -1.10)
-    ],
-    "반도체 후공정": [
-        ("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12),
-        ("네패스", 2.85), ("에스에프에이", 2.10), ("엘비세미콘", 1.45), ("두산테스나", 0.90),
-        ("시그네틱스", -0.40), ("윈팩", -1.15), ("에이팩트", -2.30), ("티에스이", -3.50),
-        ("고영", 3.20), ("피에스케이", 1.15), ("인텍플러스", -0.95), ("제우스", 2.40),
-        ("에이디테크", 4.12), ("넥스틴", 1.35), ("테크윙", -0.70), ("프로텍", -1.25),
-        ("디아이", 3.10), ("에스티아이", 0.90), ("오로스테크", -2.15), ("아이엠티", 1.10),
-        ("큐알티", 2.30), ("두산", -0.40)
-    ],
-    "시스템 반도체": [
-        ("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45),
-        ("가온칩스", 8.30), ("오픈엣지테크놀로지", 7.15), ("에이디테크놀로지", 5.40), ("텔레칩스", 3.10),
-        ("칩스앤미디어", 2.20), ("넥스트칩", 1.10), ("코아시아", -0.80), ("알파홀딩스", -2.40),
-        ("SFA반도체", 4.20), ("어보브반도체", 1.85), ("제주반도체", -1.10), ("픽셀플러스", 0.50),
-        ("텔레칩스", 1.20), ("앤씨앤", -0.30), ("자람테크", 5.10), ("에이직랜드", 3.40),
-        ("파두", -4.10), ("크라우드웍스", 2.20), ("퀄리타스", -1.10), ("시지트로닉스", 0.85),
-        ("라온텍", -2.40), ("고영", 1.15)
-    ],
-    "수소차": [
-        ("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("대우부품", 1.30),
-        ("두산퓨어셀", 8.90), ("에스퓨어셀", 6.30), ("상아프론테크", 3.10), ("유니크", 1.85),
-        ("평화산업", -1.40), ("평화홀딩스", 2.20), ("엔케이", 0.95), ("지엠비코리아", -0.80),
-        ("일진다이아", 2.45), ("코오롱플라", -1.15), ("제이엔케이히터", 3.10), ("풍국주정", 1.25),
-        ("모토닉", -0.40), ("미코", 2.80), ("성창오토텍", -1.10), ("시노펙스", 4.30),
-        ("뉴인텍", -3.20), ("삼보모터스", 1.15), ("동양피스톤", -0.90), ("에코바이오", 2.45),
-        ("영화테크", -1.40), ("코오롱머티리얼", 0.00)
-    ],
-    "전기차 부품": [
-        ("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20), ("상신이디피", 5.40),
-        ("삼기", 3.15), ("엠에스오토텍", 2.10), ("우수AMS", -1.10), ("명신산업", -2.85),
-        ("아진산업", 3.40), ("구영테크", 0.95), ("대유에이텍", -1.20), ("영화테크", 2.15),
-        ("계양전기", 1.40), ("화신", -0.55), ("성우하이텍", 4.10), ("한on시스템", -1.25),
-        ("우리산업", 2.30), ("대유플러스", -3.10), ("모베이스전자", 1.15), ("티에스이엔", -0.90),
-        ("상신브레이크", 0.40), ("평화정공", 1.85), ("코다코", -2.40), ("디아이씨", 3.10),
-        ("대원강업", -0.85), ("두올", 1.20)
-    ],
-    "로봇": [
-        ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15),
-        ("티보로보틱스", 2.80), ("유진로봇", 1.45), ("로보스타", -0.90), ("스맥", -2.35),
-        ("휴림로봇", 4.10), ("에브리봇", -1.50), ("로보로보", 0.85), ("디엔에이치", 2.30),
-        ("푸른기술", 1.70), ("싸이맥스", -0.45), ("아진엑스텍", 3.20), ("티피씨글로벌", -1.10),
-        ("큐렉소", 4.85), ("미래컴퍼니", -2.40), ("티로보틱스", 1.30), ("해성티피씨", -3.15),
-        ("삼익THK", 0.95), ("퍼스텍", 2.10), ("대동기어", -1.40), ("우림피티에스", 3.55),
-        ("이랜시스", 12.40), ("코윈테크", -0.80)
-    ],
-    "제약/바이오": [
-        ("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30), ("HLB", 9.45),
-        ("유한양행", 4.20), ("한미약품", 2.15), ("SK바이오팜", -1.10), ("제일약품", -3.40),
-        ("대웅제약", 1.85), ("종근당", 0.95), ("녹십자", -1.40), ("동국제약", 2.10),
-        ("한올바이오", 5.30), ("신풍제약", -2.15), ("보령", 1.10), ("광동제약", -0.45),
-        ("삼진제약", 0.80), ("부광약품", -1.30), ("영진약품", 2.45), ("일양약품", -3.10),
-        ("동화약품", 0.95), ("안국약품", 1.20), ("경동제약", -0.80), ("조아제약", 4.15),
-        ("현대약품", -1.25), ("화일약품", 2.30)
-    ]
-}
-
 @st.cache_data(ttl=5)
-def load_market_data():
+def load_and_sync_live_data():
     base_df = pd.DataFrame()
     
-    # 🚨 [KeyError 완전 파괴 패치] 파일 내부 컬럼명이 한글이든 영어든 무조건 정상 매핑
+    # [1단계: 형님의 마스터 뼈대 파일 우선 로드]
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         try:
             base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
+            
+            # 컬럼명 유연화 (한글/영어/공백 대소문자 완벽 대응 충돌 방어)
             rename_map = {}
             for col in base_df.columns:
                 col_str = str(col).strip().lower()
                 if '테마' in col_str or 'theme' in col_str: rename_map[col] = 'theme'
                 elif '종목' in col_str or 'name' in col_str: rename_map[col] = 'name'
                 elif '등락' in col_str or 'rate' in col_str: rename_map[col] = 'rate'
+                elif '코드' in col_str or 'code' in col_str: rename_map[col] = 'code'
             base_df = base_df.rename(columns=rename_map)
         except Exception:
             base_df = pd.DataFrame()
 
-    # 파일이 비어있거나 불러오기 실패 시 백업 풀 가동하여 즉시 복구
-    if base_df.empty or 'theme' not in base_df.columns:
+    # 파일이 유실되었을 경우 최소 가상 구동 틀 (안전장치)
+    if base_df.empty or 'theme' not in base_df.columns or 'name' not in base_df.columns:
         sample_rows = []
-        for theme, stocks in BACKUP_STOCK_POOL.items():
-            for name, rate in stocks:
-                sample_rows.append({'theme': theme, 'name': name, 'rate': rate})
+        for t in ["대북/남북경협", "반도체 후공정", "시스템 반도체", "수소차", "전기차 부품", "로봇", "제약/바이오"]:
+            sample_rows.append({'theme': t, 'name': f'{t}대장주', 'rate': 0.0, 'code': '000000'})
         base_df = pd.DataFrame(sample_rows)
-        
-    if 'rate' not in base_df.columns:
-        base_df['rate'] = np.random.uniform(-15, 30, size=len(base_df)).round(2)
-        
-    # 절대 에러가 안 나도록 안전성 강제 텍스트 정제 캐스팅
-    base_df['theme'] = base_df['theme'].fillna('미분류').astype(str).apply(lambda x: x.strip())
-    base_df['name'] = base_df['name'].fillna('알수없음').astype(str).apply(lambda x: x.strip())
-    base_df['rate'] = pd.to_numeric(base_df['rate'], errors='coerce').fillna(0.0).astype(float)
 
+    if 'rate' not in base_df.columns: base_df['rate'] = 0.0
+    if 'code' not in base_df.columns: base_df['code'] = '000000'
+
+    # 데이터 타입 원천 정제
+    base_df['theme'] = base_df['theme'].fillna('미분류').astype(str).str.strip()
+    base_df['name'] = base_df['name'].fillna('알수없음').astype(str).str.strip()
+    base_df['rate'] = pd.to_numeric(base_df['rate'], errors='coerce').fillna(0.0).astype(float)
+    base_df['code'] = base_df['code'].fillna('000000').astype(str).str.strip()
+
+    # 🎯 [2단계: 클릭한 테마 소속 종목만 야후 파이낸스에서 1분 라이브 실시간 수신]
+    try:
+        # 현재 화면에 세션 상태로 찍혀있는 타겟 테마 추출
+        current_sel = st.session_state.get("selected_theme_click", "대북/남북경협")
+        target_stocks = base_df[base_df['theme'] == current_sel].copy()
+        
+        if not target_stocks.empty:
+            tickers_list = []
+            ticker_to_name = {}
+            
+            for _, row in target_stocks.iterrows():
+                s_name = row['name']
+                s_code = row['code']
+                
+                # 뼈대 내부의 종목 코드가 정상적인 숫자인 경우 자릿수 패딩 후 코스피/코스닥 티커 포맷 자동 빌드
+                if s_code != '000000' and len(s_code) >= 5:
+                    clean_code = s_code.zfill(6)
+                    
+                    # 💡 야후 연동 멀티 스캔 최적화: 차단 방지를 위해 코스피(.KS) 규격으로 우선 일괄 수집
+                    ticker_ks = f"{clean_code}.KS"
+                    tickers_list.append(ticker_ks)
+                    ticker_to_name[ticker_ks] = s_name
+            
+            if tickers_list:
+                # 야후 파이낸스 원격 1분 분봉 다이렉트 패치 (네트워크 비용 최소화 초경량 빔 스캔)
+                yahoo_data = yf.download(" ".join(tickers_list), period="1d", interval="1m", progress=False)
+                
+                if not yahoo_data.empty:
+                    # 멀티인덱스 컬럼 정제 처리
+                    if isinstance(yahoo_data.columns, pd.MultiIndex):
+                        yahoo_close = yahoo_data['Close']
+                    else:
+                        yahoo_close = yahoo_data
+                    
+                    # 가져온 야후 실시간 1분 데이터를 형님의 4,115개 마스터 테마 소속 종목 등락률에 실시간 덮어쓰기!
+                    for ticker, stock_name in ticker_to_name.items():
+                        if ticker in yahoo_close.columns:
+                            close_series = yahoo_close[ticker].dropna()
+                            if len(close_series) >= 2:
+                                val_first = float(close_series.iloc[0]) # 장시작 첫 거래가 대용
+                                val_last = float(close_series.iloc[-1]) # 실시간 현재 체결가
+                                if val_first != 0:
+                                    live_rate = round(((val_last - val_first) / val_first) * 100, 2)
+                                    # 4,115개 뼈대 데이터 라이브 오버라이드 실시간 치환!
+                                    base_df.loc[(base_df['theme'] == current_sel) & (base_df['name'] == stock_name), 'rate'] = live_rate
+    except Exception:
+        pass # 장외 시간, 주말, 휴장일에는 야후 연동을 건너뛰고 형님의 원본 파일 데이터 등락률을 100% 안전하게 유지!
+
+    # [3단계: 4,115개 데이터 기반의 상단 전광판 및 히트맵 상태 데이터 연산]
     if os.path.exists(STATUS_FILE) and os.path.getsize(STATUS_FILE) > 0:
         try:
             status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
-            
-            # 상단 상태 파일용 컬럼명 자동 보정 레이어
             status_rename = {}
             for col in status_df.columns:
                 col_str = str(col).strip()
@@ -194,7 +180,7 @@ def load_market_data():
     else:
         status_df = pd.DataFrame()
         
-    # 상태 파일이 유실되었거나 형식이 깨졌을 때 실시간 테마 스코어 자가 복구 컴파일
+    # 상태 파일이 유실되었거나 깨졌을 때 마스터 베이스 데이터 기준 실시간 테마 스코어 자동 역산 자가 치유
     if status_df.empty or '테마' not in status_df.columns:
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -205,14 +191,14 @@ def load_market_data():
             '업데이트시간': [current_time_str] * len(agg_df)
         })
         
-    # 등락률이 높은 순서대로 탑25 테마 재정렬 피팅
     if '등락률' in status_df.columns:
         status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
         
     return base_df, status_df
 
-raw_df, status_df = load_market_data()
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+raw_df, status_df = load_and_sync_live_data()
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+
 # -------------------------------------------------------------------------
 # 2. 📊 상단 타이틀 및 상위 5개 테마 메트릭 스코어보드 표출 영역
 # -------------------------------------------------------------------------
@@ -220,7 +206,7 @@ title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
-    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 1분 무한 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#38BDF8; font-size:12px; font-weight:bold;'>🔄 1분 무한 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # 실시간 등락률이 높은 상위 5개 테마 메트릭 바 자동 표출
 theme_cols = st.columns(5)
@@ -275,7 +261,7 @@ with left_layout:
                 if "label" in p_target and p_target["label"]:
                     st.session_state.selected_theme_click = str(p_target["label"]).strip()
                 elif "customdata" in p_target and p_target["customdata"]:
-                    st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
+                    st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
 
 # 🗂️ 오른쪽 영역: 클릭한 테마의 소속 종목 표출 구역
 with right_layout:
@@ -289,7 +275,7 @@ with right_layout:
         for _, row in theme_detail_df.iterrows():
             final_stock_list.append((row['name'], float(row['rate'])))
     else:
-        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
+        final_stock_list = [("데이터로드대기A", 0.0), ("데이터로드대기B", 0.0)]
         
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
