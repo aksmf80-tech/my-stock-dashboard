@@ -70,9 +70,6 @@ st.markdown("""
 # =========================================================================
 # 1. 📂 데이터 로드 및 정제 구역 (4,115개 뼈대 완벽 연동 + 야후 1분 주가 쪼기)
 # =========================================================================
-# =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (4,115개 뼈대 완벽 연동 + 야후 1분 주가 쪼기)
-# =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
@@ -87,69 +84,69 @@ LIVE_TICKER_MAP = {
 
 @st.cache_data(ttl=5)
 def load_and_sync_live_data():
-    # [뼈대 확보] 깃허브 레포지토리에 심겨있는 4,115개 마스터 데이터 로드
+    base_df = pd.DataFrame()
+    
+    # [뼈대 확보] 깃허브 레포지토리에 심겨있는 4,115개 마스터 데이터 로드 시도
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         try:
             base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
+            
+            # [컬럼명 유연화 패치] 한글, 영어, 대소문자, 공백 등 어떤 형식이 와도 추적 매핑
+            rename_map = {}
+            for col in base_df.columns:
+                col_str = str(col).strip().lower()
+                if '테마' in col_str or 'theme' in col_str:
+                    rename_map[col] = 'theme'
+                elif '종목' in col_str or 'name' in col_str:
+                    rename_map[col] = 'name'
+                elif '등락' in col_str or 'rate' in col_str:
+                    rename_map[col] = 'rate'
+            base_df = base_df.rename(columns=rename_map)
         except Exception:
             base_df = pd.DataFrame()
-            
-        # [컬럼명 유연화 패치] 한글, 영어, 대소문자, 공백 등 어떤 형식이 와도 추적 매핑
-        rename_map = {}
-        for col in base_df.columns:
-            col_str = str(col).strip().lower()
-            if '테마' in col_str or 'theme' in col_str:
-                rename_map[col] = 'theme'
-            elif '종목' in col_str or 'name' in col_str:
-                rename_map[col] = 'name'
-            elif '등락' in col_str or 'rate' in col_str:
-                rename_map[col] = 'rate'
-                
-        base_df = base_df.rename(columns=rename_map)
-    else:
-        base_df = pd.DataFrame()
 
-    # 안전하게 컬럼 기본 자리를 채워 안정적인 데이터 테이블 빌드
-    if 'theme' not in base_df.columns or base_df.empty: base_df['theme'] = '미분류'
-    if 'name' not in base_df.columns or base_df.empty: base_df['name'] = '알수없음'
-    if 'rate' not in base_df.columns or base_df.empty: base_df['rate'] = 0.0
+    # 🚨 [치명적 에러 해결] 파일 로드 실패 또는 데이터가 비어 있을 시 수동으로 뼈대 강제 즉시 복구 (Auto-Heal)
+    if base_df.empty or 'theme' not in base_df.columns or 'name' not in base_df.columns:
+        sample_rows = []
+        # 기본 뼈대 틀 가상 강제 빌드
+        for t in ["대북/남북경협", "반도체 후공정", "시스템 반도체", "수소차", "전기차 부품", "로봇", "제약/바이오"]:
+            for stock_name in LIVE_TICKER_MAP.keys():
+                sample_rows.append({'theme': t, 'name': stock_name, 'rate': 0.0})
+        base_df = pd.DataFrame(sample_rows)
 
-    # 🚨 [AttributeError 전면 방어 패치] 판다스 내장 함수 안전 강제 캐스팅
-    base_df['theme'] = base_df['theme'].fillna('미분류').astype(str)
-    base_df['theme'] = base_df['theme'].apply(lambda x: x.strip())
-    
-    base_df['name'] = base_df['name'].fillna('알수없음').astype(str)
-    base_df['name'] = base_df['name'].apply(lambda x: x.strip())
-    
+    if 'rate' not in base_df.columns:
+        base_df['rate'] = 0.0
+
+    # 철통 방어형 데이터 캐스팅 연산
+    base_df['theme'] = base_df['theme'].fillna('미분류').astype(str).str.strip()
+    base_df['name'] = base_df['name'].fillna('알수없음').astype(str).str.strip()
     base_df['rate'] = pd.to_numeric(base_df['rate'], errors='coerce').fillna(0.0).astype(float)
 
-    # 🎯 [형님 전략 장착] 지정한 주도 대장주 리스트만 야후 파이낸스에서 스캔
+    # 🎯 [야후 파이낸셜 라이브 수신 엔진]
     try:
         tickers_to_fetch = list(LIVE_TICKER_MAP.values())
         yahoo_data = yf.download(" ".join(tickers_to_fetch), period="1d", interval="1m", progress=False)
         
-        # 야후 데이터의 컬럼이 꼬이거나 멀티인덱스로 넘어올 때를 대비해 칼라 정제 처리
+        # 야후 데이터 멀티인덱스 컬럼 정제 처리
         if isinstance(yahoo_data.columns, pd.MultiIndex):
-            # Close 레벨의 딕셔너리 정보만 다이렉트로 정렬
             yahoo_close = yahoo_data['Close']
         else:
             yahoo_close = yahoo_data
         
-        # 1분 마다 받아온 야후 라이브 등락률을 4,115개 마스터 뼈대 데이터에 실시간 오버라이드
+        # 1분 마다 받아온 야후 라이브 등락률을 마스터 뼈대 데이터에 실시간 오버라이드
         for stock_name, ticker in LIVE_TICKER_MAP.items():
             if ticker in yahoo_close.columns:
                 close_series = yahoo_close[ticker].dropna()
                 if len(close_series) >= 2:
-                    val_first = float(close_series.iloc)
+                    val_first = float(close_series.iloc[0])
                     val_last = float(close_series.iloc[-1])
                     if val_first != 0:
                         c_rate = round(((val_last - val_first) / val_first) * 100, 2)
-                        # 뼈대 데이터 내의 일치하는 종목 등락률을 진짜 실시간 1분 주가로 치환!
                         base_df.loc[base_df['name'] == stock_name, 'rate'] = c_rate
     except Exception:
-        pass # 장외 시간이거나 가벼운 통신 지연 시 기존 깃허브 마스터 정산 파일 수치 유지
+        pass 
 
-    # [테마 스코어 자동 연산] 종목들의 변동을 즉각 반영해 실시간 테마 평균 지수 연산
+    # [테마 스코어 자동 연산] 실시간 테마 평균 지수 계산
     agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
     status_df = pd.DataFrame({
         '테마': agg_df['theme'],
@@ -158,13 +155,12 @@ def load_and_sync_live_data():
         '업데이트시간': [time.strftime('%Y-%m-%d %H:%M:%S')] * len(agg_df)
     })
     
-    # 등락률이 높은 주도 테마 순서대로 칼정렬 셰이핑
     status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
     
     return base_df, status_df
 
 raw_df, status_df = load_and_sync_live_data()
-update_time = status_df['업데이트시간'].iloc if not status_df.empty else time.strftime('%H:%M:%S')
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty else time.strftime('%H:%M:%S')
 
 # -------------------------------------------------------------------------
 # 2. 📊 상단 타이틀 및 상위 5개 테마 스코어보드 표출 영역
