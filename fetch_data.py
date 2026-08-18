@@ -1,48 +1,50 @@
 import pandas as pd
-import FinanceDataReader as fdr
+from pykrx import stock
 import datetime
 import os
 
 def get_market_theme_data():
     """
-    금액 뻥튀기 오류 및 0.0 뭉개짐 현상을 완벽히 차단하고
-    FinanceDataReader 공식 가이드에 따라 가장 확실한 당일 퍼센트(%) 등락률을 직통 추출합니다.
+    FinanceDataReader의 컬럼 꼬임 및 금액 변환 오류를 원천 차단하고,
+    pykrx 라이브러리를 통해 당일 전 종목의 실제 퍼센트(%) 등락률을 직통 수집합니다.
     """
     try:
-        print("📊 한국거래소(KRX) 전체 종목 데이터 원격 동기화 중...")
-        # 당일 KRX 전 종목 시세 정보 원격 호출
-        df_krx = fdr.StockListing('KRX')
+        # 오늘 날짜 구하기 (YYYYMMDD 형식)
+        today_str = datetime.datetime.now().strftime("%Y%m%d")
+        print(f"📊 pykrx 엔진 기반 당일({today_str}) 전 종목 시세 연동 중...")
         
-        # 🎯 [치명적 버그 완전 해결] 
-        # API에서 금액으로 들어오는 컬럼 대신, 무조건 퍼센트(%) 실수 형태로 고정되어 제공되는 
-        # 'ChgRate' 혹은 타겟 컬럼의 단위를 검증하여 정상적인 % 수치로 정밀 강제 보정합니다.
-        df_krx['등락률_보정'] = pd.to_numeric(df_krx['ChgRate'], errors='coerce').fillna(0.0)
+        # 🎯 [핵심 교정] 코스피/코스닥 당일 전 종목 시세를 정형화된 표로 직통 호출
+        # 이 함수는 등락률을 계산할 필요 없이 '등락률' 컬럼에 진짜 퍼센트(%) 수치(예: 3.45, -1.2)를 정확히 꽂아줍니다.
+        df_kospi = stock.get_market_ticker_by_value(today_str, today_str, "KOSPI")
+        df_kosdaq = stock.get_market_ticker_by_value(today_str, today_str, "KOSDAQ")
         
-        # 만약 가져온 등락률 데이터의 최댓값이 100을 넘는다면(원화 변동 금액 단위라면)
-        # 현재가(Close) 대비 변동 금액 비율을 직접 구하여 100% 정상 퍼센트로 강제 정형화합니다.
-        if df_krx['등락률_보정'].abs().max() > 100.0:
-            df_krx['현재가'] = pd.to_numeric(df_krx['Close'], errors='coerce').fillna(0.0)
-            # 전일종가 = 현재가 - 변동금액
-            df_krx['전일종가'] = df_krx['현재가'] - df_krx['등락률_보정']
+        # 만약 당일 장 시작 전이거나 주말/휴일이라 데이터가 비어있다면, 가장 최근 거래일 데이터로 자동 백업 호출
+        if df_kospi.empty or df_kosdaq.empty:
+            latest_date = stock.get_nearest_business_day_in_a_week()
+            print(f"⌛ 휴일 또는 장 시작 전이므로 최근 거래일({latest_date}) 데이터로 백업 수집합니다.")
+            df_kospi = stock.get_market_ticker_by_value(latest_date, latest_date, "KOSPI")
+            df_kosdaq = stock.get_market_ticker_by_value(latest_date, latest_date, "KOSDAQ")
             
-            df_krx['등락률'] = 0.0
-            mask = df_krx['전일종가'] > 0
-            # (변동금액 / 전일종가) * 100 = 진짜 퍼센트 등락률
-            df_krx.loc[mask, '등락률'] = (df_krx.loc[mask, '등락률_보정'] / df_krx.loc[mask, '전일종가']) * 100.0
-        else:
-            # 만약 데이터가 이미 소수점 배수 형태(예: 0.05 = 5%)라면 100을 곱해줍니다.
-            if df_krx['등락률_보정'].abs().max() <= 1.0:
-                df_krx['등락률'] = df_krx['등락률_보정'] * 100.0
-            else:
-                df_krx['등락률'] = df_krx['등락률_보정']
+        # 두 시장 데이터 합치기
+        df_market = pd.concat([df_kospi, df_kosdaq])
+        
+        if df_market.empty:
+            print("⚠️ 거래소 시세 테이블이 완전히 비어있습니다.")
+            return None
+            
+        # pykrx의 결과에서 인덱스는 종목코드이며, 종목명은 '종목명', 등락률은 '등락률' 컬럼에 실수형으로 존재합니다.
+        # 데이터프레임 내부 구조 정형화
+        df_market = df_market.reset_index()
+        df_market['종목명'] = df_market['종목명'].astype(str).str.strip()
+        df_market['등락률'] = pd.to_numeric(df_market['등락률'], errors='coerce').fillna(0.0)
 
-        # 테마 그룹 및 소속 종목 매핑 (완벽 복구)
+        # 🎯 선생님 블로그 포스팅 전략에 최적화된 9대 핵심 주도 테마 맵
         theme_map = {
             "자동차 부품": ["현대모비스", "한온시스템", "현대위아", "성우하이텍", "서연이화", "화신", "에스엘"],
             "로봇/AI": ["레인보우로보틱스", "두산로보틱스", "뉴로메카", "루닛", "뷰노", "이랜시스", "RS오토메이션"],
             "시스템 반도체": ["네패스", "리노공업", "한미반도체", "두산테스나", "가온칩스", "오픈엣지테크놀로지"],
             "방산": ["한화에어로스페이스", "한국항공우주", "LIG넥스원", "현대로템", "풍산", "휴니드"],
-            "2차전지": ["에코프로", "에코프로비엠", "포스코퓨처엠", "엘앤에프", "금양", "나노신소재", "엔켐"],
+            "2차전지": ["エ코프로", "에코프로비엠", "포스코퓨처엠", "엘앤에프", "금양", "나노신소재", "엔켐"],
             "초전도체": ["신성델타테크", "파워로직스", "서남", "덕성", "모비스", "씨씨에스"],
             "원자력 발전": ["두산에너빌리티", "우진", "보성파워텍", "일진파워", "한신기계", "에너토크"],
             "우주항공": ["한국항공우주", "컨텍", "인텔리안테크", "AP위성", "제노코", "한화시스템"],
@@ -52,17 +54,19 @@ def get_market_theme_data():
         rows_list = []
         
         for theme_name, stock_list in theme_map.items():
-            theme_stocks_df = df_krx[df_krx['Name'].isin(stock_list)]
+            # 시장 전체 데이터에서 테마 소속 종목들만 정확하게 필터링
+            theme_stocks_df = df_market[df_market['종목명'].isin(stock_list)]
             
             if not theme_stocks_df.empty:
                 for _, row in theme_stocks_df.iterrows():
                     rows_list.append({
                         "테마": theme_name,
-                        "종목명": row['Name'],
+                        "종목명": row['종목명'],
                         "등락률": round(float(row['등락률']), 2)
                     })
                     
         if not rows_list:
+            print("❌ 매핑된 테마 종목명과 거래소 실존 종목명이 매칭되지 않습니다.")
             return None
             
         final_df = pd.DataFrame(rows_list)
@@ -77,7 +81,7 @@ def get_market_theme_data():
         return None
 
 if __name__ == "__main__":
-    print("🚀 금융 API 기반 퍼센트 직통 보정 자동 수집기 기동...")
+    print("🚀 pykrx 기반 무결점 실시간 자동 수집기 기동...")
     DATA_FILE = "theme_data.csv"
     
     df = get_market_theme_data()
@@ -86,7 +90,7 @@ if __name__ == "__main__":
             os.remove(DATA_FILE)
             
         df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
-        print("🎉 [성공] 진짜 퍼센트(%) 단위 복구 완료 후 CSV 저장 완료!")
+        print("🎉 [성공] 진짜 퍼센트(%) 직통 매핑 완료 후 CSV 저장 성공!")
         print(df.head(10))
     else:
-        print("⚠️ 데이터를 정상적으로 수집하지 못했습니다.")
+        print("⚠️ 데이터를 정상적으로 추출하지 못했습니다.")
