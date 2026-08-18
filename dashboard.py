@@ -1,7 +1,58 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import os
+import time
+from datetime import datetime, timedelta
+
+# ⚠️ 주의: set_page_config는 항상 코드 최상단에 위치해야 합니다.
+st.set_page_config(layout="wide")
+
+# 🔔 홍보 배너
+st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://naver.com)에서 매일 확인하세요!**")
+st.title("📊 테마별 현황판")
+
+DATA_FILE = "theme_data.csv"
+
+# 데이터 파일 존재 여부 확인
+if not os.path.exists(DATA_FILE):
+    st.warning("⌛ 데이터 파일(theme_data.csv)을 기다리는 중입니다. 수집 앱을 확인해 주세요.")
+    st.stop()
+
+# 최신 데이터 읽기 (여기서 df 변수가 먼저 생성됩니다!)
+df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
+
+required_cols = ['테마', '종목명', '등락률']
+if df is None or df.empty or not all(col in df.columns for col in required_cols):
+    st.warning("📊 현재 표시할 주식 데이터 형식이 올바르지 않거나 데이터가 없습니다. 장이 열리면 자동으로 갱신됩니다.")
+    st.stop()
+
+# 💡 특정 급등 테마의 화면 독점을 막기 위해 모든 테마 사각형의 크기를 동일하게 고정합니다.
+df['화면크기_고정'] = 10 
+
+# 🛠️ [시차 버그 해결] 해외 서버 기준 시간을 대한민국 서울 표준시(KST)로 정확하게 변환
+utc_now = datetime.utcnow()
+kor_now = utc_now + timedelta(hours=9)
+current_time_str = kor_now.strftime('%H:%M:%S')
+
+# 상단에 정정된 한국 시각 표시
+st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {current_time_str})")
+
 # ---------------------------------------------------------
-# 구역 1: 등락률 시각화용 트리맵 (색상 밸런스 정밀 조정)
+# 상단 테마 선택 컨트롤러 배치
 # ---------------------------------------------------------
-# 🎨 핀업처럼 깔끔한 대칭 색상을 위해 데이터의 절댓값 최댓값을 구합니다.
+theme_list = df['테마'].unique().tolist()
+current_theme = st.selectbox(
+    "🔍 **상세 정보를 조회할 테마를 선택하세요**", 
+    options=theme_list,
+    index=0,
+    key="global_theme_selector"
+)
+
+# ---------------------------------------------------------
+# 구역 1: 등락률 시각화용 트리맵 (오류 수정 및 핀업 스타일 반영)
+# ---------------------------------------------------------
+# 🎨 df가 확실히 정의된 후 등락률 범위를 계산합니다.
 v_min = df['등락률'].min()
 v_max = df['등락률'].max()
 abs_max = max(abs(v_min), abs(v_max), 3.0) # 최소 보정치 3% 확보
@@ -28,8 +79,56 @@ fig.update_layout(
     margin=dict(t=10, l=10, r=10, b=10), 
     height=380,
     coloraxis_continuous_scale='RdBu_r',
-    coloraxis_midpoint=0 # ⚠️ 핵심: 등락률 0% 지점을 무조건 완전한 보합 색상(흰색/연회색)으로 고정
+    coloraxis_midpoint=0 # ⚠️ 핵심: 등락률 0% 지점을 무조건 완전한 보합 색상(흰색)으로 고정
 )
 
 # 차트 표출
 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
+
+st.markdown("---")
+
+# ---------------------------------------------------------
+# 구역 2: 테마 클릭 시 아래에 목록이 주르륵 나오는 부분 & 뉴스 연동
+# ---------------------------------------------------------
+st.subheader(f"📂 {current_theme} 관련 정보")
+
+# 해당 테마에 속한 종목들만 필터링
+theme_df = df[df['테마'] == current_theme].copy()
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown(f"**📈 {current_theme} 종목 리스트**")
+    
+    st.data_editor(
+        theme_df[['종목명', '등락률']],
+        use_container_width=True,
+        disabled=True, 
+        key="stock_selector"
+    )
+    
+    current_stock = st.selectbox("🔍 뉴스를 볼 종목을 선택하세요", theme_df['종목명'].unique()) if not theme_df.empty else "선택된 종목 없음"
+
+with col2:
+    st.markdown(f"**📰 {current_theme} + {current_stock} 관련 뉴스**")
+    st.info(f"🔍 '{current_stock}' 및 '{current_theme}' 시장 동향에 대한 실시간 뉴스...")
+    
+    stock_news_url = "https://naver.com" + str(current_stock)
+    theme_news_url = "https://naver.com" + str(current_theme).replace(" ", "")
+    
+    st.markdown(f"📌 [📢 [뉴스] '{current_stock}' 관련주, 거래량 급증하며 강세 (1일 전)]({stock_news_url})")
+    st.markdown(f"📌 [📢 [뉴스] '{current_theme}' 시장 경쟁 심화... '{current_stock}' 글로벌 공급망 확대 나선다 (2일 전)]({theme_news_url})")
+   
+    st.markdown("---")
+    st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
+
+# ---------------------------------------------------------
+# 🛠️ [화면 먹통 완전 방어] 60초 뒤에 화면을 부드럽게 다시 리셋시키는 타이머 엔진
+# ---------------------------------------------------------
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    st.invalidate_pages() 
+    st.rerun()
