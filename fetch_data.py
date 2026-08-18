@@ -2,15 +2,14 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 import datetime
-import time
 import os
 
 def get_naver_data():
     """
-    네이버 금융 테마별 시세 페이지를 실시간으로 크롤링하여 
+    네이버 금융 테마별 시세 페이지를 크롤링하여 
     전체 테마명, 대장 종목명, 등락률 정보를 수집합니다.
     """
-    # 💡 [교정 1] 네이버 메인이 아닌, 실제 테마 시세가 있는 금융 페이지 주소로 변경
+    # 💡 [정석 주소] 실제 테마 시세 데이터가 위치한 네이버 금융 경로
     url = "https://naver.com"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
@@ -40,26 +39,26 @@ def get_naver_data():
         
         for row in rows:
             cols = row.find_all("td")
-            # 네이버 금융 테마 테이블 구조상 데이터가 채워진 행은 보통 7개 이상의 열을 가집니다.
+            # 네이버 금융 테마 테이블 구조상 데이터 행은 6개 이상의 td를 가집니다.
             if len(cols) >= 6:
                 theme_name_tag = cols[0].find("a")
                 if theme_name_tag:
                     theme_name = theme_name_tag.text.strip()
                     
-                    # 💡 [교정 2] 네이버 금융 구조에 맞게 등락률(2번째 열) 및 대장주(6번째 열) 위치 정정
+                    # 등락률 추출 (두 번째 열)
                     rate_text = cols[1].text.strip().replace('%', '').replace('+', '')
                     try:
                         rate = float(rate_text)
                     except ValueError:
                         continue
                         
-                    # 대장주 추출 (네이버 금융 테마 페이지의 6번째 td 내부 a 태그)
+                    # 대장주 추출 (여섯 번째 열)
                     stock_name = "종목 정보 없음"
-                    stock_tag = cols[5].find("a") if len(cols) > 5 else None
+                    stock_tag = cols[5].find("a")
                     if stock_tag:
                         stock_name = stock_tag.text.strip()
                     
-                    # 💡 [교정 3] 마이너스 등락률도 버리지 않고 대시보드 시각화를 위해 그대로 수집
+                    # 마이너스 등락률도 정상 수집 (대시보드에서 절댓값 보정 처리함)
                     themes.append(theme_name)
                     stocks.append(stock_name)
                     rates.append(rate)
@@ -77,7 +76,7 @@ def get_naver_data():
         }
         
         df = pd.DataFrame(data)
-        # 등락률 절댓값이 큰 순서(시장 주도령이 강한 순서)로 상위 15개 추출
+        # 시장 주도력(등락률 절댓값 변동 폭)이 큰 순서대로 상위 15개 추출
         df['정렬용'] = df['등락률'].abs()
         df = df.sort_values(by="정렬용", ascending=False).head(15).drop(columns=['정렬용'])
         return df
@@ -87,20 +86,16 @@ def get_naver_data():
         return None
 
 if __name__ == "__main__":
-    print("🚀 실시간 네이버 금융 데이터 수집기 가동 시작...")
-    # 💡 [교정 4] 대시보드가 실시간 동기화될 수 있도록 무한 루프(60초 주기) 생성
-    while True:
-        try:
-            df = get_naver_data()
+    print("🚀 GitHub Actions 수집기 기동...")
+    try:
+        df = get_naver_data()
+        
+        if df is not None and not df.empty:
+            # 💡 일회성으로 깔끔하게 csv 파일을 생성하고 프로그램을 종료합니다.
+            df.to_csv("theme_data.csv", index=False, encoding="utf-8-sig")
+            print("🎉 [성공] theme_data.csv 갱신 완료!")
+        else:
+            print("⚠️ 수집된 데이터가 없습니다. 주소를 다시 확인하거나 장 시간인지 확인하세요.")
             
-            if df is not None and not df.empty:
-                df.to_csv("theme_data.csv", index=False, encoding="utf-8-sig")
-                print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] 🎉 theme_data.csv 갱신 완료!")
-            else:
-                print("⚠️ 수집된 데이터가 없습니다. 주소를 다시 확인하거나 장 시간인지 확인하세요.")
-                
-        except Exception as e:
-            print(f"루프 구동 중 오류 발생: {e}")
-            
-        # 60초 대기 후 재수집
-        time.sleep(60)
+    except Exception as e:
+        print(f"구동 중 에러 발생: {e}")
