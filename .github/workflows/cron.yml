@@ -2,8 +2,7 @@ name: Naver Stock Data Crawler
 
 on:
   schedule:
-    # 🎯 한국 시간(KST) 오전 8시 50분에 딱 한 번 시동을 겁니다.
-    # UTC 기준으로는 오후 11시 50분 (월~금 작동)
+    # 🎯 한국 시간(KST) 오전 8시 50분 (UTC 오후 11시 50분)
     - cron: '50 23 * * 0-4'
   workflow_dispatch:
 
@@ -23,30 +22,28 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas beautifulsoup4 requests
+          pip install pandas yfinance requests
 
-      # 🎯 [실시간 강제 가동 엔지니어링]
-      # 크론에 맡기지 않고, 리눅스 서버 내부 스크립트로 장 마감까지 1분마다 무한 반복 수집 및 푸시를 실행합니다.
+      # 🎯 [장 운영 시간 맞춤형 엔지니어링: 390회 루프]
       - name: Run Realtime Crawler Loop
         run: |
-          for i in {1..400}
+          for i in {1..390}
           do
-            echo "🔄 실시간 수집 사이클 가동 중 ($i 번째 갱신)..."
+            echo "🔄 실시간 수집 사이클 가동 ($i/390)..."
             
-            # 1. 수집기 엔진 실행 (theme_data.csv 갱신)
+            # 1. 수집기 엔진 실행
             python fetch_data.py
             
-            # 2. 변경된 파일이 있으면 깃허브에 즉시 커밋 및 푸시
+            # 2. 깃허브 커밋/푸시
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
             git add theme_data.csv
             
-            # 변경사항이 있을 때만 푸시하여 서버 충돌 방지
             if ! git diff --cached --quiet; then
-              git commit -m "🔄 [실시간 전면 갱신] 장중 데이터 동기화 완료 (타임스탬프 자동)"
+              git commit -m "🔄 [장중 자동 갱신] $i회차 데이터 업데이트"
               git push origin main --force
             fi
             
-            # 3. 🎯 정밀 60초(1분) 대기 후 다음 수집으로 토스
+            # 3. 60초 대기
             sleep 60
           done
