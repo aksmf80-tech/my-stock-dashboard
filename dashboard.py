@@ -65,18 +65,53 @@ if not os.path.exists(RAW_DATA_FILE):
     st.error("❌ 기초 뼈대 파일(theme_data.csv)이 깃허브에 없습니다. 파일 업로드를 확인해 주세요.")
     st.stop()
 
-# 데이터 로드 로직 (실시간 수집 파일이 없으면 뼈대에서 가상 데이터 임시 생성하여 대시보드 무조건 실행)
+# 기초 데이터 로드 및 열 이름 유연화 처리
+raw_df = pd.read_csv(RAW_DATA_FILE, encoding="utf-8-sig")
+
+# 💡 대소문자 및 공백 에러 원천 차단 로직
+raw_df.columns = [str(col).strip().lower() for col in raw_df.columns]
+
+# 열 이름 맵핑 자동 보정
+theme_col = None
+for col in raw_df.columns:
+    if col in ['theme', '테마']:
+        theme_col = col
+        break
+if not theme_col:
+    # 만약 정해진 이름이 없다면 첫 번째 열을 테마 열로 강제 지정하여 무조건 실행
+    theme_col = raw_df.columns[0]
+raw_df = raw_df.rename(columns={theme_col: 'theme'})
+
+# 종목명 열 보정
+name_col = None
+for col in raw_df.columns:
+    if col in ['name', '종목명', 'title']:
+        name_col = col
+        break
+if not name_col:
+    name_col = raw_df.columns[2] if len(raw_df.columns) > 2 else raw_df.columns[0]
+raw_df = raw_df.rename(columns={name_col: 'name'})
+
+# 시장 열 보정
+market_col = None
+for col in raw_df.columns:
+    if col in ['market', '시장']:
+        market_col = col
+        break
+if not market_col:
+    market_col = raw_df.columns[4] if len(raw_df.columns) > 4 else raw_df.columns[-1]
+raw_df = raw_df.rename(columns={market_col: 'market'})
+
+
+# 실시간 데이터 로드 판단 및 병합
 if os.path.exists(THEME_STATUS_FILE):
-    theme_summary = pd.read_csv(THEME_STATUS_FILE, encoding="utf-8-sig")
+    try:
+        theme_summary = pd.read_csv(THEME_STATUS_FILE, encoding="utf-8-sig")
+    except Exception:
+        os.remove(THEME_STATUS_FILE) # 손상된 파일 일 시 삭제 우회
+        st.rerun()
 else:
-    # 💡 깃허브 액션이 도는 중일 때 화면 멈춤 방지용 가상 데이터 빌드
-    raw_df = pd.read_csv(RAW_DATA_FILE, encoding="utf-8-sig")
-    
-    # 열 이름 표준화 (수집 엔진과 동일하게 세팅)
-    raw_df.columns = [str(col).strip().lower() for col in raw_df.columns]
-    if '테마' in raw_df.columns: raw_df = raw_df.rename(columns={'테마': 'theme'})
-    
-    # 임시 테마 요약본 생성
+    # 💡 수집기 파일이 없을 때 뼈대 기반 임시 레이아웃 생성 (멈춤 에러 절대 차단)
     theme_list = raw_df['theme'].dropna().unique()
     theme_summary = pd.DataFrame({
         '테마': theme_list,
@@ -85,9 +120,16 @@ else:
     })
     st.info("🔄 야후 파이낸스 실시간 주가 동기화 파일 생성 중입니다. 현재 화면은 뼈대 기반 임시 배치입니다.")
 
+# 필수 컬럼 검증 및 강제 보정
+if '테마' not in theme_summary.columns and 'theme' in theme_summary.columns:
+    theme_summary = theme_summary.rename(columns={'theme': '테마'})
+
 # 트리맵에 표시할 문구 가공
 def make_pinup_label(row):
-    rate = round(row['등락률'], 2)
+    try:
+        rate = round(float(row['등락률']), 2)
+    except:
+        rate = 0.0
     sign = "+" if rate > 0 else ""
     return f"{row['테마']}<br>{sign}{rate}%"
 
@@ -133,13 +175,16 @@ selected_point = st.plotly_chart(
 )
 
 # 첫 번째 순위 테마 자동 선택 기본값
-chosen_theme = theme_summary['테마'].iloc[0] if not theme_summary.empty else "선택된 테마 없음"
+chosen_theme = theme_summary['테마'].iloc[0] if not theme_summary.empty else "데이터 없음"
 
-# 사용자 피드백 반영한 안전한 대형 인덱싱 수정
+# 안전한 대형 인덱싱 추출 수정
 if selected_point and "points" in selected_point and len(selected_point["points"]) > 0:
-    clicked_id = selected_point["points"][0].get("id")
-    if clicked_id:
-        chosen_theme = clicked_id.split('/')[-1]
+    try:
+        clicked_id = selected_point["points"][0].get("id")
+        if clicked_id:
+            chosen_theme = clicked_id.split('/')[-1]
+    except:
+        pass
 
 st.markdown("<hr style='margin: 15px 0px;'/>", unsafe_allow_html=True)
 
@@ -149,14 +194,6 @@ st.markdown("<hr style='margin: 15px 0px;'/>", unsafe_allow_html=True)
 st.subheader(f"📂 {chosen_theme} 관련 정보")
 
 try:
-    raw_df = pd.read_csv(RAW_DATA_FILE, encoding="utf-8-sig")
-    raw_df.columns = [str(col).strip().lower() for col in raw_df.columns]
-    
-    # 매핑 이름 통일화
-    if '테마' in raw_df.columns: raw_df = raw_df.rename(columns={'테마': 'theme'})
-    if '종목명' in raw_df.columns: raw_df = raw_df.rename(columns={'종목명': 'name'})
-    if '시장' in raw_df.columns: raw_df = raw_df.rename(columns={'시장': 'market'})
-    
     # 현재 선택된 테마 필터링
     theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
     
