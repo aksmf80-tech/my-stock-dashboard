@@ -17,10 +17,12 @@ st.set_page_config(
 # 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
 st.markdown("""
     <style>
-    .block-container { padding-top: 3.2rem !important; padding-bottom: 0.5rem !important; }
+    /* 상단 5단 지표가 메뉴바 아래로 완전히 내려오도록 여백을 3.8rem으로 넉넉히 확보 */
+    .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
+    /* 대제목 하단에 여백을 주어 첫 번째 테마글자와의 충돌 연쇄 방지 */
     .dashboard-title {
         margin: 0 !important;
         padding: 0 !important;
@@ -29,6 +31,7 @@ st.markdown("""
         margin-bottom: 0.8rem !important;
     }
     
+    /* 상단 5대 테마 글씨체 크기를 주식 전광판 스타일로 대폭 확대 */
     [data-testid="stMetricLabel"] { font-size: 17px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 28px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
@@ -72,9 +75,9 @@ def load_synchronized_market_data():
     else:
         sample_rows = []
         mock_stocks = {
-            'theme': ['대북/남북경협', '대북/남북경협', '반도체 후공정', '시스템 반도체', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오'],
-            'name': ['코데즈컴바인', '좋은사람들', '한미반도체', '삼성전자', '코데즈컴바인', '현대차', '에코프로비엠', '레인보우로보틱스', '셀트리온'],
-            'rate': [30.00, 30.00, 14.20, -1.20, 25.40, 2.10, 4.35, 8.90, 1.50]
+            'theme': ['대북/남북경협', '대북/남북경협', '대북/남북경협', '대북/남북경협', '반도체 후공정', '반도체 후공정', '시스템 반도체', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오'],
+            'name': ['코데즈컴바인', '좋은사람들', '인디에프', '일신석재', '한미반도체', '리노공업', '삼성전자', 'SK하이닉스', '현대차', '에코프로비엠', '레인보우로보틱스', '셀트리온'],
+            'rate': [30.00, 30.00, 29.81, 22.24, 14.20, 5.12, -1.20, -2.50, 2.10, 4.35, 8.90, 1.50]
         }
         base_df = pd.DataFrame(mock_stocks)
         
@@ -138,12 +141,10 @@ if "selected_theme_click" not in st.session_state:
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
-# --- [좌측 구역] 예쁜 히트맵 원본 모양 고정 (확대 전면 차단) ---
+# --- [좌측 구역] 테마 히트맵 배치 ---
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
-        
-        # maxdepth=1 속성을 심어 하위 뎁스 확장을 차단
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -151,8 +152,7 @@ with left_layout:
             color='등락률',             
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
-            custom_data=['등락률'],
-            maxdepth=1
+            custom_data=['등락률']
         )
         
         fig.update_traces(
@@ -161,29 +161,26 @@ with left_layout:
             textposition="middle center"
         )
         
-        # clickmode 고정과 함께 차트의 모든 인터랙션 리셋 속성 선언
         fig.update_layout(
             margin=dict(t=2, b=2, l=2, r=2), 
             height=520,
-            treemapcolorway=["#1E293B"],
-            clickmode='event+select'
+            treemapcolorway=["#1E293B"]
         )
         
-        # 순정 인터랙션 연동 센서 작동
+        # 순정 최신 리런 센서 작동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 변수 파싱 다각도 구조화로 우측 카드 실시간 동기화 완결
+        # Plotly 순정 리스트 구조 인덱스 추적 및 실시간 우측 연동
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
                     first_point = points_list
-                    if "label" in first_point:
-                        st.session_state.selected_theme_click = str(first_point["label"]).strip()
-                    elif "point_number" in first_point:
+                    if "point_number" in first_point:
                         clicked_index = first_point["point_number"]
                         if clicked_index < len(top_25_themes):
-                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[clicked_index]
+                            clicked_theme = top_25_themes['테마'].iloc[clicked_index]
+                            st.session_state.selected_theme_click = clicked_theme
                 except Exception:
                     pass
     else:
@@ -196,43 +193,36 @@ with right_layout:
     
     right_sub_cols = st.columns(2)
     
-    try:
-        theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
+    # 🎯 말썽 부리던 백업용 로직 다 치우고 가장 완벽하게 작동하던 단순 동기화 뼈대만 깔끔하게 남겼습니다.
+    theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
+    
+    if not theme_detail_df.empty:
+        theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
         
-        if not theme_detail_df.empty:
-            if 'rate' in theme_detail_df.columns:
-                theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False)
-            theme_detail_df = theme_detail_df.reset_index(drop=True)
+        for idx, row in theme_detail_df.head(14).iterrows():
+            s_name = row['name']
+            s_rate = row['rate']
             
-            for idx, row in theme_detail_df.head(14).iterrows():
-                s_name = row['name']
-                s_rate = row['rate']
-                
-                rate_class = "rate-up" if s_rate >= 0 else "rate-down"
-                rate_sign = "+" if s_rate >= 0 else ""
-                
-                with right_sub_cols[idx % 2]:
-                    st.markdown(f"""
-                        <div class="stock-card">
-                            <span class="stock-name">▪️ {s_name}</span>
-                            <span class="stock-rate {rate_class}">{rate_sign}{s_rate}%</span>
-                        </div>
-                    """, unsafe_allow_html=True)
-        else:
-            # 실시간 유실 대비용 하드웨어 7대 대장주 백업 풀 가동 구역
-            backup_pool = {
-                "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
-                "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
-                "시스템 반도체": [("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45)],
-                "수소차": [("현대차", 2.10), ("일진하이솔루스", -0.50)],
-                "전기차 부품": [("에코프로비엠", 4.35), ("엘앤에프", -3.10)],
-                "로봇": [("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20)],
-                "제약/바이오": [("삼성바이오로직스", -0.80), ("셀트리온", 1.50)]
-            }
-            active_list = backup_pool.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
+            rate_class = "rate-up" if s_rate >= 0 else "rate-down"
+            rate_sign = "+" if s_rate >= 0 else ""
             
-            # 🎯 [들여쓰기 버그 완전 박멸] with문 다음 줄에 4칸 들여쓰기 공백을 완벽하게 주입했습니다.
-            for idx, (s_name, s_rate) in enumerate(active_list):
-                rate_class = "rate-up" if s_rate >= 0 else "rate-down"
-                rate_sign = "+" if s_rate >= 0 else ""
-                with right_sub_cols[idx % 2]:
+            with right_sub_cols[idx % 2]:
+                st.markdown(f"""
+                    <div class="stock-card">
+                        <span class="stock-name">▪️ {s_name}</span>
+                        <span class="stock-rate {rate_class}">{rate_sign}{s_rate}%</span>
+                    </div>
+                """, unsafe_allow_html=True)
+    else:
+        st.warning(f"⚠️ 현재 '{chosen_theme}' 테마에 매핑된 실시간 종목이 없습니다.")
+
+# =========================================================================
+# 5. ⏱️ 세션 타이머 제어
+# =========================================================================
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    st.cache_data.clear()
+    st.rerun()
