@@ -89,9 +89,12 @@ LIVE_TICKER_MAP = {
 def load_and_sync_live_data():
     # [뼈대 확보] 깃허브 레포지토리에 심겨있는 4,115개 마스터 데이터 로드
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
-        base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
-        
-        # 🚨 [치명적 에러 해결 패치] 한글, 영어, 대소문자, 공백 등 어떤 컬럼명이 와도 자동 추적 매핑
+        try:
+            base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
+        except Exception:
+            base_df = pd.DataFrame()
+            
+        # [컬럼명 유연화 패치] 한글, 영어, 대소문자, 공백 등 어떤 형식이 와도 추적 매핑
         rename_map = {}
         for col in base_df.columns:
             col_str = str(col).strip().lower()
@@ -104,37 +107,45 @@ def load_and_sync_live_data():
                 
         base_df = base_df.rename(columns=rename_map)
     else:
-        # 베이스 파일이 유실되었을 때를 대비한 안전 장치용 임시 기틀
-        sample_rows = []
-        for t in ["대북/남북경협", "반도체 후공정", "시스템 반도체", "수소차", "전기차 부품", "로봇", "제약/바이오"]:
-            sample_rows.append({'theme': t, 'name': '삼성전자', 'rate': 0.0})
-        base_df = pd.DataFrame(sample_rows)
+        base_df = pd.DataFrame()
 
-    # 안전하게 컬럼이 존재할 때만 데이터 가공을 수행하도록 방어벽 구축
-    if 'theme' not in base_df.columns:
-        base_df['theme'] = '미분류'
-    if 'name' not in base_df.columns:
-        base_df['name'] = '알수없음'
-    if 'rate' not in base_df.columns:
-        base_df['rate'] = 0.0
+    # 안전하게 컬럼 기본 자리를 채워 안정적인 데이터 테이블 빌드
+    if 'theme' not in base_df.columns or base_df.empty: base_df['theme'] = '미분류'
+    if 'name' not in base_df.columns or base_df.empty: base_df['name'] = '알수없음'
+    if 'rate' not in base_df.columns or base_df.empty: base_df['rate'] = 0.0
 
-    base_df['theme'] = base_df['theme'].astype(str).str.strip()
-    base_df['name'] = base_df['name'].astype(str).str.strip()
+    # 🚨 [AttributeError 전면 방어 패치] 판다스 내장 함수 안전 강제 캐스팅
+    base_df['theme'] = base_df['theme'].fillna('미분류').astype(str)
+    base_df['theme'] = base_df['theme'].apply(lambda x: x.strip())
+    
+    base_df['name'] = base_df['name'].fillna('알수없음').astype(str)
+    base_df['name'] = base_df['name'].apply(lambda x: x.strip())
+    
     base_df['rate'] = pd.to_numeric(base_df['rate'], errors='coerce').fillna(0.0).astype(float)
 
-    # 🎯 [형님 전략 장착] 지정한 주도 대장주 리스트만 야후 파이낸스에서 1초 만에 스캔
+    # 🎯 [형님 전략 장착] 지정한 주도 대장주 리스트만 야후 파이낸스에서 스캔
     try:
         tickers_to_fetch = list(LIVE_TICKER_MAP.values())
         yahoo_data = yf.download(" ".join(tickers_to_fetch), period="1d", interval="1m", progress=False)
         
+        # 야후 데이터의 컬럼이 꼬이거나 멀티인덱스로 넘어올 때를 대비해 칼라 정제 처리
+        if isinstance(yahoo_data.columns, pd.MultiIndex):
+            # Close 레벨의 딕셔너리 정보만 다이렉트로 정렬
+            yahoo_close = yahoo_data['Close']
+        else:
+            yahoo_close = yahoo_data
+        
         # 1분 마다 받아온 야후 라이브 등락률을 4,115개 마스터 뼈대 데이터에 실시간 오버라이드
         for stock_name, ticker in LIVE_TICKER_MAP.items():
-            if ticker in yahoo_data['Close'].columns:
-                close_series = yahoo_data['Close'][ticker].dropna()
+            if ticker in yahoo_close.columns:
+                close_series = yahoo_close[ticker].dropna()
                 if len(close_series) >= 2:
-                    c_rate = round(((close_series.iloc[-1] - close_series.iloc[0]) / close_series.iloc[0]) * 100, 2)
-                    # 뼈대 데이터 내의 일치하는 종목 등락률을 진짜 실시간 1분 주가로 치환!
-                    base_df.loc[base_df['name'] == stock_name, 'rate'] = c_rate
+                    val_first = float(close_series.iloc)
+                    val_last = float(close_series.iloc[-1])
+                    if val_first != 0:
+                        c_rate = round(((val_last - val_first) / val_first) * 100, 2)
+                        # 뼈대 데이터 내의 일치하는 종목 등락률을 진짜 실시간 1분 주가로 치환!
+                        base_df.loc[base_df['name'] == stock_name, 'rate'] = c_rate
     except Exception:
         pass # 장외 시간이거나 가벼운 통신 지연 시 기존 깃허브 마스터 정산 파일 수치 유지
 
@@ -153,7 +164,7 @@ def load_and_sync_live_data():
     return base_df, status_df
 
 raw_df, status_df = load_and_sync_live_data()
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty else time.strftime('%H:%M:%S')
+update_time = status_df['업데이트시간'].iloc if not status_df.empty else time.strftime('%H:%M:%S')
 
 # -------------------------------------------------------------------------
 # 2. 📊 상단 타이틀 및 상위 5개 테마 스코어보드 표출 영역
