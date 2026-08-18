@@ -105,21 +105,20 @@ if not top_25_themes.empty and '테마' in top_25_themes.columns and '화면크�
         color_continuous_midpoint=0      
     )
     
-    # 🎯 [수정 조치 1] 텍스트가 박스 중앙을 기준으로 렌더링되도록 서식과 센터 속성 적용
+    # 🎯 [수정 완결] %와 {label} 사이의 공백을 제거하여 변수 치환 버그를 완벽하게 잡았습니다.
     fig.update_traces(
-        texttemplate="<b>% {label}</b><br>% {color:.2f}%",
-        textfont=dict(size=22, color="white"),
-        textposition="middle center"  # 📌 Plotly 내부 엔진에 정중앙 정렬 명령 전달
+        texttemplate="<b>%{label}</b><br>%{color:.2f}%",
+        textfont=dict(size=20, color="white"),
+        textposition="middle center"  # Plotly 엔진 정중앙 정렬 고정
     )
     
-    # 🎯 [수정 조치 2] uniformtext 속성을 추가하여 작은 박스든 큰 박스든 글자 정렬 기준을 센터로 통일
     fig.update_layout(
         margin=dict(t=5, b=5, l=5, r=5), 
         height=500,
-        uniformtext=dict(minsize=16, mode='hide')  # 글자 깨짐 방지 및 최소 크기 정렬 보완
+        uniformtext=dict(minsize=14, mode='hide')  # 폰트 깨짐 예방
     )
     
-    # 좌우 폭을 슬림하게 모아주는 3단 분기 레이아웃
+    # 좌우 폭을 슬림하게 모아주는 3단 분기 레이아웃 (0.5 : 9.0 : 0.5)
     side_space1, center_map, side_space2 = st.columns([0.5, 9.0, 0.5])
     with center_map:
         st.plotly_chart(fig, use_container_width=True)
