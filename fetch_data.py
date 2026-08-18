@@ -18,7 +18,7 @@ def get_naver_data():
     stocks = []
     rates = []
     
-    # 안전하게 1페이지부터 3페이지까지 수집하여 데이터 유실을 막습니다.
+    # 1페이지부터 3페이지까지 안전하게 수집합니다.
     for page in range(1, 4):
         page_url = f"{url}?&page={page}"
         try:
