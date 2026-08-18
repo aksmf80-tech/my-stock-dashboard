@@ -177,7 +177,7 @@ with left_layout:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    first_point = points_list[0]
+                    first_point = points_list
                     if "label" in first_point:
                         st.session_state.selected_theme_click = str(first_point["label"]).strip()
                     elif "point_number" in first_point:
@@ -231,9 +231,8 @@ with right_layout:
             }
             active_list = backup_pool.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
             
-            # 🎯 [따옴표 및 들여쓰기 버그 완벽 수정 완료] 마크다운 내부에 따옴표 닫기를 완벽 세팅했습니다.
+            # 🎯 [239라인 오타 패치 완결] 닫는 따옴표의 쌍을 한 줄에 정확히 닫아주어 문법 에러 완전 차단
             for idx, (s_name, s_rate) in enumerate(active_list):
                 rate_class = "rate-up" if s_rate >= 0 else "rate-down"
                 rate_sign = "+" if s_rate >= 0 else ""
                 with right_sub_cols[idx % 2]:
-                    st.markdown(f"""
