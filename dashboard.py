@@ -9,7 +9,7 @@ import time
 # 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정
 # =========================================================================
 st.set_page_config(
-    page_title="핀업 스타일 테마 맵 대시보드",
+    page_title="핀업 스타일 주식 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -32,22 +32,6 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 🎨 우측 소속 종목 카드 콤팩트 전광판 이펙트 디자인 */
-    .pinup-card {
-        padding: 12px 16px;
-        margin: 5px 0;
-        border-radius: 6px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
-    }
-    .bg-up { background-color: #DC2626 !important; border-left: 6px solid #FEF08A; }   /* 강렬한 상승 레드 */
-    .bg-down { background-color: #2563EB !important; border-left: 6px solid #93C5FD; } /* 시원한 하락 블루 */
-    .stock-name { font-size: 16px; font-weight: 800; color: #FFFFFF; }
-    .stock-rate { font-size: 16px; font-weight: 900; color: #FFFFFF; }
-    
     /* 히트맵 글자 중앙 정렬 보정 */
     g.treemaptext text {
         text-anchor: middle !important;
@@ -57,45 +41,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (최대 30개 규모 백업 데이터 풀 확장 탑재)
+# 1. 📂 데이터 로드 및 정제 구역
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
+# 실시간 파일 공백 시 엔진과 대칭으로 자동 연동될 무결점 백업 데이터 풀
 BACKUP_STOCK_POOL = {
-    "대북/남북경협": [
-        ("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24), 
-        ("부산산업", 18.50), ("제이에스티나", 15.30), ("신원", 12.10), ("재영솔루텍", 9.80),
-        ("아난티", 8.40), ("현대로템", 7.15), ("한일현대시멘트", 5.20), ("쌍용C&E", 4.10),
-        ("성신양회", 3.85), ("특수건설", 2.10), ("우원개발", 1.45), ("남광토건", -0.80),
-        ("삼부토건", -1.20), ("동아지질", -2.50), ("서암기계공업", -3.10), ("대호에이엘", -4.20)
-    ],
-    "반도체 후공정": [
-        ("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12),
-        ("네패스", 2.85), ("에스에프에이", 2.10), ("엘비세미콘", 1.45), ("두산테스나", 0.90),
-        ("시그네틱스", -0.40), ("윈팩", -1.15), ("에이팩트", -2.30), ("티에스이", -3.50)
-    ],
-    "시스템 반도체": [
-        ("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45),
-        ("가온칩스", 8.30), ("오픈엣지테크놀로지", 7.15), ("에이디테크놀로지", 5.40), ("텔레칩스", 3.10),
-        ("칩스앤미디어", 2.20), ("넥스트칩", 1.10), ("코아시아", -0.80), ("알파홀딩스", -2.40)
-    ],
-    "수소차": [
-        ("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("두산퓨어셀", 8.90),
-        ("에스퓨어셀", 6.30), ("상아프론테크", 3.10), ("유니크", 1.85), ("평화산업", -1.40)
-    ],
-    "전기차 부품": [
-        ("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20), ("상신이디피", 5.40),
-        ("삼기", 3.15), ("엠에스오토텍", 2.10), ("우수AMS", -1.10), ("명신산업", -2.85)
-    ],
-    "로봇": [
-        ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15),
-        ("티보로보틱스", 2.80), ("유진로봇", 1.45), ("로보스타", -0.90), ("스맥", -2.35)
-    ],
-    "제약/바이오": [
-        ("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30), ("HLB", 9.45),
-        ("유한양행", 4.20), ("한미약품", 2.15), ("SK바이오팜", -1.10), ("제일약품", -3.40)
-    ]
+    "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
+    "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
+    "시스템 반도체": [("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45)],
+    "수소차": [("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15)],
+    "전기차 부품": [("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20)],
+    "로봇": [("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15)],
+    "제약/바이오": [("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30)]
 }
 
 @st.cache_data(ttl=5)
@@ -188,7 +147,7 @@ with left_layout:
             color='등락률',             
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
-            custom_data=['등rak률'] if '등rak률' in top_25_themes.columns else ['등락률']
+            custom_data=['등락률']
         )
         
         fig.update_traces(
@@ -221,7 +180,7 @@ with left_layout:
     else:
         st.info("테마 데이터를 로드하는 중입니다...")
 
-# --- [우측 구역] 클릭한 테마의 종목 카드를 촘촘하게 2줄 배치 ---
+# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (가장 잘 되던 구조 복구) ---
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -235,7 +194,24 @@ with right_layout:
         
     if not theme_detail_df.empty:
         theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
-        for _, row in theme_detail_df.head(30).iterrows():
+        for _, row in theme_detail_df.head(14).iterrows():
             final_stock_list.append((row['name'], row['rate']))
     else:
-        # 🎯 [들여쓰기 버그 완전 박멸] 스크린샷에 나온 바깥쪽의 불필요한 설명 파편 글씨를 완전 삭제하고
+        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
+        
+    # 복구 완료: 문법 에러를 영구 배제하는 순정 st.button 형태 출력
+    for idx, (s_name, s_rate) in enumerate(final_stock_list):
+        rate_sign = "+" if s_rate >= 0 else ""
+        with right_sub_cols[idx % 2]:
+            st.button(f"▪️ {s_name} ({rate_sign}{s_rate}%)", key=f"stock_btn_rollback_{idx}_{s_name}", use_container_width=True)
+
+# =========================================================================
+# 5. ⏱️ 세션 타이머 제어
+# =========================================================================
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    st.cache_data.clear()
+    st.rerun()
