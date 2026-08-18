@@ -19,15 +19,21 @@ if not os.path.exists(DATA_FILE):
     st.warning("⌛ 데이터 파일(theme_data.csv)을 기다리는 중입니다. 수집 앱을 확인해 주세요.")
     st.stop()
 
-# 최신 데이터 읽기
-df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
+# 🎯 [핵심 교정] 스트림릿 내부 캐시를 완전히 무력화하여 파일이 바뀌면 즉시 반영합니다.
+@st.cache_data(ttl=10) # 10초 동안만 캐싱하고 무조건 새로고침
+def load_data(file_path):
+    # 파일 내용을 강제로 완전히 새로 읽어옵니다.
+    return pd.read_csv(file_path, encoding="utf-8-sig")
+
+# 캐시가 방지된 함수로 최신 데이터 로드
+df = load_data(DATA_FILE)
 
 required_cols = ['테마', '종목명', '등락률']
 if df is None or df.empty or not all(col in df.columns for col in required_cols):
     st.warning("📊 현재 표시할 주식 데이터 형식이 올바르지 않거나 데이터가 없습니다. 장이 열리면 자동으로 갱신됩니다.")
     st.stop()
 
-# 화면 크기 고정 및 절댓값 보정
+# 화면 크기 고정
 df['화면크기_고정'] = 10 
 
 # 해외 서버 시차 해결 (KST 변환)
@@ -65,7 +71,7 @@ fig = px.treemap(
     hover_data=['종목명']
 )
 
-# 핀업 스타일 테두리 마감 및 가독성 설정 (오류 발생 소지 차단)
+# 핀업 스타일 테두리 마감 및 가독성 설정
 fig.update_traces(
     maxdepth=1, 
     textinfo="label+value",
