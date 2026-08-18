@@ -18,7 +18,7 @@ def get_naver_data():
     stocks = []
     rates = []
     
-    # 1페이지부터 3페이지까지 안전하게 수집합니다.
+    # 안전하게 1페이지부터 3페이지까지 수집합니다.
     for page in range(1, 4):
         page_url = f"{url}?&page={page}"
         try:
@@ -40,14 +40,16 @@ def get_naver_data():
             for row in rows:
                 cols = row.find_all("td")
                 
-                if len(cols) > 0:
+                # 데이터가 존재하는 행인지 확실하게 검증 (주요 td 크기 조건 추가)
+                if len(cols) >= 6:
+                    # 첫 번째 td(cols[0]) 안에서 테마명 태그를 안전하게 찾습니다.
                     theme_tag = cols[0].find("a")
                     
                     # 진짜 테마 주소가 포함된 유효한 행만 필터링
                     if theme_tag and "themeId=" in theme_tag.get('href', ''):
                         theme_name = theme_tag.text.strip()
                         
-                        # 1. 등락률 추출 및 숫자로 정제
+                        # 1. 등락률 추출 및 숫자로 정제 (두 번째 td인 cols[1]에 위치)
                         rate_text = cols[1].text.strip()
                         rate_text = rate_text.replace('%', '').replace('+', '').replace(' ', '').replace('\n', '').replace('\t', '')
                         
