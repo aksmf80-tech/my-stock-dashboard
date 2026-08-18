@@ -9,12 +9,12 @@ import time
 # 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정
 # =========================================================================
 st.set_page_config(
-    page_title="핀업 스타일 주식 테마 대시보드",
+    page_title="핀업 스타일 테마 맵 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
+# 🎯 상단 타이틀 간격 및 5대 지표 스케일 업, 우측 강렬한 전광판 컬러 이펙트 CSS 고정
 st.markdown("""
     <style>
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
@@ -32,6 +32,22 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
+    /* 🎨 눈에 확 띄는 빨강/파랑 주식 전광판 카드 스타일링 (허전함 완전 격파) */
+    .pinup-card {
+        padding: 12px 16px;
+        margin: 5px 0;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+    }
+    .bg-up { background-color: #DC2626 !important; border-left: 6px solid #FEF08A; }   /* 붉은색 상승 전광판 */
+    .bg-down { background-color: #2563EB !important; border-left: 6px solid #93C5FD; } /* 푸른색 하락 전광판 */
+    .stock-name { font-size: 16px; font-weight: 800; color: #FFFFFF; }
+    .stock-rate { font-size: 16px; font-weight: 900; color: #FFFFFF; }
+    
     /* 히트맵 글자 중앙 정렬 보정 */
     g.treemaptext text {
         text-anchor: middle !important;
@@ -41,7 +57,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (30개 규모 백업 데이터 풀 고정)
+# 1. 📂 데이터 로드 및 정제 구역 (🎯 대장주 백업 풀 데이터 30개 대용량 세팅)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
@@ -52,7 +68,8 @@ BACKUP_STOCK_POOL = {
         ("부산산업", 18.50), ("제이에스티나", 15.30), ("신원", 12.10), ("재영솔루텍", 9.80),
         ("아난티", 8.40), ("현대로템", 7.15), ("한일현대시멘트", 5.20), ("쌍용C&E", 4.10),
         ("성신양회", 3.85), ("특수건설", 2.10), ("우원개발", 1.45), ("남광토건", -0.80),
-        ("삼부토건", -1.20), ("동아지질", -2.50), ("서암기계공업", -3.10), ("대호에이엘", -4.20)
+        ("삼부토건", -1.20), ("동아지질", -2.50), ("서암기계공업", -3.10), ("대호에이엘", -4.20),
+        ("일성건설", 3.40), ("범양건영", -0.90), ("동신건설", 1.20), ("신원우", 2.55)
     ],
     "반도체 후공정": [
         ("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12),
@@ -64,7 +81,7 @@ BACKUP_STOCK_POOL = {
         ("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45),
         ("가온칩스", 8.30), ("오픈엣지테크놀로지", 7.15), ("에이디테크놀로지", 5.40), ("텔레칩스", 3.10),
         ("칩스앤미디어", 2.20), ("넥스트칩", 1.10), ("코아시아", -0.80), ("알파홀딩스", -2.40),
-        ("SFA반도체", 4.20), ("어보브반도체", 1.85), ("제주반도체", -1.10)
+        ("SFA반도체", 4.20), ("어보브반도체", 1.85), ("제주반도체", -1.10), ("픽셀플러스", 0.50)
     ],
     "수소차": [
         ("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("두산퓨어셀", 8.90),
@@ -77,7 +94,7 @@ BACKUP_STOCK_POOL = {
         ("아진산업", 3.40), ("구영테크", 0.95), ("대유에이텍", -1.20), ("영화테크", 2.15)
     ],
     "로봇": [
-        ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("ロ보티즈", 3.15),
+        ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15),
         ("티보로보틱스", 2.80), ("유진로봇", 1.45), ("로보스타", -0.90), ("스맥", -2.35),
         ("휴림로봇", 4.10), ("에브리봇", -1.50), ("로보로보", 0.85), ("디엔에이치", 2.30)
     ],
@@ -171,6 +188,8 @@ left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
+        
+        # 🎯 [진화 완료] NaN% 깨짐 현상을 원천 방어하기 위해 데이터 라벨 포맷 문자열 정비
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -178,11 +197,11 @@ with left_layout:
             color='등락률',             
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
-            custom_data=['테마']
+            custom_data=['등락률']
         )
         
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br>%{color:.2f}%",
+            texttemplate="<b>%{label}</b><br>%{customdata:.2f}%",
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
@@ -195,42 +214,23 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
+        # 🎯 클릭 연동 센서 활성화 및 브릿지 고정
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
-            points_data = chart_res["selection"]["points"]
-            if points_data and len(points_data) > 0:
+            points_list = chart_res["selection"]["points"]
+            if points_list and len(points_list) > 0:
                 try:
-                    p_info = points_data
-                    if "customdata" in p_info and p_info["customdata"]:
-                        st.session_state.selected_theme_click = str(p_info["customdata"]).strip()
-                    elif "label" in p_info and p_info["label"]:
-                        st.session_state.selected_theme_click = str(p_info["label"]).strip()
-                    elif "point_number" in p_info:
-                        clicked_idx = p_info["point_number"]
-                        if clicked_idx < len(top_25_themes):
-                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[clicked_idx]
+                    first_point = points_list
+                    if "label" in first_point:
+                        st.session_state.selected_theme_click = str(first_point["label"]).strip()
+                    elif "point_number" in first_point:
+                        clicked_index = first_point["point_number"]
+                        if clicked_index < len(top_25_themes):
+                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[clicked_index]
                 except Exception:
                     pass
     else:
         st.info("테마 데이터를 로드하는 중입니다...")
 
-# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (최대 30개 대칭 동기화) ---
+# --- [우측 구역] 클릭한 테마의 종목 카드를 촘촘하게 30개 전광판 컬러로 배치 ---
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
-    st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
-    
-    right_sub_cols = st.columns(2)
-    
-    final_stock_list = []
-    theme_detail_df = pd.DataFrame()
-    if 'theme' in raw_df.columns:
-        theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
-        
-    # 🎯 [들여쓰기 오류 완전 정착 수리 구역]
-    # 문법을 깨뜨리던 if-else 블록 내부의 띄어쓰기 오프셋을 4칸 규격에 맞춰 자석 정렬했습니다.
-    if not theme_detail_df.empty:
-        theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
-        for _, row in theme_detail_df.head(30).iterrows():
-            final_stock_list.append((row['name'], row['rate']))
-    else:
-        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
-        
