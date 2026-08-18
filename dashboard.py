@@ -108,7 +108,7 @@ fig = px.treemap(
     theme_summary, 
     path=['핀업라벨'], 
     values='화면크기_가중치',    
-    color='등rak률',        
+    color='등락률',        # 🎯 오타 수정: '등rak률' ➡️ '등락률'로 변경 완료
     color_continuous_scale='RdBu_r', 
     range_color=[-COLOR_LIMIT, COLOR_LIMIT], 
 )
@@ -117,7 +117,7 @@ fig.update_traces(
     maxdepth=1, 
     textinfo="label",      
     marker=dict(line=dict(width=3.0, color='white')), 
-    textfont=dict(size=22, color='white', weight='bold') # 차트 안의 글씨 크기도 22px로 확대
+    textfont=dict(size=22, color='white', weight='bold')
 )
 
 fig.update_traces(textposition="middle center") 
@@ -125,12 +125,10 @@ fig.update_traces(textposition="middle center")
 fig.update_layout(
     dragmode=False,    
     margin=dict(t=5, l=5, r=5, b=5), 
-    height=700 # 🎯 기존 450에서 700으로 대폭 늘려 대형 모니터에서도 꽉 차게 보이도록 고정
+    height=700 
 )
 
 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
-
-st.markdown("<hr style='margin: 15px 0px;'/>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # 구역 2: 하단 종목 시세판 및 뉴스 구역 (글자 크기 및 컴포넌트 업그레이드)
