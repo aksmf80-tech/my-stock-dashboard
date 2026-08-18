@@ -68,12 +68,12 @@ raw_df, status_df = load_market_data()
 # 2. 🗺️ 상단 구역: 핀업 스타일 실시간 가변 테마 맵 (박스 25개 스케일 제한)
 # =========================================================================
 st.title("📊 핀업 스타일 주식 테마 대시보드")
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 st.caption(f"⚙️ 4,115개 전수 수집 연동 엔진 작동 중 | 최근 갱신: {update_time}")
 
-# 🎯 [수정 조치 1] 현재 시장 주도 상위 테마 가로 요약 바를 5개 영역으로 확장
+# 현재 시장 주도 상위 테마 가로 요약 바 (TOP 5)
 st.write("### 🔥 현재 시장 주도 상위 테마 (TOP 5)")
-theme_cols = st.columns(5) # 3개에서 5개로 칼럼 늘림
+theme_cols = st.columns(5)
 for i in range(min(5, len(status_df))):
     t_name = status_df['테마'].iloc[i]
     t_rate = status_df['등락률'].iloc[i]
@@ -87,7 +87,7 @@ st.markdown("---")
 st.markdown("### 🗺️ 실시간 테마 히트맵 (상위 25개 중심)")
 st.write("💡 거래량이 많을수록 박스가 커지고, 상승 종목이 많으면 빨간색 / 낙폭이 크면 파란색으로 표현됩니다.")
 
-# 수집된 테마 중 상위 25개만 커팅하여 레이아웃 밀도 최적화
+# 수집된 테마 중 상위 25개만 커팅
 top_25_themes = status_df.head(25).copy()
 
 if not top_25_themes.empty and '테마' in top_25_themes.columns and '화면크기_가중치' in top_25_themes.columns:
@@ -100,14 +100,14 @@ if not top_25_themes.empty and '테마' in top_25_themes.columns and '화면크�
         color_continuous_midpoint=0      
     )
     
-    # 🎯 [수정 조치 2] 핀업 스타일 글씨 크기 확대 및 정중앙(Center) 정렬 보완
+    # 🎯 [버그 완전 해제 및 정중앙 정렬 세팅 완결]
     fig.update_traces(
-        texttemplate="<br><b>%{label}</b><br><span style='font-size:16px;'>%{color:.2f}%</span>", # 등락률도 강조
-        textfont=dict(size=19, color="white"), # 글자 기본 크기를 14px -> 19px로 대폭 확대
-        insidetexthalign="center", # 가로 정렬 정중앙 고정
-        insidetextvalign="middle"  # 세로 정렬 정중앙 고정
+        texttemplate="<b>%{label}</b><br><span style='font-size:16px;'>%{color:.2f}%</span>",
+        textfont=dict(size=20, color="white"),
+        insidetexthalign="center",
+        insidetextvalign="middle"
     )
-    fig.update_layout(margin=dict(t=5, b=5, l=5, r=5), height=380) # 시원하게 세로폭도 380으로 확장
+    fig.update_layout(margin=dict(t=5, b=5, l=5, r=5), height=380)
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("테마 상태 데이터를 읽어오는 중입니다.")
