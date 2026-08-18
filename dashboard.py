@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
+import plotly.express as px
 import os
 import time
 
@@ -7,50 +9,57 @@ import time
 # 0. 🛠️ 대시보드 기본 환경 및 100% 와이드 레이아웃 설정
 # =========================================================================
 st.set_page_config(
-    page_title="핀업 스타일 클린 대시보드",
+    page_title="핀업 스타일 테마 맵 대시보드",
     layout="wide",  # 📰 뉴스 없는 와이드 100% 레이아웃 강제 활성화
     initial_sidebar_state="collapsed"
 )
 
-# 테이블 가독성 향상 및 너비 100% 채우기 전용 CSS
+# 핀업 스타일의 다크 테마 및 테이블 너비 100% 강제 적용 CSS
 st.markdown("""
     <style>
     .block-container { padding-top: 1.5rem; padding-bottom: 1.5rem; }
     div[data-testid="stTable"] { width: 100% !important; }
-    th { background-color: #1E293B !important; color: white !important; font-weight: bold !important; text-align: center !important; }
-    td { text-align: center !important; }
+    th { background-color: #0F172A !important; color: #F8FAFC !important; font-weight: bold !important; text-align: center !important; }
+    td { text-align: center !important; font-weight: 500; }
+    /* Plotly 차트 테두리 공백 제거 */
+    .js-plotly-plot { margin-bottom: 1rem; }
     </style>
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 수집 엔진 출력 데이터 로드 구역 (ValueError 방어 완료)
+# 1. 📂 수집 엔진 출력 데이터 로드 구역
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-@st.cache_data(ttl=60)  # 실시간 수집 주기에 맞춰 1분 간격 자동 캐시 갱신
+@st.cache_data(ttl=10)  # 실시간 인터랙션을 위해 캐시 타임아웃 최소화
 def load_market_data():
-    # 1. 종목 뼈대 데이터 로드
+    # 1. 종목 뼈대 데이터 로드 (한 종목이 여러 테마에 속할 수 있는 원본 DB)
     if os.path.exists(BASE_FILE):
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
         base_df.columns = [str(col).strip().lower() for col in base_df.columns]
-        # 한글 컬럼 대응 명칭 표준화
         base_df = base_df.rename(columns={'테마': 'theme', '종목명': 'name', '시장': 'market', '종목코드': 'code'})
     else:
-        # 데이터가 없을 때 방어용 샘플 생성
-        sample = {'theme': ['대북/남북경협']*2 + ['반도체 후공정']*2, 'name': ['코데즈컴바인', '좋은사람들', '한미반도체', '리노공업'], 'code': ['047770', '033340', '042700', '058470'], 'market': ['KOSDAQ', 'KOSDAQ', 'KOSPI', 'KOSDAQ']}
+        # 가상 방어용 종목 데이터 (한 종목이 여러 테마에 중복 매핑된 예시)
+        sample = {
+            'theme': ['대북/남북경협', '대북/남북경협', '반도체 후공정', '시스템 반도체', '시스템 반도체'], 
+            'name': ['코데즈컴바인', '좋은사람들', '한미반도체', '삼성전자', '코데즈컴바인'], # 코데즈컴바인 중복 속성 예시
+            'code': ['047770', '033340', '042700', '005930', '047770'], 
+            'market': ['KOSDAQ', 'KOSDAQ', 'KOSPI', 'KOSPI', 'KOSDAQ']
+        }
         base_df = pd.DataFrame(sample)
 
-    # 2. 실시간 테마 상태 데이터 로드
+    # 2. 실시간 테마 상태 데이터 로드 (수집 엔진 아웃풋)
     if os.path.exists(STATUS_FILE):
         status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
     else:
-        # 💡 [수정 완료] 모든 리스트의 원소 개수를 3개로 통일하여 ValueError 원천 차단
+        # 가상 방어용 상위 테마 상태 데이터 (크기 가중치 및 등락률 포함)
         current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
         status_df = pd.DataFrame({
-            '테마': ['대북/남북경협', '반도체 후공정', '시스템 반도체'],
-            '등락률': [24.75, 16.37, -11.09],
-            '업데이트시간': [current_time_str, current_time_str, current_time_str]
+            '테마': ['대북/남북경협', '반도체 후공정', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오'],
+            '등락률': [24.75, 16.37, -11.09, -13.62, -13.36, -14.47, -14.78],
+            '화면크기_가중치':, # 거래량 반영 가중치
+            '업데이트시간': [current_time_str] * 7
         })
         
     return base_df, status_df
@@ -58,75 +67,75 @@ def load_market_data():
 raw_df, status_df = load_market_data()
 
 # =========================================================================
-# 2. 🎯 고유 테마 목록 추출 및 chosen_theme 선언 (NameError 완벽 차단)
+# 2. 🗺️ 상단 구역: 핀업 스타일 실시간 가변 테마 맵 (박스 25개 스케일 제한)
 # =========================================================================
-st.title("📊 실시간 주식 테마 대시보드")
-
-# 최근 갱신 시간 표시
+st.title("📊 핀업 스타일 주식 테마 대시보드")
 update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
-st.caption(f"⚙️ 수집 엔진 연동 완료 | 최근 데이터 갱신 시간: {update_time}")
+st.caption(f"⚙️ 4,115개 전수 수집 연동 엔진 작동 중 | 최근 갱신: {update_time}")
 
-# 수집 엔진이 뽑아준 테마 목록 가져오기
-if not status_df.empty and '테마' in status_df.columns:
-    theme_list = status_df['테마'].dropna().tolist()
-else:
-    theme_list = ["대북/남북경협", "반도체 후공정", "시스템 반도체"]
+st.markdown("### 🗺️ 실시간 테마 히트맵 (상위 25개 중심)")
+st.write("💡 거래량이 많을수록 박스가 커지고, 상승 종목이 많으면 빨간색 / 낙폭이 크면 파란색으로 표현됩니다.")
 
-# 💡 최상단 셀렉트박스로 사용자가 테마를 변경하면 하단 100% 종목 리스트가 즉시 연동됩니다.
-chosen_theme = st.selectbox("🔍 분석하고 싶은 테마를 선택하세요:", theme_list, index=0)
+# 수집된 테마 중 상위 25개만 커팅하여 레이아웃 밀도 최적화
+top_25_themes = status_df.head(25).copy()
 
-# =========================================================================
-# 3. 🖼️ 상단 콤팩트 구역: 실시간 상위 주도 테마 가로 요약 바
-# =========================================================================
-st.markdown("---")
-st.write("### 🔥 현재 시장 주도 상위 테마")
-theme_cols = st.columns(3)
-
-for i in range(min(3, len(status_df))):
-    t_name = status_df['테마'].iloc[i]
-    t_rate = status_df['등락률'].iloc[i]
+if not top_25_themes.empty:
+    # 핀업 특유의 빨강/파랑 히트맵을 생성하는 Plotly 트리맵 컴포넌트
+    fig = px.treemap(
+        top_25_themes,
+        path=['테마'],
+        values='화면크기_가중치',    # 📦 거래량/대금이 많을수록 박스가 커짐
+        color='등락률',             # 🎨 상승률이 높으면 빨강(Red), 낙폭이 크면 파랑(Blue)
+        color_continuous_scale='RdBu_r',  # 주식 직관 컬러 스케일 (Red-Blue 반전)
+        color_continuous_midpoint=0      # 0%를 기준으로 색상 분기
+    )
     
-    with theme_cols[i]:
-        if t_rate >= 0:
-            st.metric(label=f"🔺 {t_name}", value=f"+{t_rate}%", delta="시장 주도 테마")
-        else:
-            st.metric(label=f"🔻 {t_name}", value=f"{t_rate}%", delta="하락세", delta_color="inverse")
-st.markdown("---")
+    # 맵 내부 텍스트 템플릿 세팅 (테마명과 등락률 동시 표출)
+    fig.update_traces(
+        texttemplate="<b>%{label}</b><br>%{color:.2f}%",
+        textfont=dict(size=14, color="white")
+    )
+    fig.update_layout(margin=dict(t=5, b=5, l=5, r=5), height=350)
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("테마 상태 데이터를 읽어오는 중입니다.")
 
 # =========================================================================
-# 4. 🎯 하단 종목 집중 구역 (뉴스 영역 완전 박멸 및 100% 화면 표출)
+# 3. 🔍 테마 선택 컨트롤러 (상하단 실시간 브릿지 연동)
 # =========================================================================
-st.subheader(f"📂 {chosen_theme} 테마 상세분석 정보")
-st.markdown(f"### 🔥 {chosen_theme} 소속 대장 종목 리스트")
+theme_list = top_25_themes['테마'].dropna().tolist() if not top_25_themes.empty else ["대북/남북경협"]
+chosen_theme = st.selectbox("📂 상세 분석 및 소속 종목을 조회할 테마를 지정하세요:", theme_list, index=0)
+
+# =========================================================================
+# 4. 🎯 하단 구역: 100% 와이드 종목 리스트 (뉴스 차단 및 종목 소개 집중)
+# =========================================================================
+st.markdown("---")
+st.subheader(f"🗂️ {chosen_theme} 테마 소속 종목 가이드")
 
 try:
     if not raw_df.empty and 'theme' in raw_df.columns:
-        # 선택된 테마 데이터만 정밀 필터링
+        # 사용자가 위에서 지정한 테마에 소속된 종목만 필터링 (중복 속성 자동 해결)
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
         avail_cols = []
         col_names = []
         
-        # 컬럼 유무 체크 후 출력 그리드 한글화 매핑
-        if 'name' in theme_detail_df.columns: 
-            avail_cols.append('name'); col_names.append('종목명')
-        if 'code' in theme_detail_df.columns: 
-            avail_cols.append('code'); col_names.append('종목코드')
-        if 'market' in theme_detail_df.columns: 
-            avail_cols.append('market'); col_names.append('시장구분')
+        if 'name' in theme_detail_df.columns: avail_cols.append('name'); col_names.append('종목명')
+        if 'code' in theme_detail_df.columns: avail_cols.append('code'); col_names.append('종목코드')
+        if 'market' in theme_detail_df.columns: avail_cols.append('market'); col_names.append('시장구분')
             
         theme_df_clean = theme_detail_df[avail_cols].reset_index(drop=True)
         theme_df_clean.columns = col_names
         
-        # 📌 뉴스가 완전히 빠진 100% 전체 공간을 채워 상위 대장 종목 출력 (최대 15개)
+        # 뉴스를 걷어낸 자리에 시원하게 100% 너비로 테이블 배치 (상위 15개 노출)
         if not theme_df_clean.empty:
             st.table(theme_df_clean.head(15))
         else:
-            st.info(f"현재 `{chosen_theme}` 테마에 배정된 소속 종목 데이터가 비어있습니다.")
+            st.info(f"현재 `{chosen_theme}` 테마에 매핑된 실시간 종목 정보가 존재하지 않습니다.")
     else:
-        st.error("데이터셋에 'theme' 열이 존재하지 않거나 데이터 구조가 올바르지 않습니다.")
+        st.error("종목 데이터베이스의 테마 식별 열 구조를 다시 점검해 주세요.")
 except Exception as e:
-    st.info("🔄 데이터를 불러오는 중입니다... 잠시만 기다려 주세요.")
+    st.info("🔄 실시간 동기화 데이터를 그리드에 바인딩하는 중입니다...")
 
 # =========================================================================
 # 5. ⏱️ 60초 간격 세션 자동 갱신 및 캐시 제어 타이머
