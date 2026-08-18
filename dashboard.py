@@ -33,7 +33,18 @@ df['등락률_절댓값'] = df['등락률'].abs().apply(lambda x: max(x, 0.1))
 st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {time.strftime('%H:%M:%S')})")
 
 # ---------------------------------------------------------
-# 구역 1: 등락률에 따라 몸집만 커지고 클릭 확대는 안 되는 핀업 트리맵
+# 🛠️ [핵심 교정] 클릭 버그가 전혀 없는 상단 테마 선택 컨트롤러 배치
+# ---------------------------------------------------------
+theme_list = df['테마'].unique().tolist()
+current_theme = st.selectbox(
+    "🔍 **상세 정보를 조회할 테마를 선택하세요**", 
+    options=theme_list,
+    index=0,
+    key="global_theme_selector"
+)
+
+# ---------------------------------------------------------
+# 구역 1: 등락률 시각화용 트리맵 (단순 뷰어용으로 안전하게 잠금)
 # ---------------------------------------------------------
 fig = px.treemap(
     df, 
@@ -47,34 +58,13 @@ fig = px.treemap(
 # maxdepth를 1로 잠그고 조작 제한
 fig.update_traces(maxdepth=1, textinfo="label+value")
 fig.update_layout(
-    clickmode='event', 
     dragmode=False,    
     margin=dict(t=10, l=10, r=10, b=10), 
-    height=400
+    height=350
 )
 
-# 스트림릿 최신 버전에서 완벽 구동되는 대화형 차트 선언
-selected_theme = st.plotly_chart(
-    fig, 
-    use_container_width=True, 
-    on_select="rerun", 
-    config={'displayModeBar': False, 'scrollZoom': False}
-)
-
-# 🛠️ 최초 실행 시 세션 기본값 저장
-if "chosen_theme" not in st.session_state:
-    st.session_state["chosen_theme"] = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
-
-# 🛠️ 최신 버전 Streamlit의 SelectionState 객체에서 클릭 데이터 완벽 추출
-if selected_theme and hasattr(selected_theme, "selection") and selected_theme.selection:
-    points = selected_theme.selection.get("points", [])
-    if points and len(points) > 0:
-        clicked_label = points[0].get("label")
-        if clicked_label and str(clicked_label).strip() != "":
-            st.session_state["chosen_theme"] = clicked_label
-
-# 최종 화면 출력용 테마 변수 고정
-current_theme = st.session_state["chosen_theme"]
+# 차트는 뷰어용으로만 안전하게 표출합니다.
+st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
 
 st.markdown("---")
 
