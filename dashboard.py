@@ -230,6 +230,9 @@ with time_col:
     st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 1분 무한 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # 1층: 테마 톱5 전광판
+# 🚨 [중복 박멸] 기존에 꼬여있던 두 세트를 다 지우고 이 코드로 딱 한 번만 나오게 교체하세요!
+
+# 1층: 상단 5대 테마 전광판 (딱 1줄만 출력)
 theme_cols = st.columns(5)
 for i in range(min(5, len(status_df))):
     t_name = status_df['테마'].iloc[i]
@@ -239,6 +242,42 @@ for i in range(min(5, len(status_df))):
         else: st.metric(label=f"🔻 {t_name}", value=f"{t_rate}%")
 
 st.markdown("---")
+
+# 2층: 삼성전자 & SK하이닉스 웅장한 정중앙 대형 전광판 (딱 1줄만 출력)
+st.markdown("### 🏛️ 시장 주도 마스터 보드 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
+master_cols = st.columns(2)
+
+for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
+    m_rate = 0.0
+    if not raw_df.empty and 'name' in raw_df.columns:
+        target_row = raw_df[raw_df['name'] == m_name]
+        if not target_row.empty:
+            m_rate = float(target_row['rate'].iloc[0])
+            
+    m_url = make_google_link_v2(m_name)
+    
+    with master_cols[idx]:
+        if m_rate >= 0:
+            st.markdown(
+                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
+                f"<div class='master-box-up'>"
+                f"  <span class='master-name'>🏛️ {m_name}</span>"
+                f"  <span class='master-rate-up'>+{m_rate}%</span>"
+                f"</div></a>", 
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
+                f"<div class='master-box-down'>"
+                f"  <span class='master-name'>🏛️ {m_name}</span>"
+                f"  <span class='master-rate-down'>{m_rate}%</span>"
+                f"</div></a>", 
+                unsafe_allow_html=True
+            )
+
+st.markdown("---") # 👈 이 줄 바로 밑에는 "top_25_themes = status_df.head(25).copy()" 코드가 와야 합니다!
+
 # 2번 소스 코드 중 중반부 레이아웃 구역
 theme_cols = st.columns(5)
 for i in range(min(5, len(status_df))):
