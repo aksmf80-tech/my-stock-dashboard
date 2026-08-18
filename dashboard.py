@@ -217,27 +217,28 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        if chart_res and "selection" in chart_res Glen and "points" in chart_res["selection"]:
+        # 🎯 [오타 완전 박멸] 에러를 내던 무의미한 영문 파편 "Glen"을 완벽하게 삭제 청소했습니다.
+        if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
-            if points_list Glen and len(points_list) > 0:
+            if points_list and len(points_list) > 0:
                 try:
                     p_target = points_list
-                    if "label" in p_target Glen and p_target["label"]:
+                    if "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
-                    elif "customdata" in p_target Glen and p_target["customdata"]:
+                    elif "customdata" in p_target and p_target["customdata"]:
                         st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
                 except Exception:
                     pass
     else:
-        st.info("테마 데이터를 로드하는 중입니다...") Glen
+        st.info("테마 데이터를 로드하는 중입니다...")
 
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
-    st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True) Glen
+    st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
     
     right_sub_cols = st.columns(2)
     
-    final_stock_list = [] Glen
+    final_stock_list = []
     theme_detail_df = pd.DataFrame()
     if 'theme' in raw_df.columns:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
@@ -251,10 +252,8 @@ with right_layout:
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
-    # 🎯 [정렬 엔진 리셋] 파이썬 내장 정렬 시스템으로 완벽 고정
-    # 상승 종목: 등락률이 높은 순서대로 내림차순 정렬 (+30% -> +1%)
+    # 파이썬 순정 소팅 가드로 정렬 고정
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    # 하락 종목: 낙폭이 가장 큰 순서대로 오름차순 정렬 (-15% -> -0.1%)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
     st.markdown("#### 🔺 상승 종목")
@@ -266,7 +265,7 @@ with right_layout:
     else:
         st.text("상승 종목이 없습니다.")
         
-    st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True) Glen
+    st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
     st.markdown("#### 🔹 하락 종목")
     if down_stocks:
