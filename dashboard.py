@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🎯 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
+# 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
 st.markdown("""
     <style>
     /* 상단 요소를 안전하게 배치 */
@@ -22,16 +22,16 @@ st.markdown("""
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
-    /* 🎯 [디자인 변경 1] 대제목 하단에 여백을 주어 첫 번째 테마글자와의 충돌 연쇄 방지 */
+    /* 대제목 하단에 여백을 주어 첫 번째 테마글자와의 충돌 연쇄 방지 */
     .dashboard-title {
         margin: 0 !important;
         padding: 0 !important;
         font-size: 24px !important;
         color: #F8FAFC !important;
-        margin-bottom: 0.8rem !important; /* 아래 요소들과 넉넉하게 띄움 */
+        margin-bottom: 0.8rem !important;
     }
     
-    /* 🎯 [디자인 변경 2] 상단 5대 테마 글씨체 크기를 주식 전광판 스타일로 대폭 확대 */
+    /* 상단 5대 테마 글씨체 크기를 주식 전광판 스타일로 대폭 확대 */
     [data-testid="stMetricLabel"] { font-size: 17px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 28px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
@@ -61,29 +61,36 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역
+# 1. 📂 데이터 로드 및 정제 구역 (🎯 캐시명 전면 교체로 무조건 강제 초기화)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
 @st.cache_data(ttl=5)
-def load_market_data():
+def load_synchronized_market_data():  # 💡 옛날 캐시 쓰레기를 강제 거부하기 위해 함수 이름 변경 완료!
+    # 1. 종목 및 등락률 데이터 결합 및 가공
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
         base_df.columns = [str(col).strip().lower() for col in base_df.columns]
         base_df = base_df.rename(columns={'테마': 'theme', '종목명': 'name', '시장': 'market', '종목코드': 'code', '등락률': 'rate'})
     else:
+        # 💡 [KeyError 완벽 방어] 소문자 필터를 타더라도 무조건 통과되도록 이중으로 안전장치 구축
         mock_stocks = {
             'theme': ['대북/남북경협', '대북/남북경협', '반도체 후공정', '시스템 반도체', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오'],
             'name': ['코데즈컴바인', '좋은사람들', '한미반도체', '삼성전자', '코데즈컴바인', '현대차', '에코프로비엠', '레인보우로보틱스', '셀트리온'],
-            'rate': [30.00, 30.00, 14.20, -1.20, 25.40, 2.10, 4.35, 8.90, 1.50]
+            'rate': [30.00, 30.00, 14.20, -1.20, 25.40, 2.10, 4.35, 8.90, 1.50],
+            'theme': ['대북/남북경협', '대북/남북경협', '반도체 후공정', '시스템 반도체', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오']
         }
         base_df = pd.DataFrame(mock_stocks)
         
     if 'rate' not in base_df.columns:
         base_df['rate'] = np.random.uniform(-15, 30, size=len(base_df)).round(2)
-    base_df['theme'] = base_df['theme'].astype(str).str.strip()
+        
+    # 'theme' 문자열 안전 필터링 실행
+    if 'theme' in base_df.columns:
+        base_df['theme'] = base_df['theme'].astype(str).str.strip()
 
+    # 2. 실시간 테마 상태 데이터 로드
     if os.path.exists(STATUS_FILE) and os.path.getsize(STATUS_FILE) > 0:
         status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
         if '테마' in status_df.columns:
@@ -99,21 +106,20 @@ def load_market_data():
         
     return base_df, status_df
 
-raw_df, status_df = load_market_data()
+# 💡 신형 함수 호출로 변수 꽂아넣기
+raw_df, status_df = load_synchronized_market_data()
 
 # =========================================================================
-# 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5 (디자인 패치 완료)
+# 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
 # =========================================================================
 update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
 with title_col:
-    # 🎯 CSS 클래스를 태워서 글자를 확실히 밀어내고 고정함
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
     st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 동기화 완료: {update_time}</p>", unsafe_allow_html=True)
 
-# 🎯 더 큼직해진 가로형 5대 지표 출력 구역
 theme_cols = st.columns(5)
 for i in range(min(5, len(status_df))):
     t_name = status_df['테마'].iloc[i]
