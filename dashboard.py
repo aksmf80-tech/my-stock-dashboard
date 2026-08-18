@@ -5,7 +5,7 @@ import os
 import time
 from datetime import datetime, timedelta
 
-# ⚠️ 주의: set_page_config는 항상 코드 최상단에 위치해야 합니다.
+# ⚠️ set_page_config는 반드시 최상단에 위치해야 합니다.
 st.set_page_config(layout="wide")
 
 # 🔔 홍보 배너
@@ -19,7 +19,7 @@ if not os.path.exists(DATA_FILE):
     st.warning("⌛ 데이터 파일(theme_data.csv)을 기다리는 중입니다. 수집 앱을 확인해 주세요.")
     st.stop()
 
-# 최신 데이터 읽기 (여기서 df 변수가 먼저 생성됩니다!)
+# 최신 데이터 읽기
 df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
 
 required_cols = ['테마', '종목명', '등락률']
@@ -27,15 +27,14 @@ if df is None or df.empty or not all(col in df.columns for col in required_cols)
     st.warning("📊 현재 표시할 주식 데이터 형식이 올바르지 않거나 데이터가 없습니다. 장이 열리면 자동으로 갱신됩니다.")
     st.stop()
 
-# 💡 특정 급등 테마의 화면 독점을 막기 위해 모든 테마 사각형의 크기를 동일하게 고정합니다.
+# 화면 크기 고정 및 절댓값 보정
 df['화면크기_고정'] = 10 
 
-# 🛠️ [시차 버그 해결] 해외 서버 기준 시간을 대한민국 서울 표준시(KST)로 정확하게 변환
+# 해외 서버 시차 해결 (KST 변환)
 utc_now = datetime.utcnow()
 kor_now = utc_now + timedelta(hours=9)
 current_time_str = kor_now.strftime('%H:%M:%S')
 
-# 상단에 정정된 한국 시각 표시
 st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {current_time_str})")
 
 # ---------------------------------------------------------
@@ -50,36 +49,33 @@ current_theme = st.selectbox(
 )
 
 # ---------------------------------------------------------
-# 구역 1: 등락률 시각화용 트리맵 (오류 수정 및 핀업 스타일 반영)
+# 구역 1: 등락률 시각화용 트리맵 (오류 완전 방어 및 핀업 스타일 색상 지정)
 # ---------------------------------------------------------
-# 🎨 df가 확실히 정의된 후 등락률 범위를 계산합니다.
 v_min = df['등락률'].min()
 v_max = df['등락률'].max()
-abs_max = max(abs(v_min), abs(v_max), 3.0) # 최소 보정치 3% 확보
+abs_max = float(max(abs(v_min), abs(v_max), 3.0))
 
 fig = px.treemap(
     df, 
     path=['테마'], 
     values='화면크기_고정',  
     color='등락률',        
-    color_continuous_scale='RdBu_r', # 역방향 Red-Blue (상승 빨강, 하락 파랑)
-    range_color=[-abs_max, abs_max], # ⚠️ 핵심: 0을 정확히 중심으로 잡기 위해 마이너스 값 대칭 강제 지정
+    color_continuous_scale='RdBu_r', 
+    range_color=[-abs_max, abs_max], 
     hover_data=['종목명']
 )
 
-# 🎨 핀업 스타일처럼 테두리를 하얀색 선으로 깔끔하게 마감하고 가독성 확보
+# 핀업 스타일 테두리 마감 및 가독성 설정 (오류 발생 소지 차단)
 fig.update_traces(
     maxdepth=1, 
     textinfo="label+value",
-    marker=dict(line=dict(width=1.5, color='white')) # 사각형 구분선 굵게 조정
+    marker=dict(line=dict(width=1.5, color='white'))
 )
 
 fig.update_layout(
     dragmode=False,    
     margin=dict(t=10, l=10, r=10, b=10), 
-    height=380,
-    coloraxis_continuous_scale='RdBu_r',
-    coloraxis_midpoint=0 # ⚠️ 핵심: 등락률 0% 지점을 무조건 완전한 보합 색상(흰색)으로 고정
+    height=380
 )
 
 # 차트 표출
@@ -123,7 +119,7 @@ with col2:
     st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
 
 # ---------------------------------------------------------
-# 🛠️ [화면 먹통 완전 방어] 60초 뒤에 화면을 부드럽게 다시 리셋시키는 타이머 엔진
+# 타이머 엔진 (60초 자동 리셋)
 # ---------------------------------------------------------
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
