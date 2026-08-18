@@ -10,7 +10,7 @@ def get_naver_data():
     전체 테마명, 대장 종목명, 등락률 정보를 수집합니다.
     """
     # 💡 [정석 주소] 실제 테마 시세 데이터가 위치한 네이버 금융 경로
-url = "https://naver.com"
+url = "https://finance.naver.com/"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
     }
