@@ -3,12 +3,14 @@ import requests
 from bs4 import BeautifulSoup
 import datetime
 import time
+import os
 
 def get_naver_data():
     """
     네이버 금융 테마별 시세 페이지를 실시간으로 크롤링하여 
     전체 테마명, 대장 종목명, 등락률 정보를 수집합니다.
     """
+    # 💡 [교정 1] 네이버 메인이 아닌, 실제 테마 시세가 있는 금융 페이지 주소로 변경
     url = "https://naver.com"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
@@ -27,6 +29,7 @@ def get_naver_data():
         # 네이버 금융 테마 테이블 파싱
         table = soup.find("table", {"class": "type_1"})
         if not table:
+            print("테마 테이블(type_1)을 찾을 수 없습니다.")
             return None
             
         rows = table.find_all("tr")
@@ -37,33 +40,33 @@ def get_naver_data():
         
         for row in rows:
             cols = row.find_all("td")
-            # 정상적인 데이터 행만 추출 (테마명, 등락률 등이 포함된 행)
-            if len(cols) >= 4:
+            # 네이버 금융 테마 테이블 구조상 데이터가 채워진 행은 보통 7개 이상의 열을 가집니다.
+            if len(cols) >= 6:
                 theme_name_tag = cols[0].find("a")
                 if theme_name_tag:
                     theme_name = theme_name_tag.text.strip()
                     
-                    # 등락률 추출 (두 번째 열)
-                    rate_text = cols[1].text.strip().replace('%', '')
+                    # 💡 [교정 2] 네이버 금융 구조에 맞게 등락률(2번째 열) 및 대장주(6번째 열) 위치 정정
+                    rate_text = cols[1].text.strip().replace('%', '').replace('+', '')
                     try:
                         rate = float(rate_text)
                     except ValueError:
                         continue
                         
-                    # 💡 [핵심] 해당 테마의 주도 종목(대장주) 정보를 3번째 열에서 파싱
+                    # 대장주 추출 (네이버 금융 테마 페이지의 6번째 td 내부 a 태그)
                     stock_name = "종목 정보 없음"
-                    stock_tag = cols[3].find("a")
+                    stock_tag = cols[5].find("a") if len(cols) > 5 else None
                     if stock_tag:
                         stock_name = stock_tag.text.strip()
                     
-                    # 마이너스 등락률 부호 보정 및 트리맵 크기 계산을 위해 하한값 설정
-                    if rate <= 0:
-                        continue # 트리맵(바둑판)은 크기(Value)가 무조건 양수(+)여야 깨지지 않고 그려집니다.
-                    
+                    # 💡 [교정 3] 마이너스 등락률도 버리지 않고 대시보드 시각화를 위해 그대로 수집
                     themes.append(theme_name)
                     stocks.append(stock_name)
                     rates.append(rate)
                     
+        if not themes:
+            return None
+
         # 수집된 데이터를 딕셔너리로 결합
         now_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         data = {
@@ -74,8 +77,9 @@ def get_naver_data():
         }
         
         df = pd.DataFrame(data)
-        # 상위 상승률 15개 테마만 골라내어 가독성 극대화
-        df = df.sort_values(by="등락률", ascending=False).head(15)
+        # 등락률 절댓값이 큰 순서(시장 주도령이 강한 순서)로 상위 15개 추출
+        df['정렬용'] = df['등락률'].abs()
+        df = df.sort_values(by="정렬용", ascending=False).head(15).drop(columns=['정렬용'])
         return df
 
     except Exception as e:
@@ -83,16 +87,20 @@ def get_naver_data():
         return None
 
 if __name__ == "__main__":
-    try:
-        # 1. 네이버 금융 실제 데이터 수집
-        df = get_naver_data()
-        
-        # 2. 정상적으로 수집되었다면 csv 파일로 저장
-        if df is not None and not df.empty:
-            df.to_csv("theme_data.csv", index=False, encoding="utf-8-sig")
-            print("🎉 [성공] 네이버 금융 실시간 데이터 수집 및 csv 저장 완료!")
-        else:
-            print("⚠️ [대기] 장 시작 전이거나 수집된 데이터가 없습니다.")
+    print("🚀 실시간 네이버 금융 데이터 수집기 가동 시작...")
+    # 💡 [교정 4] 대시보드가 실시간 동기화될 수 있도록 무한 루프(60초 주기) 생성
+    while True:
+        try:
+            df = get_naver_data()
             
-    except Exception as e:
-        print(f"오류 발생: {e}")
+            if df is not None and not df.empty:
+                df.to_csv("theme_data.csv", index=False, encoding="utf-8-sig")
+                print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] 🎉 theme_data.csv 갱신 완료!")
+            else:
+                print("⚠️ 수집된 데이터가 없습니다. 주소를 다시 확인하거나 장 시간인지 확인하세요.")
+                
+        except Exception as e:
+            print(f"루프 구동 중 오류 발생: {e}")
+            
+        # 60초 대기 후 재수집
+        time.sleep(60)
