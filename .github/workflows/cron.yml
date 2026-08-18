@@ -2,14 +2,14 @@ name: Yahoo Stock Data Refresher
 
 on:
   schedule:
-    # 🎯 한국 시간(KST) 오후 4시 장마감 후 (UTC 오전 7시) 하루 1회 수집
-    - cron: '0 7 * * 1-5'
-  workflow_dispatch: # 언제든 수동으로 실행하고 싶을 때 버튼 클릭 가능
+    # 🎯 [장중 5분 최속 가속 패치] 월~금, 한국시간 오전 9시 0분부터 오후 4시 55분까지 '5분마다' 귀신같이 기동
+    # (UTC 기준 0시부터 7시까지 매 5분마다 깃허브 크롤러 서버를 깨웁니다.)
+    - cron: '*/5 0-7 * * 1-5'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -24,21 +24,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 🎯 무한 루프 없이 깔끔하게 1회만 실행하여 전체 종목 기틀 갱신
       - name: Run Crawler Engine
         run: |
-          echo "🔄 4,115개 종목 데이터 베이스 동기화 시작..."
           python fetch_data.py
 
-      # 🎯 변경 사항이 있을 때만 안전하게 딱 1번 커밋 및 푸시
       - name: Commit and Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.email "github-actions[bot]@://github.com"
           git add theme_data.csv
+          git add realtime_theme_status.csv
           
           if ! git diff --cached --quiet; then
-            git commit -m "📊 [자동 갱신] 오늘의 테마/종목 데이터 동기화 완료"
+            git commit -m "📊 [장중 5분 라이브] 오늘의 테마/종목 뼈대 가속 업데이트 완료"
             git push origin main
           else
             echo "변경 사항이 없어 푸시를 건너뜁니다."
