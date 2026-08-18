@@ -70,22 +70,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (형님 4,115개 뼈대 + 야후 1분 직동기화 융합 엔진)
+# 1. 📂 데이터 로드 및 정제 구역 (수동 샘플 제거, 형님 4,115개 전 종목 개방)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-# 🚨 [NameError 방지] 데이터 백업 풀 정의 자리를 완벽하게 수복해 두었습니다.
-BACKUP_STOCK_POOL = {
-    "대북/남북경협": [("코데즈컴바인", 30.0), ("좋은사람들", 30.0), ("인디에프", 29.81), ("일신석재", 22.24), ("부산산업", 18.5)],
-    "반도체 후공정": [("한미반도체", 14.2), ("리노공업", 5.12), ("하나마이크론", 4.3), ("이오테크닉스", 3.12), ("네패스", 2.85)],
-    "시스템 반도체": [("삼성전자", -1.2), ("SK하이닉스", -2.5), ("DB하이텍", 0.9), ("가온칩스", 8.3), ("텔레칩스", 3.1)],
-    "수소차": [("현대차", 2.1), ("일진하이솔루스", -0.5), ("동아화성", 4.15), ("두산퓨어셀", 8.9), ("에스퓨어셀", 6.3)],
-    "전기차 부품": [("에코프로비엠", 4.35), ("엘앤에프", -3.1), ("신흥에스이씨", 1.2), ("상신이디피", 5.4), ("삼기", 3.15)],
-    "로봇": [("레인보우로보틱스", 8.9), ("두산로보틱스", 11.2), ("뉴로메카", 5.4), ("로보티즈", 3.15), ("유진로봇", 1.45)],
-    "제약/바이오": [("삼성바이오로직스", -0.8), ("셀트리온", 1.5), ("알테오젠", 12.3), ("HLB", 9.45), ("유한양행", 4.2)]
-}
-
+# 🎯 장중에 실시간으로 주가를 쪼아와 뼈대에 주입할 테마별 주요 대장주 매핑 주소록
 LIVE_TICKER_MAP = {
     "삼성전자": "005930.KS", "SK하이닉스": "000660.KS", "한미반도체": "042700.KS", 
     "레인보우로보틱스": "277810.KQ", "두산로보틱스": "454910.KS", "현대차": "005380.KS",
@@ -97,6 +87,8 @@ LIVE_TICKER_MAP = {
 @st.cache_data(ttl=5)
 def load_market_data():
     base_df = pd.DataFrame()
+    
+    # 🚨 [5종목 제한 버그 완전 작살] 수동 샘플 백업 풀을 삭제하고, 형님의 진짜 파일만 100% 읽어옵니다.
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         try:
             base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
@@ -110,12 +102,10 @@ def load_market_data():
         except Exception:
             base_df = pd.DataFrame()
 
+    # 안전 보호벽 레이어
     if base_df.empty or 'theme' not in base_df.columns:
-        sample_rows = []
-        for theme_key, stocks in BACKUP_STOCK_POOL.items():
-            for name, rate in stocks:
-                sample_rows.append({'theme': theme_key, 'name': name, 'rate': rate})
-        base_df = pd.DataFrame(sample_rows)
+        # 최악의 파일 유실 상황 시에만 가동되는 최소 시스템 구동 틀
+        base_df = pd.DataFrame([{"theme": "대북/남북경협", "name": "코데즈컴바인", "rate": 0.0}])
         
     base_df['theme'] = base_df['theme'].fillna('미분류').astype(str).str.strip()
     base_df['name'] = base_df['name'].fillna('알수없음').astype(str).str.strip()
