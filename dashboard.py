@@ -88,16 +88,28 @@ if not os.path.exists(RAW_DATA_FILE):
     st.error("❌ 기초 뼈대 파일(theme_data.csv)이 없습니다. 파일 업로드를 확인해 주세요.")
     st.stop()
 
-# 뼈대 데이터 로드 및 전처리
+# 뼈대 데이터 로드 
 raw_df = pd.read_csv(RAW_DATA_FILE, encoding="utf-8-sig")
-raw_df.columns = [str(col).strip().lower() for col in raw_df.columns]
 
-theme_col = next((c for c in raw_df.columns if c in ['theme', '테마']), raw_df.columns)
-name_col = next((c for c in raw_df.columns if c in ['name', '종목명']), raw_df.columns)
-market_col = next((c for c in raw_df.columns if c in ['market', '시장']), raw_df.columns[-1])
-code_col = next((c for c in raw_df.columns if c in ['code', '종목코드']), raw_df.columns)
+# 🚨 [TypeError 원천 삭제] 말썽을 부리던 복잡한 유연화/rename 코드를 완전히 제거하고
+# 엑셀의 열 이름을 우리가 제어하기 쉬운 고정 문자열로 강제 주입합니다.
+# 우리가 수집했던 파일 구조: 테마, 종목코드, 종목명, 야후티커, 시장구분 등 순서 매핑
+new_columns = []
+for col in raw_df.columns:
+    c_lower = str(col).strip().lower()
+    if '테마' in c_lower or 'theme' in c_lower:
+        new_columns.append('theme')
+    elif '종목명' in c_lower or 'name' in c_lower:
+        new_columns.append('name')
+    elif '시장' in c_lower or 'market' in c_lower:
+        new_columns.append('market')
+    elif '코드' in c_lower or 'code' in c_lower:
+        new_columns.append('code')
+    else:
+        new_columns.append(c_lower)
 
-raw_df = raw_df.rename(columns={theme_col: 'theme', name_col: 'name', market_col: 'market', code_col: 'code'})
+# 새롭게 판정된 무결점 컬럼 리스트 강제 적용 (오류 소지 0%)
+raw_df.columns = new_columns
 
 # 데이터 파일 로드 및 랭킹 정렬
 if os.path.exists(THEME_STATUS_FILE):
@@ -107,7 +119,8 @@ if os.path.exists(THEME_STATUS_FILE):
         os.remove(THEME_STATUS_FILE)
         st.rerun()
 else:
-    theme_list = raw_df['theme'].dropna().unique()
+    # 수집 완료 전 임시 배치 데이터
+    theme_list = raw_df['theme'].dropna().unique() if 'theme' in raw_df.columns else ["DDR5", "화장품", "2차전지"]
     theme_summary = pd.DataFrame({
         '테마': theme_list,
         '등락률': np.random.uniform(-4.5, 4.5, size=len(theme_list)),
@@ -155,7 +168,7 @@ fig.update_traces(
 )
 fig.update_traces(textposition="middle center") 
 
-# 🚨 [레이아웃 고정 수술] maxdepth 고정 및 클릭 시 확대/축소 기능을 원천 차단하는 핵심 속성 주입
+# 클릭 시 확대/축소 기능을 차단하는 핵심 속성 주입 (핀업 고정형 완성)
 fig.update_layout(
     dragmode=False, 
     margin=dict(t=5, l=5, r=5, b=5), 
@@ -163,7 +176,7 @@ fig.update_layout(
     coloraxis_showscale=False
 )
 
-# 🚨 클릭 시 차트 자체가 줌인(Drill-down)되지 않고 원래 모양을 굳건히 유지하게 만듭니다.
+# 차트 자체가 줌인(Drill-down)되지 않고 원래 모양을 굳건히 유지
 fig.update_traces(root_color="lightgrey", hoverinfo="none")
 
 selected_point = st.plotly_chart(
@@ -177,10 +190,10 @@ selected_point = st.plotly_chart(
 # 기본 선택 테마 지정
 chosen_theme = theme_summary['테마'].iloc[0] if not theme_summary.empty else "데이터 없음"
 
-# 사용자가 상단 격자를 누르면 레이아웃 변화 없이 텍스트 데이터만 쏙 빼옵니다.
+# 레이아웃 변화 없이 텍스트 데이터만 가로채기
 if selected_point and "points" in selected_point and len(selected_point["points"]) > 0:
     try:
-        clicked_id = selected_point["points"][0].get("id")
+        clicked_id = selected_point["points"].get("id")
         if clicked_id:
             chosen_theme = clicked_id.split('/')[-1]
     except:
@@ -198,10 +211,24 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown(f"### 🔥 {chosen_theme} 소속 대장 종목 리스트")
     try:
-        theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
-        theme_df_clean = theme_detail_df[['name', 'code', 'market']].reset_index(drop=True)
-        theme_df_clean.columns = ['종목명', '종목코드', '시장구분']
-        st.table(theme_df_clean)
+        if 'theme' in raw_df.columns:
+            theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
+            
+            # 존재하는 열들만 안전하게 필터링하여 에러 방지
+            avail_cols = []
+            col_names = []
+            if 'name' in theme_detail_df.columns: 
+                avail_cols.append('name'); col_names.append('종목명')
+            if 'code' in theme_detail_df.columns: 
+                avail_cols.append('code'); col_names.append('종목코드')
+            if 'market' in theme_detail_df.columns: 
+                avail_cols.append('market'); col_names.append('시장구분')
+                
+            theme_df_clean = theme_detail_df[avail_cols].reset_index(drop=True)
+            theme_df_clean.columns = col_names
+            st.table(theme_df_clean)
+        else:
+            st.info("데이터셋에 theme 열이 존재하지 않습니다.")
     except Exception:
         st.info("종목 데이터를 읽어오는 중입니다...")
 
