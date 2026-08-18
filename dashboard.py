@@ -187,6 +187,8 @@ left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
+    with left_layout:
+    st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
         fig = px.treemap(
             top_25_themes,
@@ -204,7 +206,7 @@ with left_layout:
             textposition="middle center"
         )
         
-                fig.update_layout(
+        fig.update_layout(
             margin=dict(t=2, b=2, l=2, r=2), 
             height=520,
             treemapcolorway=["#1E293B"]
@@ -216,7 +218,7 @@ with left_layout:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    p_target = points_list[0]
+                    p_target = points_list
                     if "customdata" in p_target and p_target["customdata"]:
                         st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
                     elif "label" in p_target and p_target["label"]:
