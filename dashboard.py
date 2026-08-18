@@ -64,14 +64,13 @@ selected_theme = st.plotly_chart(
 # 기본 선택 테마 지정 (첫 번째 행 데이터)
 current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
 
-# 🛠️ [버그 완전 박멸] Plotly 선택 데이터 반환 형식 예외처리 강화
+# 🛠️ [버그 완전 박멸] 구조 분해 및 리스트 0번째 딕셔너리 안전 접근 로직
 if selected_theme:
-    # 구조 1: 대시보드 반환값 구조 처리
     if hasattr(selected_theme, "selection") and selected_theme.selection:
         points = selected_theme.selection.get("points", [])
         if points and len(points) > 0:
+            # 리스트 내부의 첫 번째 딕셔너리 객체에서 label을 안전하게 가져옵니다.
             current_theme = points[0].get("label", current_theme)
-    # 구조 2: 일반 딕셔너리로 반환되는 경우 대응
     elif isinstance(selected_theme, dict) and "selection" in selected_theme:
         points = selected_theme["selection"].get("points", [])
         if points and len(points) > 0:
