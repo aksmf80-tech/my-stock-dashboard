@@ -76,7 +76,7 @@ def load_synchronized_market_data():
             'name': ['코데즈컴바인', '좋은사람들', '한미반도체', '삼성전자', '코데즈컴바인', '현대차', '에코프로비엠', '레인보우로보틱스', '셀트리온'],
             'rate': [30.00, 30.00, 14.20, -1.20, 25.40, 2.10, 4.35, 8.90, 1.50]
         }
-        base_df = pd.DataFrame(sample_rows)
+        base_df = pd.DataFrame(mock_stocks)
         
     if 'rate' not in base_df.columns:
         for col in base_df.columns:
@@ -103,7 +103,7 @@ def load_synchronized_market_data():
         
     return base_df, status_df
 
-raw_df, status_df = load_market_data()
+raw_df, status_df = load_synchronized_market_data()
 
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
@@ -161,7 +161,7 @@ with left_layout:
             textposition="middle center"
         )
         
-        # 🎯 [확대 방멸 완결 속성] clickmode 고정과 함께 차트의 모든 인터랙션 리셋 속성 선언
+        # clickmode 고정과 함께 차트의 모든 인터랙션 리셋 속성 선언
         fig.update_layout(
             margin=dict(t=2, b=2, l=2, r=2), 
             height=520,
@@ -177,7 +177,7 @@ with left_layout:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    first_point = points_list
+                    first_point = points_list[0]
                     if "label" in first_point:
                         st.session_state.selected_theme_click = str(first_point["label"]).strip()
                     elif "point_number" in first_point:
@@ -231,7 +231,7 @@ with right_layout:
             }
             active_list = backup_pool.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
             
-            # 🎯 [들여쓰기 버그 완전 박멸] 아래 마크다운 출력 줄의 띄어쓰기를 정밀 정렬 완료했습니다.
+            # 🎯 [따옴표 및 들여쓰기 버그 완벽 수정 완료] 마크다운 내부에 따옴표 닫기를 완벽 세팅했습니다.
             for idx, (s_name, s_rate) in enumerate(active_list):
                 rate_class = "rate-up" if s_rate >= 0 else "rate-down"
                 rate_sign = "+" if s_rate >= 0 else ""
