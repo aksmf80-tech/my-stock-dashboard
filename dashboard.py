@@ -22,12 +22,10 @@ st.markdown("""
     th { background-color: #0F172A !important; color: #F8FAFC !important; font-weight: bold !important; text-align: center !important; }
     td { text-align: center !important; font-weight: 500; }
     
-    /* 🎨 히트맵 텍스트 강제 중앙 정렬 및 핀업 스타일 폰트 튜닝 */
-    text.textpoint {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+    /* Plotly 차트 내부의 텍스트 엘리먼트들을 CSS 단에서 정중앙 강제 정렬 */
+    g.treemaptext text {
         text-anchor: middle !important;
+        dominant-baseline: central !important;
     }
     
     /* Plotly 차트 테두리 공백 제거 */
@@ -43,7 +41,6 @@ STATUS_FILE = "realtime_theme_status.csv"
 
 @st.cache_data(ttl=10)  # 실시간 인터랙션을 위해 캐시 타임아웃 최소화
 def load_market_data():
-    # 1. 종목 뼈대 데이터 로드
     if os.path.exists(BASE_FILE):
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
         base_df.columns = [str(col).strip().lower() for col in base_df.columns]
@@ -57,7 +54,6 @@ def load_market_data():
         }
         base_df = pd.DataFrame(sample)
 
-    # 2. 실시간 테마 상태 데이터 로드
     if os.path.exists(STATUS_FILE):
         status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
     else:
@@ -109,19 +105,21 @@ if not top_25_themes.empty and '테마' in top_25_themes.columns and '화면크�
         color_continuous_midpoint=0      
     )
     
+    # 🎯 [수정 조치 1] 텍스트가 박스 중앙을 기준으로 렌더링되도록 서식과 센터 속성 적용
     fig.update_traces(
-        texttemplate="<b>%{label}</b><br>%{color:.2f}%",
-        textfont=dict(size=22, color="white"), 
+        texttemplate="<b>% {label}</b><br>% {color:.2f}%",
+        textfont=dict(size=22, color="white"),
+        textposition="middle center"  # 📌 Plotly 내부 엔진에 정중앙 정렬 명령 전달
     )
     
-    # 🎯 [수정 조치] 가로폭 대응을 위해 높이를 380px -> 500px로 약 30% 이상 전격 확대!
+    # 🎯 [수정 조치 2] uniformtext 속성을 추가하여 작은 박스든 큰 박스든 글자 정렬 기준을 센터로 통일
     fig.update_layout(
         margin=dict(t=5, b=5, l=5, r=5), 
         height=500,
-        treemapcolorway=["#1E293B"]
+        uniformtext=dict(minsize=16, mode='hide')  # 글자 깨짐 방지 및 최소 크기 정렬 보완
     )
     
-    # 🎯 [수정 조치] 좌우가 너무 퍼지는 것을 막기 위해 0.5 : 9 : 0.5 비율로 양옆에 여백 배치
+    # 좌우 폭을 슬림하게 모아주는 3단 분기 레이아웃
     side_space1, center_map, side_space2 = st.columns([0.5, 9.0, 0.5])
     with center_map:
         st.plotly_chart(fig, use_container_width=True)
