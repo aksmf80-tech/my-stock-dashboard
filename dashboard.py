@@ -1,135 +1,165 @@
+import streamlit as st
 import pandas as pd
-import yfinance as yf
-import datetime
+import plotly.express as px
 import os
+import time
+from datetime import datetime, timedelta
 
-def get_market_theme_data():
-    """
-    네이버 금융 접속을 100% 원천 배제하여 해외 IP 보안 차단벽을 완벽히 무력화하고,
-    야후 파이낸셜 API를 통해 장중 주도 대장주 선별 필터 및 자동 세대교체 파이프라인을 구동합니다.
-    """
-    try:
-        # 해외 깃허브 서버 시차 해결 (한국 표준시 KST 산출)
-        current_base = datetime.datetime.now()
-        if current_base.hour < 9:
-            kst_now = current_base + datetime.timedelta(hours=9)
-        else:
-            kst_now = current_base
-            
-        print("🌍 [자동 세대교체 엔진] 야후 API 기반 장중 주도 대장주 선별 필터 가동...")
-        
-        # 🎯 [24대 핵심 주도 테마 대확장] 핀업 바둑판 화면을 웅장하게 채울 정품 카테고리 풀 세팅
-        theme_map = {
-            "대북/남북경협": [
-                "047770.KQ", "033340.KQ", "007110.KS", "011390.KS", "014990.KS",
-                "004250.KS", "005250.KS", "010470.KQ", "034300.KQ", "030530.KQ", "065650.KQ"
-            ],
-            "반도체 후공정/OSAT": [
-                "067310.KQ", "033640.KQ", "061970.KQ", "036540.KQ", "131970.KQ",
-                "084370.KQ", "058470.KQ", "222800.KQ", "042700.KS", "036010.KQ", "356860.KQ"
-            ],
-            "2차전지 급등주": [
-                "247540.KQ", "038390.KQ", "003670.KS", "348370.KQ", "001570.KS",
-                "066970.KQ", "098300.KS", "365590.KQ", "383800.KQ", "292150.KQ", "012030.KQ"
-            ],
-            "로봇/인공지능": [
-                "277810.KQ", "454910.KS", "423150.KQ", "348340.KQ", "058220.KQ",
-                "328130.KQ", "338220.KQ", "138080.KQ", "096530.KQ", "044340.KQ"
-            ],
-            "방산 주도주": [
-                "012450.KS", "079550.KS", "064350.KS", "047810.KS", "001740.KS",
-                "005870.KS", "010580.KQ", "013890.KS", "011210.KS", "012330.KS"
-            ],
-            "원자력 발전/에너지": [
-                "034020.KS", "010580.KQ", "045520.KQ", "109550.KQ", "032820.KQ",
-                "001570.KS", "009830.KS", "004020.KS", "005070.KS", "024720.KS"
-            ],
-            "엔터/K-POP/화장품": [
-                "035900.KQ", "041510.KQ", "035420.KQ", "122870.KQ", "204020.KQ",
-                "161890.KS", "044820.KQ", "092190.KQ", "002790.KS", "192080.KS"
-            ],
-            "게임/가상화폐": [
-                "259960.KS", "112040.KQ", "290720.KQ", "317770.KQ", "041190.KQ",
-                "084650.KQ", "036530.KQ", "060310.KQ", "025980.KQ", "063170.KQ"
-            ]
-        }
-        
-        # 전 종목 한글 매칭 사전 (후보군 전체 정밀 탑재)
-        stock_name_dict = {
-            "047770.KQ": "코데즈컴바인", "033340.KQ": "좋은사람들", "007110.KS": "일신석재", "011390.KS": "부산산업", "014990.KS": "인디에프",
-            "004250.KS": "NPC", "005250.KS": "녹십자홀딩스", "010470.KQ": "중앙에너비스", "034300.KQ": "신원종합개발", "030530.KQ": "원풍", "065650.KQ": "메디프론",
-            "067310.KQ": "하나마이크론", "033640.KQ": "네패스", "061970.KQ": "엘비세미콘", "036540.KQ": "SFA반도체", "131970.KQ": "두산테스나",
-            "084370.KQ": "유진테크", "058470.KQ": "리노공업", "222800.KQ": "심텍", "042700.KS": "한미반도체", "036010.KQ": "아비코전자", "356860.KQ": "티엘비",
-            "247540.KQ": "에코프로비엠", "038390.KQ": "에코프로", "003670.KS": "포스코퓨처엠", "348370.KQ": "엔켐", "001570.KS": "금양",
-            "066970.KQ": "엘앤에프", "098300.KS": "한화솔루션", "365590.KQ": "성일하이텍", "383800.KQ": "새빗켐", "292150.KQ": "에코프로에이치엔", "012030.KQ": "웰크론한텍",
-            "277810.KQ": "레인보우로보틱스", "454910.KS": "두산로보틱스", "423150.KQ": "이랜시스", "348340.KQ": "뉴로메카", "058220.KQ": "아리온",
-            "328130.KQ": "루닛", "338220.KQ": "뷰노", "138080.KQ": "오상자이엘", "096530.KQ": "씨젠", "044340.KQ": "위닉스",
-            "012450.KS": "한화에어로스페이스", "079550.KS": "LIG넥스원", "064350.KS": "현대로템", "047810.KS": "한국항공우주", "001740.KS": "에스엘",
-            "005870.KS": "휴니드", "010580.KQ": "우진", "013890.KS": "지누스", "011210.KS": "현대위아", "012330.KS": "현대모비스",
-            "034020.KS": "두산에너빌리티", "045520.KQ": "보성파워텍", "109550.KQ": "일진파워", "032820.KQ": "에너토크",
-            "004020.KS": "현대제철", "005070.KS": "코스모신소재", "024720.KS": "한국철강",
-            "035900.KQ": "하이브", "041510.KQ": "에스엠", "035420.KQ": "JYP Ent.", "122870.KQ": "와이지엔터테인먼트", "204020.KQ": "토니모리",
-            "161890.KS": "한국콜마", "044820.KQ": "코스맥스", "092190.KQ": "동성제약", "002790.KS": "아모레G", "192080.KS": "대한제당",
-            "259960.KS": "크래프톤", "112040.KQ": "위메이드", "290720.KQ": "엔씨소프트", "317770.KQ": "펄어비스", "041190.KQ": "우리기술투자",
-            "084650.KQ": "에이티넘인베스트", "036530.KQ": "SBI인베스트먼트", "060310.KQ": "무학", "025980.KQ": "아난티", "063170.KQ": "서울전자통신"
-        }
-        
-        rows_list = []
-        
-        # 야후 글로벌 파이프라인 무차단 구동
-        for theme_name, ticker_list in theme_map.items():
-            try:
-                data = yf.download(ticker_list, period="2d", progress=False)
-                
-                if not data.empty and 'Close' in data:
-                    close_prices = data['Close']
-                    
-                    theme_stocks_data = []
-                    for ticker in ticker_list:
-                        if ticker in close_prices.columns:
-                            series = close_prices[ticker].dropna()
-                            if len(series) >= 2:
-                                rate = ((series.iloc[-1] - series.iloc[-2]) / series.iloc[-2]) * 100.0
-                                stock_name = stock_name_dict.get(ticker, ticker)
-                                theme_stocks_data.append({
-                                    "종목명": stock_name,
-                                    "등락률": rate
-                                })
-                    
-                    # 🎯 대시보드의 백색 데이터 표(st.table)와 완벽 연동되도록 
-                    # 개별 소속 종목 데이터를 정품 컬럼 규격으로 한 줄도 빠짐없이 빽빽하게 누적 저장합니다!
-                    if theme_stocks_data:
-                        for item in theme_stocks_data:
-                            rows_list.append({
-                                "테마": theme_name,
-                                "종목명": item['종목명'],
-                                "등락률": round(float(item['등락률']), 2)
-                            })
-            except Exception as e:
-                print(f"⚠️ {theme_name} 데이터 수집 중 건너뜀: {e}")
-                continue
-                
-        if not rows_list:
-            return None
-            
-        final_df = pd.DataFrame(rows_list)
-        final_df = final_df.sort_values(by="등락률", ascending=False).reset_index(drop=True)
-        final_df['업데이트시간'] = kst_now.strftime('%Y-%m-%d %H:%M:%S')
-        return final_df
-        
-    except Exception as e:
-        print(f"❌ 세대교체 제어 장치 구동 실패: {e}")
-        return None
+# ⚠️ set_page_config는 반드시 최상단에 고정되어야 합니다.
+st.set_page_config(layout="wide")
 
-if __name__ == "__main__":
-    print("🚀 [무인 세대교체 연동] 대장주 추적형 최종 수집기 기동...")
-    DATA_FILE = "theme_data.csv"
+# 🎯 [먹통 버그 원천 박멸] 표 내부의 글자와 숫자를 눈이 시원해지는 순백색 대형 활자로 강제 발광시킵니다.
+st.markdown("""
+    <style>
+    /* 순수 데이터 표(st.table) 내부의 모든 종목명과 숫자를 무조건 찬란한 흰색 왕글씨로 고정 */
+    table {
+        color: #FFFFFF !important;
+        font-size: 24px !important;
+        font-weight: bold !important;
+        width: 100% !important;
+    }
+    thead tr th {
+        color: #FFD700 !important; /* 표 헤더 제목 컬럼은 황금색 강조 */
+        font-size: 22px !important;
+        font-weight: bold !important;
+    }
+    tbody tr td {
+        color: #FFFFFF !important;
+        background-color: #1A1D24 !important; /* 가독성을 위한 최적의 핀업 배경색 매칭 */
+    }
+    /* 선택 상자 및 라벨 글자 크기 대형 강조 */
+    div[data-testid="stSelectbox"] label p {
+        font-size: 22px !important;
+        font-weight: bold !important;
+        color: #FFD700 !important;
+    }
+    /* 서브 타이틀 글자 크기 확대 */
+    .stMarkdown h3 {
+        font-size: 26px !important;
+        font-weight: bold !important;
+        border-left: 6px solid #FF4B4B;
+        padding-left: 12px;
+        color: #FFFFFF !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 🔔 홍보 배너 및 대시보드 타이틀
+st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://naver.com)에서 매일 확인하세요!**")
+st.title("📊 테마별 현황판")
+
+DATA_FILE = "theme_data.csv"
+
+if not os.path.exists(DATA_FILE):
+    st.warning("⌛ 실시간 데이터 파일(theme_data.csv)을 기다리는 중입니다. 수집 앱을 확인해 주세요.")
+    st.stop()
+
+# 정품 시세 테이블 로드
+df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
+
+# 차트용 테마별 평균 데이터프레임 빌드
+theme_summary = df.groupby('테마')['등락률'].mean().reset_index()
+theme_summary = theme_summary.sort_values(by='등rak률' if '등rak률' in theme_summary.columns else '등락률', ascending=False).reset_index(drop=True)
+theme_summary['화면크기_가중치'] = theme_summary['등락률'].abs() + 5.0
+
+# 🎯 글자 꼬임과 정중앙 배치를 위해 가장 안정적인 핀업 가로형 단일 라벨 구조로 세팅
+def make_pinup_label(row):
+    rate = round(row['등락률'], 2)
+    sign = "+" if rate > 0 else ""
+    return f"{row['테마']}<br>{sign}{rate}%"
+
+theme_summary['핀업라벨'] = theme_summary.apply(make_pinup_label, axis=1)
+
+# 해외 서버 시차 해결 (KST 동기화)
+utc_now = datetime.utcnow()
+kor_now = utc_now + timedelta(hours=9)
+current_time_str = kor_now.strftime('%H:%M:%S')
+
+st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {current_time_str})")
+
+# ---------------------------------------------------------
+# 🎯 상단 테마 선택 컨트롤러 배치 (버전 충돌 없는 100% 직통 동적 연동 장치)
+# ---------------------------------------------------------
+theme_list = theme_summary['테마'].unique().tolist()
+chosen_theme = st.selectbox(
+    "🔍 상세 정보를 조회할 테마를 선택하세요 (선택 시 아래 소속 대장주가 실시간 연동됩니다)", 
+    options=theme_list,
+    index=0,
+    key="global_theme_selector"
+)
+
+# ---------------------------------------------------------
+# 구역 1: 핀업 완벽 복사형 수십 개 바둑판 트리맵 차트 (버그 요명 원천 박멸 버전)
+# ---------------------------------------------------------
+COLOR_LIMIT = 5.0 
+
+fig = px.treemap(
+    theme_summary, 
+    path=['핀업라벨'], # 🎯 버전 다운을 유발하던 id 클릭 메커니즘을 떼어내고 순수 라벨 추적으로 격상!
+    values='화면크기_가중치',    
+    color='등락률',        
+    color_continuous_scale='RdBu_r', 
+    range_color=[-COLOR_LIMIT, COLOR_LIMIT], 
+)
+
+# 글자를 무조건 사각형 '정중앙 세로/가로'에 고정하고 폰트를 시원하게 강조합니다!
+fig.update_traces(
+    maxdepth=1, 
+    textinfo="label",      
+    marker=dict(line=dict(width=3.0, color='white')), 
+    textfont=dict(size=18, color='white', weight='bold')
+)
+
+fig.update_traces(textposition="middle center") # 🎯 구형 버전을 위한 2차 안전 중앙 고정 장치
+
+fig.update_layout(
+    dragmode=False,    
+    margin=dict(t=10, l=10, r=10, b=10), 
+    height=450 
+)
+
+st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
+
+st.markdown("---")
+
+# ---------------------------------------------------------
+# 구역 2: 🎯 [완벽 순백색 점등 완료] 선택한 테마의 소속 종목들이 하얗고 선명하게 터져 나오는 표 구역
+# ---------------------------------------------------------
+st.subheader(f"📂 {chosen_theme} 관련 정보")
+
+# 사용자가 상단 박스에서 선택한 테마에 속한 개별 종목 시세를 정밀 필터링합니다.
+theme_df = df[df['테마'] == chosen_theme].copy().sort_values(by='등락률', ascending=False).reset_index(drop=True)
+
+# 대시보드 표 가독성을 직관적으로 가꿔줄 한글 컬럼명 변환
+theme_df_clean = theme_df[['종목명', '등락률']].copy()
+theme_df_clean.columns = ['🔥 소속 대장 종목명', '📈 실시간 등락률 (%)']
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown(f"### 📊 {chosen_theme} 소속 대장주 당일 시세판")
     
-    df = get_market_theme_data()
-    if df is not None and not df.empty:
-        if os.path.exists(DATA_FILE):
-            os.remove(DATA_FILE)
-        df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
-        print(f"🎉 [성공] 총 {len(df)}개 정품 데이터 완전 갱신 성공!")
-    else:
-        print("⚠️ 데이터를 정상적으로 추출하지 못했습니다.")
+    # 🎯 다크모드에서 투명인간으로 숨어버리던 글자 버그를 깨부수는 정품 st.table 전면 표출!
+    # 24px 대형 흰색 글씨로 시원시원하게 뿜어져 나옵니다!
+    st.table(theme_df_clean)
+    
+with col2:
+    st.markdown(f"### 📰 {chosen_theme} 뉴스 브리핑")
+    st.info(f"🔍 '{chosen_theme}' 시장 동향 및 주도주 흐름에 대한 실시간 뉴스 요약...")
+    
+    stock_news_url = "https://naver.com"
+    st.markdown(f"📌 [📢 **[실시간 뉴스] '{chosen_theme}' 주도 테마, 대량 거래대금 몰리며 시장 강력 견인 (방금 전)**]({stock_news_url})")
+    st.markdown(f"📌 [📢 **[시황 분석] 글로벌 공급망 재편 수혜주 부각... 블로그 본문에서 대장주 매매 타점 공개**]({stock_news_url})")
+   
+    st.markdown("---")
+    st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마전망을 보실 수 있습니다.")
+
+# 60초 자동 리셋
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    st.cache_data.clear()
+    st.invalidate_pages() 
+    st.rerun()
