@@ -14,15 +14,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
+# 🎯 [디자인 개편] 상단 대북, 반도체, 시스템, 수소차 등 5대 테마 글자 크기 대폭 확대 CSS
 st.markdown("""
     <style>
-    /* 상단 5단 지표가 메뉴바 아래로 완전히 내려오도록 여백을 3.8rem으로 넉넉히 확보 */
+    /* 상단 요소를 메뉴바 아래로 안전하게 배치 */
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
-    /* 대제목 하단에 여백을 주어 첫 번째 테마글자와의 충돌 연쇄 방지 */
+    /* 대제목 하단 여백 조절 */
     .dashboard-title {
         margin: 0 !important;
         padding: 0 !important;
@@ -31,9 +31,9 @@ st.markdown("""
         margin-bottom: 0.8rem !important;
     }
     
-    /* 상단 5대 테마 글씨체 크기를 주식 전광판 스타일로 대폭 확대 */
-    [data-testid="stMetricLabel"] { font-size: 17px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
-    [data-testid="stMetricValue"] { font-size: 28px !important; font-weight: 900 !important; color: #FFFFFF !important; }
+    /* 🎯 상단 5대 메트릭 글자 크기 전광판 스타일로 스케일 업 */
+    [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
+    [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
     /* 🎨 우측 소속 종목 카드 콤팩트 디자인 */
     .stock-card {
@@ -61,7 +61,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (🎯 KeyError 방지형 표준화 엔진 탑재)
+# 1. 📂 데이터 로드 및 정제 구역 (KeyError 완전 박멸 레이어)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
@@ -70,11 +70,7 @@ STATUS_FILE = "realtime_theme_status.csv"
 def load_synchronized_market_data():
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
-        
-        # 🎯 [KeyError 해결의 핵심] 모든 컬럼명을 공백 제거 후 소문자로 강제 표준화
         base_df.columns = [str(col).strip().lower() for col in base_df.columns]
-        
-        # 한글 컬럼 이름으로 수집되었을 경우를 대비해 2중 안전 변환 매핑
         base_df = base_df.rename(columns={
             '테마': 'theme', 'theme': 'theme',
             '종목명': 'name', 'name': 'name',
@@ -83,8 +79,6 @@ def load_synchronized_market_data():
             '등락률': 'rate', 'rate': 'rate'
         })
     else:
-        # 파일 수집 딜레이 시 메모리 크래시를 완전히 막아주는 안전 샘플 데이터셋
-        sample_rows = []
         mock_stocks = {
             'theme': ['대북/남북경협', '대북/남북경협', '대북/남북경협', '대북/남북경협', '반도체 후공정', '반도체 후공정', '시스템 반도체', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오'],
             'name': ['코데즈컴바인', '좋은사람들', '인디에프', '일신석재', '한미반도체', '리노공업', '삼성전자', 'SK하이닉스', '현대차', '에코프로비엠', '레인보우로보틱스', '셀트리온'],
@@ -92,7 +86,6 @@ def load_synchronized_market_data():
         }
         base_df = pd.DataFrame(mock_stocks)
         
-    # 등락률 'rate' 컬럼 강제 보정 구조
     if 'rate' not in base_df.columns:
         for col in base_df.columns:
             if '등락' in col or 'rate' in col:
@@ -182,17 +175,22 @@ with left_layout:
         # 순정 최신 리런 센서 작동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # Plotly 순정 리스트 구조 인덱스 추적 및 실시간 우측 연동
+        # 🎯 [클릭 연동 완벽 패치] Streamlit의 신형 딕셔너리 구조에서 포인트를 정확히 추출하여 연동 정지 버그 격파
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    first_point = points_list
-                    if "point_number" in first_point:
+                    # 첫 번째 선택 데이터 엘리먼트 딕셔너리 정밀 타격
+                    first_point = points_list[0]
+                    
+                    # 1순위: 선택된 라벨명 직접 낚아채기
+                    if "label" in first_point:
+                        st.session_state.selected_theme_click = str(first_point["label"]).strip()
+                    # 2순위: 포인트 넘버를 바탕으로 안전 인덱싱 역추적 매핑
+                    elif "point_number" in first_point:
                         clicked_index = first_point["point_number"]
                         if clicked_index < len(top_25_themes):
-                            clicked_theme = top_25_themes['테마'].iloc[clicked_index]
-                            st.session_state.selected_theme_click = clicked_theme
+                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[clicked_index]
                 except Exception:
                     pass
     else:
@@ -205,7 +203,6 @@ with right_layout:
     
     right_sub_cols = st.columns(2)
     
-    # 🎯 [KeyError 원천 진압 구역] 컬럼 정비가 끝난 raw_df에서 정확히 필터링 수행
     if 'theme' in raw_df.columns:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
@@ -222,14 +219,14 @@ with right_layout:
                 with right_sub_cols[idx % 2]:
                     st.markdown(f"""
                         <div class="stock-card">
-                            <span class="stock-name">▪ fly {s_name}</span>
+                            <span class="stock-name">▪️ {s_name}</span>
                             <span class="stock-rate {rate_class}">{rate_sign}{s_rate}%</span>
                         </div>
                     """, unsafe_allow_html=True)
         else:
             st.warning(f"⚠️ 현재 '{chosen_theme}' 테마에 매핑된 실시간 종목이 없습니다.")
     else:
-        st.error("데이터셋 로드에 심각한 오류가 감지되었습니다. 'theme' 컬럼 매핑 실패.")
+        st.error("데이터셋 매핑 실패.")
 
 # =========================================================================
 # 5. ⏱️ 세션 타이머 제어
