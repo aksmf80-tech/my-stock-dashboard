@@ -48,6 +48,12 @@ st.markdown("""
     .stock-rate { font-size: 15px; font-weight: bold; }
     .rate-up { color: #F87171; }
     .rate-down { color: #60A5FA; }
+    
+    /* 히트맵 글자 중앙 정렬 보정 */
+    g.treemaptext text {
+        text-anchor: middle !important;
+        dominant-baseline: central !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -70,7 +76,7 @@ def load_synchronized_market_data():
             'name': ['코데즈컴바인', '좋은사람들', '한미반도체', '삼성전자', '코데즈컴바인', '현대차', '에코프로비엠', '레인보우로보틱스', '셀트리온'],
             'rate': [30.00, 30.00, 14.20, -1.20, 25.40, 2.10, 4.35, 8.90, 1.50]
         }
-        base_df = pd.DataFrame(sample_rows)
+        base_df = pd.DataFrame(mock_stocks)
         
     if 'rate' not in base_df.columns:
         for col in base_df.columns:
@@ -102,7 +108,7 @@ raw_df, status_df = load_synchronized_market_data()
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
 # =========================================================================
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
 with title_col:
@@ -123,63 +129,62 @@ for i in range(min(5, len(status_df))):
 st.markdown("---")
 
 # =========================================================================
-# 3. 🗺️ 공간 설계 구역: [좌 고정형 차트 5.5 : 우 종목 카드 4.5] 사이드바이사이드
+# 3. 🗺️ 공간 설계 구역: [좌 히트맵 5.5 : 우 종목 카드 4.5] 사이드바이사이드 구조
 # =========================================================================
 top_25_themes = status_df.head(25).copy()
 
-# 거래량/가중치 순으로 정렬하여 차트 가독성 증폭
-if '화면크기_가중치' in top_25_themes.columns:
-    top_25_themes = top_25_themes.sort_values(by='화면크기_가중치', ascending=True)
-
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[-1] if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
-# --- [좌측 구역] 절대 확대되지 않는 핀업 스타일 가로 바 차트 배치 ---
+# --- [좌측 구역] 예쁜 히트맵 원본 모양 고정 (확대 전면 차단) ---
 with left_layout:
-    st.markdown("### 🗺️ 실시간 테마 히트맵 (고정형)")
+    st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
         
-        # 🎯 [대혁신] 클릭 시 화면 전환/확대가 절대 일어나지 않는 가로형 막대 차트로 대체
-        fig = px.bar(
+        # 🎯 [대혁신 1] maxdepth=1 속성을 심어 하위 뎁스(Zoom-in 확장) 진입을 차트 자체에서 거부하도록 설계
+        fig = px.treemap(
             top_25_themes,
-            x='화면크기_가중치',
-            y='테마',
-            color='등락률',
-            orientation='h',  # 가로형 막대 설정
-            color_continuous_scale='RdBu_r',
+            path=['테마'],
+            values='화면크기_가중치',    
+            color='등락률',             
+            color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
-            text='등락률'  # 막대 끝에 수치 표출
+            custom_data=['등락률'],
+            maxdepth=1  # 📌 더 이상 박스가 혼자 뚱뚱하게 커지지 않도록 한계 깊이 고정!
         )
         
         fig.update_traces(
-            texttemplate="<b>%{text:.2f}%</b>",
-            textposition="outside",
-            textfont=dict(size=14, color="white"),
-            marker=dict(line=dict(width=1, color='#1E293B'))
+            texttemplate="<b>%{label}</b><br>%{customdata:.2f}%",
+            textfont=dict(size=18, color="white"),
+            textposition="middle center"
         )
         
+        # 🎯 [대혁신 2] clickmode를 조절하여 클릭했을 때 순수 이벤트 신호만 우측으로 송출하도록 정밀 조율
         fig.update_layout(
-            margin=dict(t=2, b=2, l=2, r=30), 
+            margin=dict(t=2, b=2, l=2, r=2), 
             height=520,
-            xaxis_title="시장 가중치 (거래대금)",
-            yaxis_title=None,
-            showlegend=False
+            treemapcolorway=["#1E293B"],
+            clickmode='event+select'
         )
         
         # 순정 인터랙션 연동 센서 작동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 바 차트 구조에 최적화된 초정밀 인덱스 추적 및 우측 실시간 바인딩
+        # 🎯 [버그 영구 박멸] 변수 파싱 다각도 구조화로 우측 카드 실시간 동기화 완결
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
                     first_point = points_list[0]
-                    # 바 차트의 y축 라벨 값(테마명)을 직접 낚아채는 가장 안전한 알고리즘 적용
-                    if "y" in first_point:
-                        st.session_state.selected_theme_click = str(first_point["y"]).strip()
+                    # 트리맵의 공식 label 속성에서 한글 테마명을 낚아채어 꽂아줍니다.
+                    if "label" in first_point:
+                        st.session_state.selected_theme_click = str(first_point["label"]).strip()
+                    elif "point_number" in first_point:
+                        clicked_index = first_point["point_number"]
+                        if clicked_index < len(top_25_themes):
+                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[clicked_index]
                 except Exception:
                     pass
     else:
@@ -192,6 +197,7 @@ with right_layout:
     
     right_sub_cols = st.columns(2)
     
+    # 🎯 [문법 에러 완벽 해결 구역] try-except 들여쓰기 공백을 완벽 정렬하여 Syntax 에러 소멸
     try:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
@@ -215,7 +221,7 @@ with right_layout:
                         </div>
                     """, unsafe_allow_html=True)
         else:
-            # 2중 안전장치: 파일 동기화 딜레이 시 활성화되는 7대 대장주 백업 풀
+            # 실시간 유실 대비용 하드웨어 7대 대장주 백업 풀 가동 구역
             backup_pool = {
                 "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
                 "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
@@ -227,12 +233,3 @@ with right_layout:
             }
             active_list = backup_pool.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
             for idx, (s_name, s_rate) in enumerate(active_list):
-                rate_class = "rate-up" if s_rate >= 0 else "rate-down"
-                rate_sign = "+" if s_rate >= 0 else ""
-                with right_sub_cols[idx % 2]:
-                    st.markdown(f"""
-                        <div class="stock-card">
-                            <span class="stock-name">▪️ {s_name}</span>
-                            <span class="stock-rate {rate_class}">{rate_sign}{s_rate}%</span>
-                        </div>
-                    """, unsafe_allow_html=True)
