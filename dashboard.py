@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 import time
+from datetime import datetime, timedelta
 
 # ⚠️ 주의: set_page_config는 항상 코드 최상단에 위치해야 합니다.
 st.set_page_config(layout="wide")
@@ -29,11 +30,16 @@ if df is None or df.empty or not all(col in df.columns for col in required_cols)
 # 🛠️ 마이너스 등락률로 인한 트리맵 붕괴 막기 (면적용 절댓값 계산)
 df['등락률_절댓값'] = df['등락률'].abs().apply(lambda x: max(x, 0.1))
 
-# 상단에 갱신 시각 표시
-st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {time.strftime('%H:%M:%S')})")
+# 🛠️ [시차 버그 해결] 해외 서버 기준 시간을 대한민국 서울 표준시(KST)로 정확하게 변환
+utc_now = datetime.utcnow()
+kor_now = utc_now + timedelta(hours=9)
+current_time_str = kor_now.strftime('%H:%M:%S')
+
+# 상단에 정정된 한국 시각 표시
+st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {current_time_str})")
 
 # ---------------------------------------------------------
-# 🛠️ [핵심 교정] 클릭 버그가 전혀 없는 상단 테마 선택 컨트롤러 배치
+# 상단 테마 선택 컨트롤러 배치
 # ---------------------------------------------------------
 theme_list = df['테마'].unique().tolist()
 current_theme = st.selectbox(
@@ -102,3 +108,15 @@ with col2:
    
     st.markdown("---")
     st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
+
+# ---------------------------------------------------------
+# 🛠️ [화면 먹통 완전 방어] 60초 뒤에 화면을 부드럽게 다시 리셋시키는 타이머 엔진
+# ---------------------------------------------------------
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+# 대시보드를 켠 지 60초가 지나면 자동으로 재실행 루프 가동
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    st.invalidate_pages() # 구버전 및 신버전 스트림릿 캐시 충돌 방지 안전장치
+    st.rerun()
