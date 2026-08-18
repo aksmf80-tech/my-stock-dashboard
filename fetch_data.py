@@ -55,8 +55,10 @@ current_time_str = kor_now.strftime('%H:%M:%S')
 
 st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {current_time_str})")
 
-# 🎯 세션 상태를 활용해 클릭된 테마 고정 제어 장치 작동
-if 'selected_theme' not in st.session_state:
+# 🎯 [이름 불일치 버그 완전 해결] 
+# 고정된 문자열 대신, 현재 수집된 테마 데이터 중 무조건 1등으로 올라온 
+# 실존하는 정품 테마 이름을 첫 화면 초기값으로 다이렉트 자동 연동합니다!
+if 'selected_theme' not in st.session_state or st.session_state.selected_theme not in theme_summary['테마'].values:
     st.session_state.selected_theme = theme_summary['테마'].iloc[0]
 
 # ---------------------------------------------------------
@@ -98,7 +100,7 @@ chart_events = st.plotly_chart(
 
 # 사용자가 마우스로 네모 칸을 클릭했을 때 세션 기억 소자에 즉시 저장!
 if chart_events and 'selection' in chart_events and chart_events['selection']['points']:
-    clicked_point = chart_events['selection']['points'][0]
+    clicked_point = chart_events['selection']['points']
     if 'id' in clicked_point:
         st.session_state.selected_theme = clicked_point['id'].split('/')[-1]
 
@@ -133,7 +135,7 @@ with col2:
     
     stock_news_url = "https://naver.com"
     st.markdown(f"📌 [📢 **[뉴스] '{current_stock}' 관련주, 거래량 급증하며 강세 (1일 전)**]({stock_news_url})")
-    st.markdown(f"📌 [📢 **[뉴스] '{chosen_theme}' 시장 경쟁 심화... '{current_stock}' 글로벌 공급망 확대 나선다 (2 전)**]({stock_news_url})")
+    st.markdown(f"📌 [📢 **[뉴스] '{chosen_theme}' 시장 경쟁 심화... '{current_stock}' 글로벌 공급망 확대 나선다 (2일 전)**]({stock_news_url})")
    
     st.markdown("---")
     st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
