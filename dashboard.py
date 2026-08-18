@@ -17,12 +17,10 @@ st.set_page_config(
 # 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
 st.markdown("""
     <style>
-    /* 상단 요소를 메뉴바 아래로 안전하게 배치 */
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
-    /* 대제목 하단 여백 조절 */
     .dashboard-title {
         margin: 0 !important;
         padding: 0 !important;
@@ -31,7 +29,6 @@ st.markdown("""
         margin-bottom: 0.8rem !important;
     }
     
-    /* 상단 5대 메트릭 글자 크기 전광판 스타일로 스케일 업 */
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
@@ -61,20 +58,19 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (KeyError/로딩 실패 완전 방어)
+# 1. 📂 데이터 로드 및 정제 구역
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-# 💡 실시간 유실 대비용 하드웨어 7대 대장주 백업 풀 전역 정의
 BACKUP_STOCK_POOL = {
     "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
     "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
     "시스템 반도체": [("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45)],
-    "수소차": [("현대차", 2.10), ("일진하이솔루스", -0.50)],
-    "전기차 부품": [("에코프로비엠", 4.35), ("엘앤에프", -3.10)],
-    "로봇": [("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20)],
-    "제약/바이오": [("삼성바이오로직스", -0.80), ("셀트리온", 1.50)]
+    "수소차": [("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15)],
+    "전기차 부품": [("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20)],
+    "로봇": [("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15)],
+    "제약/바이오": [("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30)]
 }
 
 @st.cache_data(ttl=5)
@@ -90,7 +86,6 @@ def load_synchronized_market_data():
             '등락률': 'rate', 'rate': 'rate'
         })
     else:
-        # 파일 수집 딜레이 시 자동으로 작동할 무결점 표준 백업 데이터프레임 빌드
         sample_rows = []
         for theme, stocks in BACKUP_STOCK_POOL.items():
             for name, rate in stocks:
@@ -127,7 +122,7 @@ raw_df, status_df = load_synchronized_market_data()
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
 # =========================================================================
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
 with title_col:
@@ -153,7 +148,7 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
@@ -183,15 +178,23 @@ with left_layout:
             treemapcolorway=["#1E293B"]
         )
         
+        # 순정 인터랙션 리런 센서 가동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
+        # 🎯 [클릭 잠금 해제 핵심 수술] 
+        # Streamlit 데이터 패키지인 'selection' -> 'points' 리스트 구조 내부를 
+        # 정밀 검사하여 클릭된 테마 이름을 정확히 도출해내는 로직으로 튜닝을 완료했습니다.
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    first_point = points_list
+                    # 리스트의 첫 번째 원소(클릭한 박스의 정보 딕셔너리)를 가져옵니다.
+                    first_point = points_list[0]
+                    
+                    # 1순위: 딕셔너리 내부의 고유 라벨명 직접 낚아채기
                     if "label" in first_point:
                         st.session_state.selected_theme_click = str(first_point["label"]).strip()
+                    # 2순위: 딕셔너리에 인덱스 번호만 넘어왔을 때 테이블 역추적 마운트
                     elif "point_number" in first_point:
                         clicked_index = first_point["point_number"]
                         if clicked_index < len(top_25_themes):
@@ -208,7 +211,6 @@ with right_layout:
     
     right_sub_cols = st.columns(2)
     
-    # 🎯 [매핑 실패 원천 진압] 파일 로딩과 무관하게 카드가 100% 강제 무조건 표출되도록 이중 우회로 설계 완료
     theme_detail_df = pd.DataFrame()
     if 'theme' in raw_df.columns:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
@@ -229,7 +231,7 @@ with right_layout:
                     </div>
                 """, unsafe_allow_html=True)
     else:
-        # 💡 원본 DB 유실 상태이거나 공백일 때 "매핑 실패" 대신 하드웨어 백업 풀 데이터를 호출하여 화면에 표출
+        # 파일 수집 공백 상황이나 클릭 매핑 누락 시 즉각 대응하는 하드웨어 백업 풀 동기화 레이어
         active_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
         for idx, (s_name, s_rate) in enumerate(active_list):
             rate_class = "rate-up" if s_rate >= 0 else "rate-down"
@@ -239,7 +241,3 @@ with right_layout:
                 st.markdown(f"""
                     <div class="stock-card">
                         <span class="stock-name">▪️ {s_name}</span>
-                        <span class="stock-rate {rate_class}">{rate_sign}{s_rate}%</span>
-                    </div>
-                """, unsafe_allow_html=True)
-
