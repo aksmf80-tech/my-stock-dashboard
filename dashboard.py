@@ -11,6 +11,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# st.set_page_config() 바로 아래 줄부터 교체하시면 됩니다.
+
 st.markdown("""
     <style>
     .block-container { padding-top: 4.2rem !important; padding-bottom: 0.5rem !important; }
@@ -59,48 +61,41 @@ st.markdown("""
         text-anchor: middle !important;
         dominant-baseline: central !important;
     }
-   58   g.treemaptext text {
-59       text-anchor: middle !important;
-60       dominant-baseline: central !important;
-61   }
-     
-     /* 🎯 61번 줄 바로 아래 여기에 그대로 붙여넣으세요! */
-     .master-box-up {
-         border-left: 8px solid #EF4444 !important;
-         background-color: #1E293B !important;
-         padding: 22px 20px !important;
-         border-radius: 6px !important;
-         margin-bottom: 6px !important;
-         display: flex !important;
-         flex-direction: column !important;
-         justify-content: center !important;
-         align-items: center !important;
-         gap: 6px !important;
-     }
-     .master-box-down {
-         border-left: 8px solid #3B82F6 !important;
-         background-color: #1E293B !important;
-         padding: 22px 20px !important;
-         border-radius: 6px !important;
-         margin-bottom: 6px !important;
-         display: flex !important;
-         flex-direction: column !important;
-         justify-content: center !important;
-         align-items: center !important;
-         gap: 6px !important;
-     }
-     .master-name { color: #FFFFFF !important; font-weight: 800 !important; font-size: 22px !important; }
-     .master-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 28px !important; }
-     .master-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 28px !important; }
-
-62   </style>
-63 """, unsafe_allow_html=True)
-64 BASE_FILE = "theme_data.csv"
-
+    
+    /* 🏛️ 시장 주도 마스터 보드 전용 초강력 정중앙 정렬 및 크기 치환 패치 */
+    .master-box-up {
+        border-left: 8px solid #EF4444 !important;
+        background-color: #1E293B !important;
+        padding: 22px 20px !important;
+        border-radius: 6px !important;
+        margin-bottom: 6px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+    .master-box-down {
+        border-left: 8px solid #3B82F6 !important;
+        background-color: #1E293B !important;
+        padding: 22px 20px !important;
+        border-radius: 6px !important;
+        margin-bottom: 6px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+    .master-name { color: #FFFFFF !important; font-weight: 800 !important; font-size: 22px !important; }
+    .master-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 28px !important; }
+    .master-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 28px !important; }
     </style>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True) # 👈 이 부분의 문자열 닫기 문법을 철저하게 보정 완료했습니다!
+
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
+
 
 # 🚨 [5종목 커트 완벽 해결] 형님이 심어두신 진짜 전 종목 풀을 100% 원본 복원했습니다.
 BACKUP_STOCK_POOL = {
