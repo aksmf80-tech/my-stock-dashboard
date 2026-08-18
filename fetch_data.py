@@ -9,7 +9,7 @@ def get_naver_data():
     네이버 금융 테마별 시세 페이지를 크롤링하여 
     전체 테마명, 대장 종목명, 등락률 정보를 수집합니다.
     """
-    url = "https://naver.com"
+    url = "https://finance.naver.com/sise/theme.nhn"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
     }
