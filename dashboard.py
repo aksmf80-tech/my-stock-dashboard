@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit st
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🎯 스크린샷과 똑같은 은은한 카드 디자인 및 전광판 폰트 CSS 세팅
+# 스크린샷과 똑같은 은은한 카드 디자인 및 전광판 폰트 CSS 세팅
 st.markdown("""
     <style>
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
@@ -32,9 +32,9 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 🎨 [완벽 복구] 스크린샷 속 은은한 어두운 카드와 콤팩트 글자색 이펙트 UI */
+    /* 스크린샷 속 은은한 어두운 카드와 콤팩트 글자색 이펙트 UI */
     .pinup-card {
-        background-color: #0F172A; /* 은은한 네이비 블랙 배경 */
+        background-color: #0F172A;
         border: 1px solid #1E293B;
         padding: 12px 16px;
         margin: 5px 0;
@@ -45,9 +45,9 @@ st.markdown("""
         width: 100%;
         box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2);
     }
-    .stock-name { font-size: 15px; font-weight: 700; color: #94A3B8; } /* 깔끔한 회백색 종목명 */
-    .rate-up { color: #F87171; font-weight: 800; font-size: 15px; }    /* 소프트한 상승 레드 글씨 */
-    .rate-down { color: #60A5FA; font-weight: 800; font-size: 15px; }  /* 소프트한 하락 블루 글씨 */
+    .stock-name { font-size: 15px; font-weight: 700; color: #94A3B8; }
+    .rate-up { color: #F87171; font-weight: 800; font-size: 15px; }
+    .rate-down { color: #60A5FA; font-weight: 800; font-size: 15px; }
     
     /* 히트맵 글자 중앙 정렬 보정 */
     g.treemaptext text {
@@ -58,12 +58,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (안전 4대 대장주 순정 스펙)
+# 1. 📂 데이터 로드 및 정제 구역
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-# 가장 안정적으로 매핑되던 핵심 4대 대장주 순정 풀 복원
 BACKUP_STOCK_POOL = {
     "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
     "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
@@ -118,7 +117,8 @@ def load_synchronized_market_data():
         
     return base_df, status_df
 
-raw_df, status_df = load_market_data()
+# 🎯 [NameError 해결] 상단 선언된 짝꿍 명칭인 load_synchronized_market_data()로 정확히 일치화 완료
+raw_df, status_df = load_synchronized_market_data()
 
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
@@ -181,7 +181,6 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [완벽 복구 고정] 가장 안정적으로 작동하던 오리지널 딕셔너리 신호 바인딩 레이어 복원
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
@@ -212,14 +211,11 @@ with right_layout:
         
     if not theme_detail_df.empty:
         theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
-        # 🎯 개수 늘리기 직전 사양인 최상위 핵심 4대 대장주 구조로 리미트 원상 복귀
         for _, row in theme_detail_df.head(4).iterrows():
             final_stock_list.append((row['name'], row['rate']))
     else:
-        # 백업 동기화 작동 시에도 순정 4개 목록 세팅
         final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
         
-    # 🎯 [완벽 복구] 스크린샷과 100% 동일한 은은한 다크 카드 양식 렌더링
     for idx, (s_name, s_rate) in enumerate(final_stock_list[:4]):
         rate_sign = "+" if s_rate >= 0 else ""
         rate_color_class = "rate-up" if s_rate >= 0 else "rate-down"
@@ -238,3 +234,7 @@ with right_layout:
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    st.cache_data.clear()
+    st.rerun()
