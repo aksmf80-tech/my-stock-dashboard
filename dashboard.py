@@ -75,8 +75,17 @@ st.markdown("""
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-# 🎯 장중에 실시간으로 주가를 쪼아와 뼈대에 주입할 테마별 주요 대장주 매핑 주소록
-# (야후 서버 차단 방지 및 속도 향상을 위해 한국 주식 코드 끝에 .KS 또는 .KQ를 붙여 선언합니다.)
+# 🚨 [NameError 방지] 데이터 백업 풀 정의 자리를 완벽하게 수복해 두었습니다.
+BACKUP_STOCK_POOL = {
+    "대북/남북경협": [("코데즈컴바인", 30.0), ("좋은사람들", 30.0), ("인디에프", 29.81), ("일신석재", 22.24), ("부산산업", 18.5)],
+    "반도체 후공정": [("한미반도체", 14.2), ("리노공업", 5.12), ("하나마이크론", 4.3), ("이오테크닉스", 3.12), ("네패스", 2.85)],
+    "시스템 반도체": [("삼성전자", -1.2), ("SK하이닉스", -2.5), ("DB하이텍", 0.9), ("가온칩스", 8.3), ("텔레칩스", 3.1)],
+    "수소차": [("현대차", 2.1), ("일진하이솔루스", -0.5), ("동아화성", 4.15), ("두산퓨어셀", 8.9), ("에스퓨어셀", 6.3)],
+    "전기차 부품": [("에코프로비엠", 4.35), ("엘앤에프", -3.1), ("신흥에스이씨", 1.2), ("상신이디피", 5.4), ("삼기", 3.15)],
+    "로봇": [("레인보우로보틱스", 8.9), ("두산로보틱스", 11.2), ("뉴로메카", 5.4), ("로보티즈", 3.15), ("유진로봇", 1.45)],
+    "제약/바이오": [("삼성바이오로직스", -0.8), ("셀트리온", 1.5), ("알테오젠", 12.3), ("HLB", 9.45), ("유한양행", 4.2)]
+}
+
 LIVE_TICKER_MAP = {
     "삼성전자": "005930.KS", "SK하이닉스": "000660.KS", "한미반도체": "042700.KS", 
     "레인보우로보틱스": "277810.KQ", "두산로보틱스": "454910.KS", "현대차": "005380.KS",
@@ -88,8 +97,6 @@ LIVE_TICKER_MAP = {
 @st.cache_data(ttl=5)
 def load_market_data():
     base_df = pd.DataFrame()
-    
-    # [1단계: 형님의 마스터 뼈대 파일 우선 로드]
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         try:
             base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
@@ -103,7 +110,6 @@ def load_market_data():
         except Exception:
             base_df = pd.DataFrame()
 
-    # 안전 보장용 최소 마진 백업 풀 가동
     if base_df.empty or 'theme' not in base_df.columns:
         sample_rows = []
         for theme_key, stocks in BACKUP_STOCK_POOL.items():
@@ -115,20 +121,13 @@ def load_market_data():
     base_df['name'] = base_df['name'].fillna('알수없음').astype(str).str.strip()
     base_df['rate'] = pd.to_numeric(base_df['rate'], errors='coerce').fillna(0.0).astype(float)
 
-    # 🎯 [2단계: 문법 에러 없는 순정 야후 파이낸스 1분 라이브 가속 엔진 가동]
+    # 🎯 야후 파이낸스 1분 라이브 실시간 치환 엔진
     try:
         import yfinance as yf
-        # 주소록에 등록된 대장주 리스트만 야후 파이낸스에서 1초 만에 초경량 통신 수신
         tickers_to_fetch = list(LIVE_TICKER_MAP.values())
         yahoo_data = yf.download(" ".join(tickers_to_fetch), period="1d", interval="1m", progress=False)
-        
         if not yahoo_data.empty:
-            if isinstance(yahoo_data.columns, pd.MultiIndex):
-                yahoo_close = yahoo_data['Close']
-            else:
-                yahoo_close = yahoo_data
-            
-            # 받아온 실시간 등락률 수치를 형님의 4,115개 마스터 뼈대 데이터에 실시간 오버라이드(치환)
+            yahoo_close = yahoo_data['Close'] if isinstance(yahoo_data.columns, pd.MultiIndex) else yahoo_data
             for stock_name, ticker in LIVE_TICKER_MAP.items():
                 if ticker in yahoo_close.columns:
                     close_series = yahoo_close[ticker].dropna()
@@ -137,12 +136,10 @@ def load_market_data():
                         val_last = float(close_series.iloc[-1])
                         if val_first != 0:
                             live_rate = round(((val_last - val_first) / val_first) * 100, 2)
-                            # 뼈대 데이터 내의 해당 대장주 주가를 진짜 1분 실시간 가격으로 치환!
                             base_df.loc[base_df['name'] == stock_name, 'rate'] = live_rate
     except Exception:
-        pass # 장외 시간, 주말, 휴장일에는 야후가 멈추므로 형님의 파일 원본 등락률 데이터를 100% 안전하게 유지!
+        pass
 
-    # [3단계: 상단 전광판 및 히트맵용 상태 파일 로드]
     if os.path.exists(STATUS_FILE) and os.path.getsize(STATUS_FILE) > 0:
         try:
             status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
@@ -163,10 +160,8 @@ def load_market_data():
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
         status_df = pd.DataFrame({
-            '테마': agg_df['theme'],
-            '등락률': agg_df['rate'].round(2),
-            '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
-            '업데이트시간': [current_time_str] * len(agg_df)
+            '테마': agg_df['theme'], '등락률': agg_df['rate'].round(2),
+            '화면크기_가중치': np.linspace(35, 10, len(agg_df)), '업데이트시간': [current_time_str] * len(agg_df)
         })
         
     if '등락률' in status_df.columns:
@@ -176,7 +171,6 @@ def load_market_data():
 
 raw_df, status_df = load_market_data()
 update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
-
 # -------------------------------------------------------------------------
 # 2. 📊 상단 타이틀 및 상위 5개 테마 메트릭 스코어보드 표출 영역
 # -------------------------------------------------------------------------
