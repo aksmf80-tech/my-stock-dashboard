@@ -9,7 +9,7 @@ import time
 # 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정
 # =========================================================================
 st.set_page_config(
-    page_title="핀업 스타일 테마 맵 대시보드",
+    page_title="핀업 스타일 주식 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -48,12 +48,6 @@ st.markdown("""
     .stock-rate { font-size: 15px; font-weight: bold; }
     .rate-up { color: #F87171; }
     .rate-down { color: #60A5FA; }
-    
-    /* 히트맵 글자 중앙 정렬 보정 */
-    g.treemaptext text {
-        text-anchor: middle !important;
-        dominant-baseline: central !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -76,7 +70,7 @@ def load_synchronized_market_data():
             'name': ['코데즈컴바인', '좋은사람들', '한미반도체', '삼성전자', '코데즈컴바인', '현대차', '에코프로비엠', '레인보우로보틱스', '셀트리온'],
             'rate': [30.00, 30.00, 14.20, -1.20, 25.40, 2.10, 4.35, 8.90, 1.50]
         }
-        base_df = pd.DataFrame(mock_stocks)
+        base_df = pd.DataFrame(sample_rows)
         
     if 'rate' not in base_df.columns:
         for col in base_df.columns:
@@ -108,7 +102,7 @@ raw_df, status_df = load_synchronized_market_data()
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
 # =========================================================================
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
 with title_col:
@@ -129,55 +123,63 @@ for i in range(min(5, len(status_df))):
 st.markdown("---")
 
 # =========================================================================
-# 3. 🗺️ 공간 설계 구역: [좌 히트맵 5.5 : 우 종목 카드 4.5] 사이드바이사이드
+# 3. 🗺️ 공간 설계 구역: [좌 고정형 차트 5.5 : 우 종목 카드 4.5] 사이드바이사이드
 # =========================================================================
 top_25_themes = status_df.head(25).copy()
 
+# 거래량/가중치 순으로 정렬하여 차트 가독성 증폭
+if '화면크기_가중치' in top_25_themes.columns:
+    top_25_themes = top_25_themes.sort_values(by='화면크기_가중치', ascending=True)
+
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[-1] if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
-# --- [좌측 구역] 테마 히트맵 배치 ---
+# --- [좌측 구역] 절대 확대되지 않는 핀업 스타일 가로 바 차트 배치 ---
 with left_layout:
-    st.markdown("### 🗺️ 실시간 테마 히트맵")
+    st.markdown("### 🗺️ 실시간 테마 히트맵 (고정형)")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
-        fig = px.treemap(
+        
+        # 🎯 [대혁신] 클릭 시 화면 전환/확대가 절대 일어나지 않는 가로형 막대 차트로 대체
+        fig = px.bar(
             top_25_themes,
-            path=['테마'],
-            values='화면크기_가중치',    
-            color='등락률',             
-            color_continuous_scale='RdBu_r',  
+            x='화면크기_가중치',
+            y='테마',
+            color='등락률',
+            orientation='h',  # 가로형 막대 설정
+            color_continuous_scale='RdBu_r',
             color_continuous_midpoint=0,
-            custom_data=['등락률']
+            text='등락률'  # 막대 끝에 수치 표출
         )
         
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br>%{customdata:.2f}%",
-            textfont=dict(size=18, color="white"),
-            textposition="middle center"
+            texttemplate="<b>%{text:.2f}%</b>",
+            textposition="outside",
+            textfont=dict(size=14, color="white"),
+            marker=dict(line=dict(width=1, color='#1E293B'))
         )
         
-        # 🎯 박스 혼자 대형으로 화면 전환 및 확대되는 Zoom 현상 강력 차단 옵션 고정
         fig.update_layout(
-            margin=dict(t=2, b=2, l=2, r=2), 
+            margin=dict(t=2, b=2, l=2, r=30), 
             height=520,
-            treemapcolorway=["#1E293B"],
-            clickmode='event+select'
+            xaxis_title="시장 가중치 (거래대금)",
+            yaxis_title=None,
+            showlegend=False
         )
         
+        # 순정 인터랙션 연동 센서 작동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
+        # 🎯 바 차트 구조에 최적화된 초정밀 인덱스 추적 및 우측 실시간 바인딩
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    first_point = points_list
-                    if "point_number" in first_point:
-                        clicked_index = first_point["point_number"]
-                        if clicked_index < len(top_25_themes):
-                            clicked_theme = top_25_themes['테마'].iloc[clicked_index]
-                            st.session_state.selected_theme_click = clicked_theme
+                    first_point = points_list[0]
+                    # 바 차트의 y축 라벨 값(테마명)을 직접 낚아채는 가장 안전한 알고리즘 적용
+                    if "y" in first_point:
+                        st.session_state.selected_theme_click = str(first_point["y"]).strip()
                 except Exception:
                     pass
     else:
@@ -213,7 +215,7 @@ with right_layout:
                         </div>
                     """, unsafe_allow_html=True)
         else:
-            # 🎯 [들여쓰기 버그 완벽 수리 완료] 공백 간격을 철저하게 맞추어 Indentation 에러를 완전히 도려냈습니다.
+            # 2중 안전장치: 파일 동기화 딜레이 시 활성화되는 7대 대장주 백업 풀
             backup_pool = {
                 "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
                 "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
@@ -234,5 +236,3 @@ with right_layout:
                             <span class="stock-rate {rate_class}">{rate_sign}{s_rate}%</span>
                         </div>
                     """, unsafe_allow_html=True)
-    except Exception:
-        pass
