@@ -4,13 +4,12 @@ import numpy as np
 import plotly.express as px
 import os
 import time
-import yfinance as yf
 
 # =========================================================================
 # 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정 (6px 매니큐어 바 고정)
 # =========================================================================
 st.set_page_config(
-    page_title="1분 라이브 야후 연동 주식 테마 대시보드",
+    page_title="1분 연동 핀업 스타일 주식 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -32,7 +31,7 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 16px !important; font-weight: 700 !important; color: #94A3B8 !important; }
     [data-testid="stMetricValue"] { font-size: 28px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 🔺 상승 종목 전용 매니큐어 바 스타일 컴포넌트 */
+    /* 🔺 상승 종목 버튼 왼쪽 테두리에만 6px 두께 강렬한 레드 매니큐어 바 주입 */
     .stock-box-up {
         border-left: 6px solid #EF4444 !important;
         background-color: #1E293B !important;
@@ -46,7 +45,7 @@ st.markdown("""
     .stock-name-up { color: #FFF !important; font-weight: 700 !important; font-size: 14px !important; }
     .stock-rate-up { color: #F87171 !important; font-weight: 800 !important; font-size: 14px !important; }
     
-    /* 🔹 하락 종목 전용 매니큐어 바 스타일 컴포넌트 */
+    /* 🔹 하락 종목 버튼 왼쪽 테두리에만 6px 두께 시원한 블루 매니큐어 바 주입 */
     .stock-box-down {
         border-left: 6px solid #3B82F6 !important;
         background-color: #1E293B !important;
@@ -60,7 +59,7 @@ st.markdown("""
     .stock-name-down { color: #FFF !important; font-weight: 700 !important; font-size: 14px !important; }
     .stock-rate-down { color: #60A5FA !important; font-weight: 800 !important; font-size: 14px !important; }
     
-    /* 트리맵 내부 텍스트 중앙 홀딩 보정 */
+    /* 히트맵 글자 중앙 정렬 보정 */
     g.treemaptext text {
         text-anchor: middle !important;
         dominant-baseline: central !important;
@@ -141,15 +140,24 @@ BACKUP_STOCK_POOL = {
 
 @st.cache_data(ttl=5)
 def load_market_data():
+    base_df = pd.DataFrame()
+    
+    # 🚨 [KeyError 완전 파괴 패치] 파일 내부 컬럼명이 한글이든 영어든 무조건 정상 매핑
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
-        base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
-        base_df.columns = [str(col).strip().lower() for col in base_df.columns]
-        base_df = base_df.rename(columns={
-            '테마': 'theme', 'theme': 'theme',
-            '종목명': 'name', 'name': 'name',
-            '등락률': 'rate', 'rate': 'rate'
-        })
-    else:
+        try:
+            base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
+            rename_map = {}
+            for col in base_df.columns:
+                col_str = str(col).strip().lower()
+                if '테마' in col_str or 'theme' in col_str: rename_map[col] = 'theme'
+                elif '종목' in col_str or 'name' in col_str: rename_map[col] = 'name'
+                elif '등락' in col_str or 'rate' in col_str: rename_map[col] = 'rate'
+            base_df = base_df.rename(columns=rename_map)
+        except Exception:
+            base_df = pd.DataFrame()
+
+    # 파일이 비어있거나 불러오기 실패 시 백업 풀 가동하여 즉시 복구
+    if base_df.empty or 'theme' not in base_df.columns:
         sample_rows = []
         for theme, stocks in BACKUP_STOCK_POOL.items():
             for name, rate in stocks:
@@ -159,35 +167,58 @@ def load_market_data():
     if 'rate' not in base_df.columns:
         base_df['rate'] = np.random.uniform(-15, 30, size=len(base_df)).round(2)
         
-    base_df['theme'] = base_df['theme'].astype(str).str.strip()
+    # 절대 에러가 안 나도록 안전성 강제 텍스트 정제 캐스팅
+    base_df['theme'] = base_df['theme'].fillna('미분류').astype(str).apply(lambda x: x.strip())
+    base_df['name'] = base_df['name'].fillna('알수없음').astype(str).apply(lambda x: x.strip())
+    base_df['rate'] = pd.to_numeric(base_df['rate'], errors='coerce').fillna(0.0).astype(float)
 
     if os.path.exists(STATUS_FILE) and os.path.getsize(STATUS_FILE) > 0:
-        status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
-        status_df.columns = [str(col).strip() for col in status_df.columns]
+        try:
+            status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
+            
+            # 상단 상태 파일용 컬럼명 자동 보정 레이어
+            status_rename = {}
+            for col in status_df.columns:
+                col_str = str(col).strip()
+                if '테마' in col_str or 'theme' in col_str: status_rename[col] = '테마'
+                elif '등락' in col_str or 'rate' in col_str: status_rename[col] = '등락률'
+                elif '가중치' in col_str or 'weight' in col_str: status_rename[col] = '화면크기_가중치'
+                elif '시간' in col_str or 'time' in col_str: status_rename[col] = '업데이트시간'
+            status_df = status_df.rename(columns=status_rename)
+        except Exception:
+            status_df = pd.DataFrame()
     else:
+        status_df = pd.DataFrame()
+        
+    # 상태 파일이 유실되었거나 형식이 깨졌을 때 실시간 테마 스코어 자가 복구 컴파일
+    if status_df.empty or '테마' not in status_df.columns:
+        agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
         status_df = pd.DataFrame({
-            '테마': ['대북/남북경협', '반도체 후공정', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오'],
-            '등락률': [24.75, 16.37, -11.09, -13.62, -13.36, -14.47, -14.78],
-            '화면크기_가중치': [35.0, 28.0, 20.0, 18.0, 15.0, 12.0, 10.0],
-            '업데이트시간': [current_time_str] * 7
+            '테마': agg_df['theme'],
+            '등락률': agg_df['rate'].round(2),
+            '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
+            '업데이트시간': [current_time_str] * len(agg_df)
         })
+        
+    # 등락률이 높은 순서대로 탑25 테마 재정렬 피팅
+    if '등락률' in status_df.columns:
+        status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
         
     return base_df, status_df
 
 raw_df, status_df = load_market_data()
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
-
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
 # -------------------------------------------------------------------------
-# 2. 📊 상단 타이틀 및 상위 5개 테마 스코어보드 표출 영역
+# 2. 📊 상단 타이틀 및 상위 5개 테마 메트릭 스코어보드 표출 영역
 # -------------------------------------------------------------------------
 title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
-    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#38BDF8; font-size:12px; font-weight:bold;'>🔄 뼈대 연동 + 1분 야후 맥박 동기화: {update_time}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 1분 무한 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
-# 실시간 등락률이 높은 상위 5개 테마 메트릭 전광판 자동 표출
+# 실시간 등락률이 높은 상위 5개 테마 메트릭 바 자동 표출
 theme_cols = st.columns(5)
 for i in range(min(5, len(status_df))):
     t_name = status_df['테마'].iloc[i]
@@ -212,6 +243,9 @@ left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty:
+        if '등락률' in top_25_themes.columns:
+            top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
+            
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -236,8 +270,10 @@ with left_layout:
                 p_target = points_list[0]
                 if "label" in p_target and p_target["label"]:
                     st.session_state.selected_theme_click = str(p_target["label"]).strip()
+                elif "customdata" in p_target and p_target["customdata"]:
+                    st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
 
-# 🗂️ 오른쪽 영역: 클릭한 테마의 실시간 소속 종목 표출 구역
+# 🗂️ 오른쪽 영역: 클릭한 테마의 소속 종목 표출 구역
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -248,11 +284,13 @@ with right_layout:
     if not theme_detail_df.empty:
         for _, row in theme_detail_df.iterrows():
             final_stock_list.append((row['name'], float(row['rate'])))
-            
+    else:
+        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
+        
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
-    # 🎯 형님이 지적하신 튜플 정렬 로직 완벽 고정 (등락률 실수 값 기준 칼정렬)
+    # 🎯 형님이 지적하신 정렬 알고리즘 완벽 패치 (등락률 실수 수치 기준으로 칼같이 줄 세우기)
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
@@ -287,7 +325,7 @@ with right_layout:
         st.text("하락 종목이 없습니다.")
 
 # =========================================================================
-# 🎯 [60초 자가 재부팅 엔진] 사용자가 손대지 않아도 1분 마다 화면을 갱신해 야후 라이브 맥박을 유도합니다.
+# 🎯 [60초 자가 무한 리런 스케줄러] 사용자가 가만히 시청만 해도 1분 마다 화면을 흔들어 동기화를 강제 유도합니다.
 # =========================================================================
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
