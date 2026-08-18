@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
+# 🎯 [디자인 개편] 우측 종목 카드를 핀업 특유의 강렬한 빨강/파랑 전광판 이펙트로 튜닝하는 CSS
 st.markdown("""
     <style>
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
@@ -32,6 +32,22 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
+    /* 🎯 눈에 확 띄는 빨강/파랑 전광판 카드 스타일링 (와이드 퍼짐 및 허전함 방지) */
+    .pinup-card {
+        padding: 12px 16px;
+        margin: 5px 0;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+    }
+    .bg-up { background-color: #DC2626 !important; border-left: 6px solid #FEF08A; }   /* 강렬한 상승 레드 */
+    .bg-down { background-color: #2563EB !important; border-left: 6px solid #93C5FD; } /* 시원한 하락 블루 */
+    .stock-name { font-size: 16px; font-weight: 800; color: #FFFFFF; }
+    .stock-rate { font-size: 16px; font-weight: 900; color: #FFFFFF; }
+    
     /* 히트맵 글자 중앙 정렬 보정 */
     g.treemaptext text {
         text-anchor: middle !important;
@@ -41,20 +57,45 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역
+# 1. 📂 데이터 로드 및 정제 구역 (🎯 대장주 백업 풀 데이터 30개 스케일로 대폭 확장)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-# 💡 실시간 유실 대비용 하드웨어 7대 대장주 백업 풀 데이터셋
 BACKUP_STOCK_POOL = {
-    "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
-    "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
-    "시스템 반도체": [("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45)],
-    "수소차": [("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15)],
-    "전기차 부품": [("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20)],
-    "로봇": [("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15)],
-    "제약/바이오": [("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30)]
+    "대북/남북경협": [
+        ("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24), 
+        ("부산산업", 18.50), ("제이에스티나", 15.30), ("신원", 12.10), ("재영솔루텍", 9.80),
+        ("아난티", 8.40), ("현대로템", 7.15), ("한일현대시멘트", 5.20), ("쌍용C&E", 4.10),
+        ("성신양회", 3.85), ("특수건설", 2.10), ("우원개발", 1.45), ("남광토건", -0.80),
+        ("삼부토건", -1.20), ("동아지질", -2.50), ("서암기계공업", -3.10), ("대호에이엘", -4.20)
+    ],
+    "반도체 후공정": [
+        ("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12),
+        ("네패스", 2.85), ("에스에프에이", 2.10), ("엘비세미콘", 1.45), ("두산테스나", 0.90),
+        ("시그네틱스", -0.40), ("윈팩", -1.15), ("에이팩트", -2.30), ("티에스이", -3.50)
+    ],
+    "시스템 반도체": [
+        ("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45),
+        ("가온칩스", 8.30), ("오픈엣지테크놀로지", 7.15), ("에이디테크놀로지", 5.40), ("텔레칩스", 3.10),
+        ("칩스앤미디어", 2.20), ("넥스트칩", 1.10), ("코아시아", -0.80), ("알파홀딩스", -2.40)
+    ],
+    "수소차": [
+        ("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("두산퓨어셀", 8.90),
+        ("에스퓨어셀", 6.30), ("상아프론테크", 3.10), ("유니크", 1.85), ("평화산업", -1.40)
+    ],
+    "전기차 부품": [
+        ("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20), ("상신이디피", 5.40),
+        ("삼기", 3.15), ("엠에스오토텍", 2.10), ("우수AMS", -1.10), ("명신산업", -2.85)
+    ],
+    "로봇": [
+        ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15),
+        ("티보보틱스", 2.80), ("유진로봇", 1.45), ("로보스타", -0.90), ("스맥", -2.35)
+    ],
+    "제약/바이오": [
+        ("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30), ("HLB", 9.45),
+        ("유한양행", 4.20), ("한미약품", 2.15), ("SK바이오팜", -1.10), ("전진바이오", -3.40)
+    ]
 }
 
 @st.cache_data(ttl=5)
@@ -164,7 +205,7 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 클릭 정보 정밀 인덱싱 트래킹 센서
+        # 클릭 정보 트래킹 센서
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
@@ -188,36 +229,16 @@ with right_layout:
     
     right_sub_cols = st.columns(2)
     
-    # 원본 파일에서 클릭한 테마 필터링
+    # 출력용 통합 주식 배열 리스트 확보
+    final_stock_list = []
+    
     theme_detail_df = pd.DataFrame()
     if 'theme' in raw_df.columns:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
-    # 출력용 통합 주식 배열 리스트 확보
-    final_stock_list = []
-    
     if not theme_detail_df.empty:
         theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
-        for _, row in theme_detail_df.head(14).iterrows():
+        # 🎯 [수정 조치 2] 실데이터 수집 시 최대 30개까지 종목을 긁어오도록 범위 확장
+        for _, row in theme_detail_df.head(30).iterrows():
             final_stock_list.append((row['name'], row['rate']))
     else:
-        # 🎯 [백업 동기화 완결] 파일 꼬임 시 하드웨어 백업 데이터셋 자동 매핑 연동
-        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
-        
-    # 🎯 [대혁신] 에러를 내던 지저분한 HTML 따옴표 블록을 완전히 파괴하고 순정 st.button(또는 st.metric) 스타일 카드로 전면 교체
-    for idx, (s_name, s_rate) in enumerate(final_stock_list):
-        rate_sign = "+" if s_rate >= 0 else ""
-        with right_sub_cols[idx % 2]:
-            # 📌 문법이 절대 깨지지 않는 무결점 순정 지표 카드 배치 완료
-            st.button(f"▪️ {s_name} ({rate_sign}{s_rate}%)", key=f"stock_btn_{idx}_{s_name}", use_container_width=True)
-
-# =========================================================================
-# 5. ⏱️ 세션 타이머 제어
-# =========================================================================
-if "last_refresh" not in st.session_state:
-    st.session_state.last_refresh = time.time()
-
-if time.time() - st.session_state.last_refresh > 60:
-    st.session_state.last_refresh = time.time()
-    st.cache_data.clear()
-    st.rerun()
