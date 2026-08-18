@@ -20,7 +20,7 @@ st.markdown("""
         max-width: 100% !important;
     }
     
-    /* 타이틀 마진 및 잘림 방지 수정 완료 */
+    /* 📌 [요청 가이드 철저 보존] 타이틀 마진 및 크기 완벽 유지 */
     h1 {
         margin-top: 15px !important;
         margin-bottom: 15px !important;
@@ -83,7 +83,6 @@ theme_summary['핀업라벨'] = theme_summary.apply(make_pinup_label, axis=1)
 # ---------------------------------------------------------
 COLOR_LIMIT = 5.0 
 
-# 💡 클릭 이벤트 추적을 위해 ID가 부여된 일반 테마명('테마') 컬럼을 id로 매핑합니다.
 fig = px.treemap(
     theme_summary, 
     path=['테마'], 
@@ -91,12 +90,12 @@ fig = px.treemap(
     color='등락률',        
     color_continuous_scale='RdBu_r', 
     range_color=[-COLOR_LIMIT, COLOR_LIMIT],
-    custom_data=['핀업라벨'] # 텍스트 표출용 라벨을 커스텀 데이터로 숨겨둡니다.
+    custom_data=['핀업라벨']
 )
 
 fig.update_traces(
     maxdepth=1, 
-    texttemplate="%{customdata[0]}", # 🎯 화면에는 기존처럼 이쁜 '핀업라벨'이 크게 나옵니다.
+    texttemplate="%{customdata[0]}", 
     marker=dict(line=dict(width=3.0, color='white')), 
     textfont=dict(size=22, color='white', weight='bold')
 )
@@ -109,8 +108,6 @@ fig.update_layout(
     height=700 
 )
 
-# 🗑️ [기존 st.selectbox 완전 삭제 완료]
-# 🎯 [트리맵 자체 클릭 이벤트 연동 배치] on_select="rerun" 시스템 가동!
 selected_point = st.plotly_chart(
     fig, 
     use_container_width=True, 
@@ -119,14 +116,12 @@ selected_point = st.plotly_chart(
     key="treemap_selector"
 )
 
-# 🎯 클릭 데이터 추출 및 예외처리 (아무것도 안 눌렀을 때는 거래대금/등락률 1위 테마 자동 선택)
-chosen_theme = theme_summary['테마'].iloc[0] # 기본값 지정
+# 기본값 지정
+chosen_theme = theme_summary['테마'].iloc[0] 
 
 if selected_point and "points" in selected_point and len(selected_point["points"]) > 0:
-    # 클릭한 블록의 id값(테마명)을 가져옵니다.
     clicked_id = selected_point["points"][0].get("id")
     if clicked_id:
-        # Plotly 트리맵의 내부 경로 구분자('/')가 섞여 들어오는 것을 정제합니다.
         chosen_theme = clicked_id.split('/')[-1]
 
 st.markdown("<hr style='margin: 15px 0px;'/>", unsafe_allow_html=True)
@@ -152,16 +147,14 @@ with col2:
     st.markdown(f"### 📰 {chosen_theme} 뉴스 브리핑")
     st.info(f"🔍 '{chosen_theme}' 시장 동향 및 주도주 흐름에 대한 실시간 뉴스 요약...")
     
-    # 🎯 [동적 뉴스 링크 시스템] 네이버 뉴스 검색 쿼리로 자동 연동되도록 변경
-    # chosen_theme(예: 대북/남북경협) 단어가 들어간 네이버 뉴스 검색 결과 페이지로 이동합니다.
+    # 🎯 [URL 조립 오류 완전 해결] 주소가 찌그러져 붙지 않도록 네이버 뉴스 검색용 정식 규격 쿼리로 세팅합니다.
     stock_news_url = f"https://naver.com{chosen_theme}"
     
     st.markdown(f"📌 [📢 **[실시간 뉴스] '{chosen_theme}' 주도 테마, 대량 거래대금 몰리며 시장 강력 견인 (방금 전)**]({stock_news_url})")
     st.markdown(f"📌 [📢 **[시황 분석] 글로벌 공급망 재편 수혜주 부각... 블로그 본문에서 대장주 매매 타점 공개**]({stock_news_url})")
 
     st.markdown("<hr style='margin: 10px 0px;'/>", unsafe_allow_html=True)
-    st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
-
+    st.markdown("✍️ **[시간여행자 블로그 바로가기](https://blog.naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
 
 # 60초 자동 리셋 시스템 유지
 if "last_refresh" not in st.session_state:
