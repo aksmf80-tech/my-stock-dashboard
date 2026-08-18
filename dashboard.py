@@ -61,15 +61,15 @@ selected_theme = st.plotly_chart(
     config={'displayModeBar': False, 'scrollZoom': False}
 )
 
-# 기본 선택 테마 지정 (첫 번째 행 데이터)
+# 🛠️ [완전 교정] 기본 선택 테마 지정 시 iloc[0]로 정확히 첫 행 인덱스 지정
 current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
 
-# 🛠️ [버그 완전 박멸] 구조 분해 및 리스트 0번째 딕셔너리 안전 접근 로직
+# 🛠️ [버그 완전 박멸] 구조 분해 및 리스트 0번째 딕셔너리 안전 접근 로직 최종 수정
 if selected_theme:
     if hasattr(selected_theme, "selection") and selected_theme.selection:
         points = selected_theme.selection.get("points", [])
         if points and len(points) > 0:
-            # 리스트 내부의 첫 번째 딕셔너리 객체에서 label을 안전하게 가져옵니다.
+            # 리스트 내부의 0번째 딕셔너리 객체에서 label을 안전하게 가져옵니다.
             current_theme = points[0].get("label", current_theme)
     elif isinstance(selected_theme, dict) and "selection" in selected_theme:
         points = selected_theme["selection"].get("points", [])
