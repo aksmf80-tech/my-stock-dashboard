@@ -5,37 +5,55 @@ import os
 import time
 from datetime import datetime, timedelta
 
-# ⚠️ set_page_config는 반드시 최상단에 고정되어야 합니다.
+# ⚠️ 최상단 페이지 설정 (좌우 여백을 최소화하여 화면을 넓게 씁니다)
 st.set_page_config(layout="wide")
 
-# 🎯 [다크모드 보호색 및 렉 원천 파괴] 표 내부 글자를 찬란한 흰색 대형 활자로 강제 발광시킵니다.
+# 🎯 [여백 파괴 및 대형화] 상단 여백을 극단적으로 줄이고 메인 콘텐츠를 키웁니다.
 st.markdown("""
     <style>
-    /* 순수 데이터 표(st.table) 내부의 모든 종목명과 숫자를 무조건 찬란한 흰색 왕글씨로 고정 */
+    /* 전체 브라우저 상하좌우 여백을 완전히 제로에 가깝게 밀착 */
+    .block-container {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+        max-width: 100% !important;
+    }
+    
+    /* 타이틀 마진 축소 */
+    h1 {
+        margin-top: -10px !important;
+        margin-bottom: 10px !important;
+        font-size: 36px !important;
+    }
+
+    /* 📊 순수 데이터 표(st.table) 글자 크기를 왕글씨(26px)로 더 확대 */
     table {
         color: #FFFFFF !important;
-        font-size: 24px !important;
+        font-size: 26px !important;
         font-weight: bold !important;
         width: 100% !important;
     }
     thead tr th {
-        color: #FFD700 !important; /* 표 헤더 제목 컬럼은 황금색 강조 */
-        font-size: 22px !important;
+        color: #FFD700 !important;
+        font-size: 24px !important;
         font-weight: bold !important;
     }
     tbody tr td {
         color: #FFFFFF !important;
-        background-color: #1A1D24 !important; /* 가독성을 위한 최적의 핀업 배경색 매칭 */
+        background-color: #1A1D24 !important;
     }
-    /* 선택 상자 및 라벨 글자 크기 대형 강조 */
+    
+    /* 선택 상자 텍스트 크기 확대 */
     div[data-testid="stSelectbox"] label p {
-        font-size: 22px !important;
+        font-size: 20px !important;
         font-weight: bold !important;
         color: #FFD700 !important;
     }
-    /* 서브 타이틀 글자 크기 확대 */
+    
+    /* 서브 타이틀 대형화 */
     .stMarkdown h3 {
-        font-size: 26px !important;
+        font-size: 28px !important;
         font-weight: bold !important;
         border-left: 6px solid #FF4B4B;
         padding-left: 12px;
@@ -44,8 +62,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔔 홍보 배너 및 대시보드 타이틀
-st.info("📢 **실시간 테마별 대장주 분석 및 매매 전략은 [시간 여행자 : 네이버 블로그](https://naver.com)에서 매일 확인하세요!**")
+# ---------------------------------------------------------
+# 🗑️ [기존 상단 st.info 홍보 배너 및 st.success 동기화 알림 완전 제거]
+# ---------------------------------------------------------
 st.title("📊 테마별 현황판")
 
 DATA_FILE = "theme_data.csv"
@@ -54,13 +73,10 @@ if not os.path.exists(DATA_FILE):
     st.warning("⌛ 실시간 데이터 파일(theme_data.csv)을 기다리는 중입니다. 수집 앱을 확인해 주세요.")
     st.stop()
 
-# 정품 시세 테이블 로드
+# 데이터 로드 및 정제
 df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
-
-# 🎯 테마별 평균 데이터프레임 빌드
 theme_summary = df.groupby('테마')['등락률'].mean().reset_index()
 
-# 🎯 [바둑판 정렬 마감] 변동성(절댓값)이 큰 주도 테마 순서대로 사각형 크기를 정교하게 배치합니다.
 theme_summary['정렬용'] = theme_summary['등락률'].abs()
 theme_summary = theme_summary.sort_values(by='정렬용', ascending=False).reset_index(drop=True)
 theme_summary['화면크기_가중치'] = theme_summary['정렬용'] + 5.0
@@ -72,36 +88,27 @@ def make_pinup_label(row):
 
 theme_summary['핀업라벨'] = theme_summary.apply(make_pinup_label, axis=1)
 
-# 해외 서버 시차 해결 (KST 동기화)
-utc_now = datetime.utcnow()
-kor_now = utc_now + timedelta(hours=9)
-current_time_str = kor_now.strftime('%H:%M:%S')
-
-st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {current_time_str})")
-
 # ---------------------------------------------------------
-# 🎯 [렉 파괴 핵심 직통 연동 상자] 
-# 기존에 에러를 유발하던 세션 메모리 연동 대신, 선택 즉시 0초 만에 
-# 아래 하단 표와 뉴스를 백퍼센트 완벽 무오류 연동해주는 직통 상자 시스템 배치!
+# 직통 연동 선택 박스
 # ---------------------------------------------------------
 theme_list = theme_summary['테마'].unique().tolist()
 chosen_theme = st.selectbox(
-    "🔍 상세 정보를 조회할 테마를 선택하세요 (선택 시 아래 소속 대장주 시세판이 24px 백색 왕글씨로 실시간 자동 연동됩니다)", 
+    "🔍 상세 정보를 조회할 테마를 선택하세요 (하단 시세판 자동 연동)", 
     options=theme_list,
     index=0,
     key="global_theme_selector"
 )
 
 # ---------------------------------------------------------
-# 구역 1: 핀업 완벽 복사형 수십 개 바둑판 트리맵 차트 (정중앙 마감 완료)
+# 구역 1: 핀업 바둑판 트리맵 차트 (높이를 700으로 대폭 확대하여 전면 배치)
 # ---------------------------------------------------------
 COLOR_LIMIT = 5.0 
 
 fig = px.treemap(
     theme_summary, 
-    path=['핀업라벨'], # 🎯 렉을 유발하던 테마 내부 이벤트를 떼어내고 순수 정중앙 라벨 고정!
+    path=['핀업라벨'], 
     values='화면크기_가중치',    
-    color='등락률',        
+    color='등rak률',        
     color_continuous_scale='RdBu_r', 
     range_color=[-COLOR_LIMIT, COLOR_LIMIT], 
 )
@@ -110,30 +117,27 @@ fig.update_traces(
     maxdepth=1, 
     textinfo="label",      
     marker=dict(line=dict(width=3.0, color='white')), 
-    textfont=dict(size=18, color='white', weight='bold')
+    textfont=dict(size=22, color='white', weight='bold') # 차트 안의 글씨 크기도 22px로 확대
 )
 
 fig.update_traces(textposition="middle center") 
 
 fig.update_layout(
     dragmode=False,    
-    margin=dict(t=10, l=10, r=10, b=10), 
-    height=450 
+    margin=dict(t=5, l=5, r=5, b=5), 
+    height=700 # 🎯 기존 450에서 700으로 대폭 늘려 대형 모니터에서도 꽉 차게 보이도록 고정
 )
 
 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
 
-st.markdown("---")
+st.markdown("<hr style='margin: 15px 0px;'/>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 구역 2: 🎯 [완벽 무인 연동] 위에서 선택한 테마의 소속 종목들이 하얗고 선명하게 터져 나오는 표 구역
+# 구역 2: 하단 종목 시세판 및 뉴스 구역 (글자 크기 및 컴포넌트 업그레이드)
 # ---------------------------------------------------------
 st.subheader(f"📂 {chosen_theme} 관련 정보")
 
-# 사용자가 선택 상자에서 선택한 테마에 소속된 진짜 개별 종목 시세를 정밀 매핑합니다.
 theme_df = df[df['테마'] == chosen_theme].copy().sort_values(by='등락률', ascending=False).reset_index(drop=True)
-
-# 지저분한 소수점 다발을 둘째 자리까지 반올림 정제 (+ 부호 자동 코팅)
 theme_df['등락률_정제'] = theme_df['등락률'].apply(lambda x: f"+{round(float(x), 2)}%" if float(x) > 0 else f"{round(float(x), 2)}%")
 
 theme_df_clean = theme_df[['종목명', '등락률_정제']].copy()
@@ -143,9 +147,7 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.markdown(f"### 📊 {chosen_theme} 소속 대장주 당일 시세판")
-    
-    # 🎯 다크모드를 완벽히 뚫고 눈부신 흰색 왕글씨(24px)로 표출되는 진짜 정품 완결 표!
-    st.table(theme_df_clean)
+    st.table(theme_df_clean) # CSS 효과로 26px 크기의 대형 활자로 출력됩니다.
     
 with col2:
     st.markdown(f"### 📰 {chosen_theme} 뉴스 브리핑")
@@ -154,11 +156,8 @@ with col2:
     stock_news_url = "https://naver.com"
     st.markdown(f"📌 [📢 **[실시간 뉴스] '{chosen_theme}' 주도 테마, 대량 거래대금 몰리며 시장 강력 견인 (방금 전)**]({stock_news_url})")
     st.markdown(f"📌 [📢 **[시황 분석] 글로벌 공급망 재편 수혜주 부각... 블로그 본문에서 대장주 매매 타점 공개**]({stock_news_url})")
-   
-    st.markdown("---")
-    st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
 
-# 60초 자동 리셋
+# 60초 자동 리셋 시스템 유지
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 
