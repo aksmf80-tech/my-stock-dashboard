@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🎯 상단 타이틀 간격 및 5대 지표 스케일 업, 우측 강렬한 전광판 컬러 이펙트 CSS 고정
+# 🎯 스크린샷과 똑같은 은은한 카드 디자인 및 전광판 폰트 CSS 세팅
 st.markdown("""
     <style>
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
@@ -32,8 +32,10 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 🎨 눈에 확 띄는 빨강/파랑 주식 전광판 카드 스타일링 (허전함 완전 격파) */
+    /* 🎨 [완벽 복구] 스크린샷 속 은은한 어두운 카드와 콤팩트 글자색 이펙트 UI */
     .pinup-card {
+        background-color: #0F172A; /* 은은한 네이비 블랙 배경 */
+        border: 1px solid #1E293B;
         padding: 12px 16px;
         margin: 5px 0;
         border-radius: 6px;
@@ -41,12 +43,11 @@ st.markdown("""
         justify-content: space-between;
         align-items: center;
         width: 100%;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2);
     }
-    .bg-up { background-color: #DC2626 !important; border-left: 6px solid #FEF08A; }   /* 붉은색 상승 전광판 */
-    .bg-down { background-color: #2563EB !important; border-left: 6px solid #93C5FD; } /* 푸른색 하락 전광판 */
-    .stock-name { font-size: 16px; font-weight: 800; color: #FFFFFF; }
-    .stock-rate { font-size: 16px; font-weight: 900; color: #FFFFFF; }
+    .stock-name { font-size: 15px; font-weight: 700; color: #94A3B8; } /* 깔끔한 회백색 종목명 */
+    .rate-up { color: #F87171; font-weight: 800; font-size: 15px; }    /* 소프트한 상승 레드 글씨 */
+    .rate-down { color: #60A5FA; font-weight: 800; font-size: 15px; }  /* 소프트한 하락 블루 글씨 */
     
     /* 히트맵 글자 중앙 정렬 보정 */
     g.treemaptext text {
@@ -57,52 +58,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (🎯 대장주 백업 풀 데이터 30개 대용량 세팅)
+# 1. 📂 데이터 로드 및 정제 구역 (안전 4대 대장주 순정 스펙)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
+# 가장 안정적으로 매핑되던 핵심 4대 대장주 순정 풀 복원
 BACKUP_STOCK_POOL = {
-    "대북/남북경협": [
-        ("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24), 
-        ("부산산업", 18.50), ("제이에스티나", 15.30), ("신원", 12.10), ("재영솔루텍", 9.80),
-        ("아난티", 8.40), ("현대로템", 7.15), ("한일현대시멘트", 5.20), ("쌍용C&E", 4.10),
-        ("성신양회", 3.85), ("특수건설", 2.10), ("우원개발", 1.45), ("남광토건", -0.80),
-        ("삼부토건", -1.20), ("동아지질", -2.50), ("서암기계공업", -3.10), ("대호에이엘", -4.20),
-        ("일성건설", 3.40), ("범양건영", -0.90), ("동신건설", 1.20), ("신원우", 2.55)
-    ],
-    "반도체 후공정": [
-        ("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12),
-        ("네패스", 2.85), ("에스에프에이", 2.10), ("엘비세미콘", 1.45), ("두산테스나", 0.90),
-        ("시그네틱스", -0.40), ("윈팩", -1.15), ("에이팩트", -2.30), ("티에스이", -3.50),
-        ("고영", 3.20), ("피에스케이", 1.15), ("인텍플러스", -0.95), ("제우스", 2.40)
-    ],
-    "시스템 반도체": [
-        ("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45),
-        ("가온칩스", 8.30), ("오픈엣지테크놀로지", 7.15), ("에이디테크놀로지", 5.40), ("텔레칩스", 3.10),
-        ("칩스앤미디어", 2.20), ("넥스트칩", 1.10), ("코아시아", -0.80), ("알파홀딩스", -2.40),
-        ("SFA반도체", 4.20), ("어보브반도체", 1.85), ("제주반도체", -1.10), ("픽셀플러스", 0.50)
-    ],
-    "수소차": [
-        ("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("두산퓨어셀", 8.90),
-        ("에스퓨어셀", 6.30), ("상아프론테크", 3.10), ("유니크", 1.85), ("평화산업", -1.40),
-        ("평화홀딩스", 2.20), ("엔케이", 0.95), ("지엠비코리아", -0.80), ("대우부품", 1.30)
-    ],
-    "전기차 부품": [
-        ("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20), ("상신이디피", 5.40),
-        ("삼기", 3.15), ("엠에스오토텍", 2.10), ("우수AMS", -1.10), ("명신산업", -2.85),
-        ("아진산업", 3.40), ("구영테크", 0.95), ("대유에이텍", -1.20), ("영화테크", 2.15)
-    ],
-    "로봇": [
-        ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15),
-        ("티보로보틱스", 2.80), ("유진로봇", 1.45), ("로보스타", -0.90), ("스맥", -2.35),
-        ("휴림로봇", 4.10), ("에브리봇", -1.50), ("로보로보", 0.85), ("디엔에이치", 2.30)
-    ],
-    "제약/바이오": [
-        ("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30), ("HLB", 9.45),
-        ("유한양행", 4.20), ("한미약품", 2.15), ("SK바이오팜", -1.10), ("제일약품", -3.40),
-        ("대웅제약", 1.85), ("종근당", 0.95), ("녹십자", -1.40), ("동국제약", 2.10)
-    ]
+    "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
+    "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
+    "시스템 반도체": [("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45)],
+    "수소차": [("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("대우부품", 1.30)],
+    "전기차 부품": [("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20), ("상신이디피", 5.40)],
+    "로봇": [("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15)],
+    "제약/바이오": [("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30), ("HLB", 9.45)]
 }
 
 @st.cache_data(ttl=5)
@@ -149,7 +118,7 @@ def load_synchronized_market_data():
         
     return base_df, status_df
 
-raw_df, status_df = load_synchronized_market_data()
+raw_df, status_df = load_market_data()
 
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
@@ -188,8 +157,6 @@ left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
-        
-        # 🎯 [진화 완료] NaN% 깨짐 현상을 원천 방어하기 위해 데이터 라벨 포맷 문자열 정비
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -214,7 +181,7 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 클릭 연동 센서 활성화 및 브릿지 고정
+        # 🎯 [완벽 복구 고정] 가장 안정적으로 작동하던 오리지널 딕셔너리 신호 바인딩 레이어 복원
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
@@ -231,6 +198,43 @@ with left_layout:
     else:
         st.info("테마 데이터를 로드하는 중입니다...")
 
-# --- [우측 구역] 클릭한 테마의 종목 카드를 촘촘하게 30개 전광판 컬러로 배치 ---
+# --- [우측 구역] 클릭한 테마의 종목 카드를 순정 4개 콤팩트 스케일로 나열 ---
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
+    st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
+    
+    right_sub_cols = st.columns(2)
+    
+    final_stock_list = []
+    theme_detail_df = pd.DataFrame()
+    if 'theme' in raw_df.columns:
+        theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
+        
+    if not theme_detail_df.empty:
+        theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
+        # 🎯 개수 늘리기 직전 사양인 최상위 핵심 4대 대장주 구조로 리미트 원상 복귀
+        for _, row in theme_detail_df.head(4).iterrows():
+            final_stock_list.append((row['name'], row['rate']))
+    else:
+        # 백업 동기화 작동 시에도 순정 4개 목록 세팅
+        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
+        
+    # 🎯 [완벽 복구] 스크린샷과 100% 동일한 은은한 다크 카드 양식 렌더링
+    for idx, (s_name, s_rate) in enumerate(final_stock_list[:4]):
+        rate_sign = "+" if s_rate >= 0 else ""
+        rate_color_class = "rate-up" if s_rate >= 0 else "rate-down"
+        
+        with right_sub_cols[idx % 2]:
+            st.markdown(f"""
+                <div class="pinup-card">
+                    <span class="stock-name">▪️ {s_name}</span>
+                    <span class="{rate_color_class}">{rate_sign}{s_rate}%</span>
+                </div>
+            """, unsafe_allow_html=True)
+
+# =========================================================================
+# 5. ⏱️ 세션 타이머 제어
+# =========================================================================
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
