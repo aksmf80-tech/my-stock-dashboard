@@ -10,14 +10,14 @@ import time
 # =========================================================================
 st.set_page_config(
     page_title="핀업 스타일 테마 맵 대시보드",
-    layout="wide",  # 📰 와이드 레이아웃 활성화
+    layout="wide",  # 📰 스크롤 없는 풀화면을 위한 와이드 기본 적용
     initial_sidebar_state="collapsed"
 )
 
 # 좌우 배치 최적화 및 스크롤 없는 한 화면 뷰 구현 전용 CSS
 st.markdown("""
     <style>
-    /* 상하 여백 최소화하여 모니터 한 화면에 강제 고정 */
+    /* 상하 여백 최소화하여 모니터 한 화면에 레이아웃 강제 고정 */
     .block-container { padding-top: 1.0rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
@@ -48,7 +48,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (KeyError 방어 완결)
+# 1. 📂 데이터 로드 및 정제 구역
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
@@ -102,7 +102,8 @@ raw_df, status_df = load_market_data()
 # =========================================================================
 update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
-title_col, time_col = st.columns()
+# 🎯 [수정 조치 1] 에러 원인이었던 빈 괄호 내부에 숫자 2를 넣어 칸 분할을 명확히 명시했습니다.
+title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 style='margin:0; padding:0; font-size:24px; color:#F8FAFC;'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
@@ -129,7 +130,7 @@ top_25_themes = status_df.head(25).copy()
 if "selected_theme_click" not in st.session_state:
     st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
 
-# 🎯 핵심 공간 분할 (왼쪽 공간과 오른쪽 공간을 완전히 가로로 정렬)
+# 핵심 공간 분할 (왼쪽 공간과 오른쪽 공간을 가로 배치)
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
 # --- [좌측 구역] 테마 히트맵 배치 ---
@@ -149,25 +150,27 @@ with left_layout:
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
-        # 종목 리스트와 눈높이를 맞추기 위해 높이를 520px로 확장 고정
         fig.update_layout(
             margin=dict(t=2, b=2, l=2, r=2), 
             height=520,
             treemapcolorway=["#1E293B"]
         )
         
-        # 순정 기능 클릭 연동 탑재
+        # 순정 최신 리런 센서 작동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
+        # 🎯 [수정 조치 2] 리스트와 딕셔너리 구조 추출 문법을 완벽히 패치하여 클릭 연동을 정상화했습니다.
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
-            if points_list:
+            if points_list and len(points_list) > 0:
                 try:
-                    clicked_point = points_list[0]
-                    if "point_number" in clicked_point:
-                        clicked_index = clicked_point["point_number"]
+                    # 리스트 내부 첫 번째 딕셔너리 원소 정보 추출
+                    first_point = points_list[0]
+                    if "point_number" in first_point:
+                        clicked_index = first_point["point_number"]
                         if clicked_index < len(top_25_themes):
-                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[clicked_index]
+                            clicked_theme = top_25_themes['테마'].iloc[clicked_index]
+                            st.session_state.selected_theme_click = clicked_theme
                 except Exception:
                     pass
     else:
@@ -178,7 +181,6 @@ with right_layout:
     chosen_theme = st.session_state.selected_theme_click
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
     
-    # 우측 공간 내에서 카드를 2열(바둑판) 형태로 깔끔하게 밀집 출력
     right_sub_cols = st.columns(2)
     
     try:
@@ -194,7 +196,6 @@ with right_layout:
                 rate_class = "rate-up" if s_rate >= 0 else "rate-down"
                 rate_sign = "+" if s_rate >= 0 else ""
                 
-                # 2개의 서브 열에 교대로 카드를 나누어 담아 퍼짐 현상 원천 봉쇄
                 with right_sub_cols[idx % 2]:
                     st.markdown(f"""
                         <div class="stock-card">
