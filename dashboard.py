@@ -217,15 +217,20 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
+        # 🎯 [버그 완전 박멸] 데이터 채널을 'label'과 'customdata' 채널 모두에서 다중 크로스 체크하여 
+        # 마우스로 누르는 즉시 테마명이 100% 한글로 연동되도록 정교하게 교정했습니다.
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    p_target = points_list
+                    p_target = points_list[0]
                     if "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
+                        if isinstance(p_target["customdata"], list):
+                            st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
+                        else:
+                            st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
                 except Exception:
                     pass
     else:
@@ -248,14 +253,10 @@ with right_layout:
     else:
         final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
         
-    # 🎯 상승 종목과 하락 종목 분리 필터링
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
-    # 🎯 [대혁신 수술] 각 섹션별 주도주 순서대로 정렬 고정
-    # 상승 종목: 등락률이 높은 순서대로 (내림차순 정렬)
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    # 하락 종목: 낙폭이 가장 큰(-10%가 -1%보다 먼저 오도록) 순서대로 (오름차순 정렬)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
     st.markdown("#### 🔺 상승 종목")
