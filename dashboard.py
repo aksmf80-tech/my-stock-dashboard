@@ -178,7 +178,7 @@ title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
-    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 1분 무한 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#38BDF8; font-size:12px; font-weight:bold;'>🔄 1분 무한 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # 실시간 등락률이 높은 상위 5개 테마 메트릭 바 자동 표출
 theme_cols = st.columns(5)
@@ -196,7 +196,7 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
 
 # 左右 스플릿 레이아웃 설정
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
@@ -229,13 +229,13 @@ with left_layout:
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
-                p_target = points_list[0]
+                p_target = points_list
                 if "label" in p_target and p_target["label"]:
                     st.session_state.selected_theme_click = str(p_target["label"]).strip()
                 elif "customdata" in p_target and p_target["customdata"]:
                     st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
 
-# 🗂️ 오른쪽 영역: 클릭한 테마의 소속 종목 표출 구역
+# 🗂️ 오른쪽 영역: 클릭한 테마의 소속 종목 24선 고정 표출 구역
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -250,14 +250,15 @@ with right_layout:
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
-    # 등락률 실수 수치 기준으로 오리지널 줄 세우기 정렬 보정 완료
-    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
+    # 등락률 실수 수치 기준으로 오리지널 내림차순/오름차순 정렬
+    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
     
+    # 🚨 [형님의 황금 비율 24선 필터] 상승 대장주 상위 12개만 정밀 컷트
     st.markdown("#### 🔺 상승 종목")
     if up_stocks:
         up_cols = st.columns(2)
-        for u_idx, (s_name, s_rate) in enumerate(up_stocks[:14]):
+        for u_idx, (s_name, s_rate) in enumerate(up_stocks[:12]):
             with up_cols[u_idx % 2]:
                 st.markdown(f"""
                     <div class='stock-box-up'>
@@ -270,10 +271,11 @@ with right_layout:
         
     st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
+    # 🚨 [형님의 황금 비율 24선 필터] 하락 마이너주 하위 12개만 정밀 컷트
     st.markdown("#### 🔹 하락 종목")
     if down_stocks:
         down_cols = st.columns(2)
-        for d_idx, (s_name, s_rate) in enumerate(down_stocks[:14]):
+        for d_idx, (s_name, s_rate) in enumerate(down_stocks[:12]):
             with down_cols[d_idx % 2]:
                 st.markdown(f"""
                     <div class='stock-box-down'>
