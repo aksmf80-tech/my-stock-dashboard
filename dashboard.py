@@ -14,13 +14,22 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 핀업 스타일의 다크 테마 및 테이블 너비 100% 강제 적용 CSS
+# 🎯 [수정 조치] Plotly 트리맵 내부의 글자를 강제로 정중앙 정렬하고 키우는 CSS 추가
 st.markdown("""
     <style>
     .block-container { padding-top: 1.5rem; padding-bottom: 1.5rem; }
     div[data-testid="stTable"] { width: 100% !important; }
     th { background-color: #0F172A !important; color: #F8FAFC !important; font-weight: bold !important; text-align: center !important; }
     td { text-align: center !important; font-weight: 500; }
+    
+    /* 🎨 히트맵 텍스트 강제 중앙 정렬 및 핀업 스타일 폰트 튜닝 */
+    text.textpoint {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-anchor: middle !important;
+    }
+    
     /* Plotly 차트 테두리 공백 제거 */
     .js-plotly-plot { margin-bottom: 1rem; }
     </style>
@@ -68,7 +77,7 @@ raw_df, status_df = load_market_data()
 # 2. 🗺️ 상단 구역: 핀업 스타일 실시간 가변 테마 맵 (박스 25개 스케일 제한)
 # =========================================================================
 st.title("📊 핀업 스타일 주식 테마 대시보드")
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 st.caption(f"⚙️ 4,115개 전수 수집 연동 엔진 작동 중 | 최근 갱신: {update_time}")
 
 # 현재 시장 주도 상위 테마 가로 요약 바 (TOP 5)
@@ -100,14 +109,18 @@ if not top_25_themes.empty and '테마' in top_25_themes.columns and '화면크�
         color_continuous_midpoint=0      
     )
     
-    # 🎯 [버그 완전 해제 및 정중앙 정렬 세팅 완결]
+    # 🎯 [수정 완결] 에러를 내던 미지원 옵션을 빼고 트리맵 전용 정렬 옵션으로 대체
     fig.update_traces(
-        texttemplate="<b>%{label}</b><br><span style='font-size:16px;'>%{color:.2f}%</span>",
-        textfont=dict(size=20, color="white"),
-        insidetexthalign="center",
-        insidetextvalign="middle"
+        texttemplate="<b>%{label}</b><br>%{color:.2f}%",
+        textfont=dict(size=22, color="white"), # 글자 크기 시원하게 22px로 확장
     )
-    fig.update_layout(margin=dict(t=5, b=5, l=5, r=5), height=380)
+    
+    # 레이아웃 단에서 글자 위치 강제 지정 속성 부여
+    fig.update_layout(
+        margin=dict(t=5, b=5, l=5, r=5), 
+        height=380,
+        treemapcolorway=["#1E293B"]
+    )
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("테마 상태 데이터를 읽어오는 중입니다.")
