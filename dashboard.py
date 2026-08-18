@@ -70,11 +70,13 @@ st.markdown("""
 # =========================================================================
 # 1. 📂 데이터 로드 및 정제 구역 (4,115개 뼈대 완벽 연동 + 야후 1분 주가 쪼기)
 # =========================================================================
+# =========================================================================
+# 1. 📂 데이터 로드 및 정제 구역 (4,115개 뼈대 완벽 연동 + 야후 1분 주가 쪼기)
+# =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
 # 🎯 장중에 실시간으로 주가를 쪼아와 뼈대에 주입할 핵심 주도주 매핑 리스트입니다.
-# (필요한 핵심 대장주들을 이 리스트 형식에 맞춰 언제든 추가/수정하실 수 있습니다.)
 LIVE_TICKER_MAP = {
     "삼성전자": "005930.KS", "SK하이닉스": "000660.KS", "한미반도체": "042700.KS", 
     "레인보우로보틱스": "277810.KQ", "두산로보틱스": "454910.KS", "현대차": "005380.KS",
@@ -88,12 +90,19 @@ def load_and_sync_live_data():
     # [뼈대 확보] 깃허브 레포지토리에 심겨있는 4,115개 마스터 데이터 로드
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
-        base_df.columns = [str(col).strip().lower() for col in base_df.columns]
-        base_df = base_df.rename(columns={
-            '테마': 'theme', 'theme': 'theme', 
-            '종목명': 'name', 'name': 'name', 
-            '등락률': 'rate', 'rate': 'rate'
-        })
+        
+        # 🚨 [치명적 에러 해결 패치] 한글, 영어, 대소문자, 공백 등 어떤 컬럼명이 와도 자동 추적 매핑
+        rename_map = {}
+        for col in base_df.columns:
+            col_str = str(col).strip().lower()
+            if '테마' in col_str or 'theme' in col_str:
+                rename_map[col] = 'theme'
+            elif '종목' in col_str or 'name' in col_str:
+                rename_map[col] = 'name'
+            elif '등락' in col_str or 'rate' in col_str:
+                rename_map[col] = 'rate'
+                
+        base_df = base_df.rename(columns=rename_map)
     else:
         # 베이스 파일이 유실되었을 때를 대비한 안전 장치용 임시 기틀
         sample_rows = []
@@ -101,9 +110,17 @@ def load_and_sync_live_data():
             sample_rows.append({'theme': t, 'name': '삼성전자', 'rate': 0.0})
         base_df = pd.DataFrame(sample_rows)
 
+    # 안전하게 컬럼이 존재할 때만 데이터 가공을 수행하도록 방어벽 구축
+    if 'theme' not in base_df.columns:
+        base_df['theme'] = '미분류'
+    if 'name' not in base_df.columns:
+        base_df['name'] = '알수없음'
+    if 'rate' not in base_df.columns:
+        base_df['rate'] = 0.0
+
     base_df['theme'] = base_df['theme'].astype(str).str.strip()
     base_df['name'] = base_df['name'].astype(str).str.strip()
-    base_df['rate'] = base_df['rate'].astype(float)
+    base_df['rate'] = pd.to_numeric(base_df['rate'], errors='coerce').fillna(0.0).astype(float)
 
     # 🎯 [형님 전략 장착] 지정한 주도 대장주 리스트만 야후 파이낸스에서 1초 만에 스캔
     try:
@@ -137,6 +154,7 @@ def load_and_sync_live_data():
 
 raw_df, status_df = load_and_sync_live_data()
 update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty else time.strftime('%H:%M:%S')
+
 # -------------------------------------------------------------------------
 # 2. 📊 상단 타이틀 및 상위 5개 테마 스코어보드 표출 영역
 # -------------------------------------------------------------------------
