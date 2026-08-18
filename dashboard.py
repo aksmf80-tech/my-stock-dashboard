@@ -185,6 +185,8 @@ if "selected_theme_click" not in st.session_state:
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
+# 📌 기존 파일의 'with left_layout:' 구역부터 맨 밑바닥까지 전부 지우고 이 아래를 붙여넣으세요.
+
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
@@ -218,9 +220,45 @@ with left_layout:
                 try:
                     p_target = points_list[0]
                     if "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
+                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
                     elif "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "point_number" in p_target:
                         c_idx = p_target["point_number"]
                         if c_idx < len(top_25_themes):
+                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[c_idx]
+                except Exception:
+                    pass
+    else:
+        st.info("테마 데이터를 로드하는 중입니다...")
+
+with right_layout:
+    chosen_theme = str(st.session_state.selected_theme_click).strip()
+    st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
+    
+    right_sub_cols = st.columns(2)
+    
+    final_stock_list = []
+    theme_detail_df = pd.DataFrame()
+    if 'theme' in raw_df.columns:
+        theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
+        
+    if not theme_detail_df.empty:
+        theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
+        for _, row in theme_detail_df.head(26).iterrows():
+            final_stock_list.append((row['name'], row['rate']))
+    else:
+        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
+        
+    for idx, (s_name, s_rate) in enumerate(final_stock_list[:26]):
+        rate_sign = "+" if s_rate >= 0 else ""
+        with right_sub_cols[idx % 2]:
+            st.button(f"▪️ {s_name} ({rate_sign}{s_rate}%)", key=f"stock_btn_26_final_{idx}_{s_name}", use_container_width=True)
+
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    st.cache_data.clear()
+    st.rerun()
