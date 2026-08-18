@@ -4,195 +4,149 @@ import numpy as np
 import plotly.express as px
 import os
 import time
+import yfinance as yf
 
 # =========================================================================
 # 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정 (6px 매니큐어 바 고정)
 # =========================================================================
 st.set_page_config(
-    page_title="1분 연동 핀업 스타일 주식 테마 대시보드",
+    page_title="1분 라이브 야후 연동 주식 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 st.markdown("""
     <style>
-    .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
+    .block-container { padding-top: 2.5rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
-    hr { margin: 0.4rem 0 !important; }
+    hr { margin: 0.5rem 0 !important; }
     
     .dashboard-title {
         margin: 0 !important;
         padding: 0 !important;
-        font-size: 24px !important;
+        font-size: 26px !important;
         color: #F8FAFC !important;
-        margin-bottom: 0.8rem !important;
+        font-weight: 800 !important;
     }
     
-    [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
-    [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
+    [data-testid="stMetricLabel"] { font-size: 16px !important; font-weight: 700 !important; color: #94A3B8 !important; }
+    [data-testid="stMetricValue"] { font-size: 28px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 🔺 상승 종목 버튼 왼쪽 테두리에만 6px 두께 강렬한 레드 매니큐어 바 주입 (사이즈 변동 0%) */
-    div[data-testid="stHorizontalBlock"] button[key^="up_btn_"] {
+    /* 🔺 상승 종목 전용 매니큐어 바 스타일 컴포넌트 */
+    .stock-box-up {
         border-left: 6px solid #EF4444 !important;
-        border-top: 1px solid #1E293B !important;
-        border-right: 1px solid #1E293B !important;
-        border-bottom: 1px solid #1E293B !important;
-        background-color: #0F172A !important;
+        background-color: #1E293B !important;
+        padding: 8px 12px !important;
+        border-radius: 4px !important;
+        margin-bottom: 6px !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
-    div[data-testid="stHorizontalBlock"] button[key^="up_btn_"] p {
-        color: #FF6B6B !important;
-        font-weight: bold !important;
-    }
+    .stock-name-up { color: #FFF !important; font-weight: 700 !important; font-size: 14px !important; }
+    .stock-rate-up { color: #F87171 !important; font-weight: 800 !important; font-size: 14px !important; }
     
-    /* 🔹 하락 종목 버튼 왼쪽 테두리에만 6px 두께 시원한 블루 매니큐어 바 주입 (사이즈 변동 0%) */
-    div[data-testid="stHorizontalBlock"] button[key^="down_btn_"] {
-        border-left: 6px solid #2563EB !important;
-        border-top: 1px solid #1E293B !important;
-        border-right: 1px solid #1E293B !important;
-        border-bottom: 1px solid #1E293B !important;
-        background-color: #0F172A !important;
+    /* 🔹 하락 종목 전용 매니큐어 바 스타일 컴포넌트 */
+    .stock-box-down {
+        border-left: 6px solid #3B82F6 !important;
+        background-color: #1E293B !important;
+        padding: 8px 12px !important;
+        border-radius: 4px !important;
+        margin-bottom: 6px !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
-    div[data-testid="stHorizontalBlock"] button[key^="down_btn_"] p {
-        color: #64B5FF !important;
-        font-weight: bold !important;
-    }
+    .stock-name-down { color: #FFF !important; font-weight: 700 !important; font-size: 14px !important; }
+    .stock-rate-down { color: #60A5FA !important; font-weight: 800 !important; font-size: 14px !important; }
     
-    /* 히트맵 글자 중앙 정렬 보정 */
+    /* 트리맵 내부 텍스트 중앙 홀딩 보정 */
     g.treemaptext text {
         text-anchor: middle !important;
         dominant-baseline: central !important;
     }
     </style>
 """, unsafe_allow_html=True)
-
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (1분 장중 무한 실시간 동기화 데이터 풀)
+# 1. 📂 데이터 로드 및 정제 구역 (4,115개 뼈대 완벽 연동 + 야후 1분 주가 쪼기)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-BACKUP_STOCK_POOL = {
-    "대북/남북경협": [
-        ("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24),
-        ("부산산업", 18.50), ("제이에스티나", 15.30), ("신원", 12.10), ("재영솔루텍", 9.80),
-        ("아난티", 8.40), ("현대로템", 7.15), ("한일현대시멘트", 5.20), ("쌍용C&E", 4.10),
-        ("성신양회", 3.85), ("특수건설", 2.10), ("우원개발", 1.45), ("남광토건", -0.80),
-        ("삼부토건", -1.20), ("동아지질", -2.50), ("서암기계공업", -3.10), ("대호에이엘", -4.20),
-        ("일성건설", 3.40), ("범양건영", -0.90), ("동신건설", 1.20), ("신원우", 2.55),
-        ("서희건설", 0.45), ("남화토건", -1.10)
-    ],
-    "반도체 후공정": [
-        ("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12),
-        ("네패스", 2.85), ("에스에프에이", 2.10), ("엘비세미콘", 1.45), ("두산테스나", 0.90),
-        ("시그네틱스", -0.40), ("윈팩", -1.15), ("에이팩트", -2.30), ("티에스이", -3.50),
-        ("고영", 3.20), ("피에스케이", 1.15), ("인텍플러스", -0.95), ("제우스", 2.40),
-        ("에이디테크", 4.12), ("넥스틴", 1.35), ("테크윙", -0.70), ("프로텍", -1.25),
-        ("디아이", 3.10), ("에스티아이", 0.90), ("오로스테크", -2.15), ("아이엠티", 1.10),
-        ("큐알티", 2.30), ("두산", -0.40)
-    ],
-    "시스템 반도체": [
-        ("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45),
-        ("가온칩스", 8.30), ("오픈엣지테크놀로지", 7.15), ("에이디테크놀로지", 5.40), ("텔레칩스", 3.10),
-        ("칩스앤미디어", 2.20), ("넥스트칩", 1.10), ("코아시아", -0.80), ("알파홀딩스", -2.40),
-        ("SFA반도체", 4.20), ("어보브반도체", 1.85), ("제주반도체", -1.10), ("픽셀플러스", 0.50),
-        ("텔레칩스", 1.20), ("앤씨앤", -0.30), ("자람테크", 5.10), ("에이직랜드", 3.40),
-        ("파두", -4.10), ("크라우드웍스", 2.20), ("퀄리타스", -1.10), ("시지트로닉스", 0.85),
-        ("라온텍", -2.40), ("고영", 1.15)
-    ],
-    "수소차": [
-        ("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("대우부품", 1.30),
-        ("두산퓨어셀", 8.90), ("에스퓨어셀", 6.30), ("상아프론테크", 3.10), ("유니크", 1.85),
-        ("평화산업", -1.40), ("평화홀딩스", 2.20), ("엔케이", 0.95), ("지엠비코리아", -0.80),
-        ("일진다이아", 2.45), ("코오롱플라", -1.15), ("제이엔케이히터", 3.10), ("풍국주정", 1.25),
-        ("모토닉", -0.40), ("미코", 2.80), ("성창오토텍", -1.10), ("시노펙스", 4.30),
-        ("뉴인텍", -3.20), ("삼보모터스", 1.15), ("동양피스톤", -0.90), ("에코바이오", 2.45),
-        ("영화테크", -1.40), ("코오롱머티리얼", 0.00)
-    ],
-    "전기차 부품": [
-        ("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20), ("상신이디피", 5.40),
-        ("삼기", 3.15), ("엠에스오토텍", 2.10), ("우수AMS", -1.10), ("명신산업", -2.85),
-        ("아진산업", 3.40), ("구영테크", 0.95), ("대유에이텍", -1.20), ("영화테크", 2.15),
-        ("계양전기", 1.40), ("화신", -0.55), ("성우하이텍", 4.10), ("한on시스템", -1.25),
-        ("우리산업", 2.30), ("대유플러스", -3.10), ("모베이스전자", 1.15), ("티에스이엔", -0.90),
-        ("상신브레이크", 0.40), ("평화정공", 1.85), ("코다코", -2.40), ("디아이씨", 3.10),
-        ("대원강업", -0.85), ("두올", 1.20)
-    ],
-    "로봇": [
-        ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15),
-        ("티보로보틱스", 2.80), ("유진로봇", 1.45), ("로보스타", -0.90), ("스맥", -2.35),
-        ("휴림로봇", 4.10), ("에브리봇", -1.50), ("로보로보", 0.85), ("디엔에이치", 2.30),
-        ("푸른기술", 1.70), ("싸이맥스", -0.45), ("아진엑스텍", 3.20), ("티피씨글로벌", -1.10),
-        ("큐렉소", 4.85), ("미래컴퍼니", -2.40), ("티로보틱스", 1.30), ("해성티피씨", -3.15),
-        ("삼익THK", 0.95), ("퍼스텍", 2.10), ("대동기어", -1.40), ("우림피티에스", 3.55),
-        ("이랜시스", 12.40), ("코윈테크", -0.80)
-    ],
-    "제약/바이오": [
-        ("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30), ("HLB", 9.45),
-        ("유한양행", 4.20), ("한미약품", 2.15), ("SK바이오팜", -1.10), ("제일약품", -3.40),
-        ("대웅제약", 1.85), ("종근당", 0.95), ("녹십자", -1.40), ("동국제약", 2.10),
-        ("한올바이오", 5.30), ("신풍제약", -2.15), ("보령", 1.10), ("광동제약", -0.45),
-        ("삼진제약", 0.80), ("부광약품", -1.30), ("영진약품", 2.45), ("일양약품", -3.10),
-        ("동화약품", 0.95), ("안국약품", 1.20), ("경동제약", -0.80), ("조아제약", 4.15),
-        ("현대약품", -1.25), ("화일약품", 2.30)
-    ]
+# 🎯 장중에 실시간으로 주가를 쪼아와 뼈대에 주입할 핵심 주도주 매핑 리스트입니다.
+# (필요한 핵심 대장주들을 이 리스트 형식에 맞춰 언제든 추가/수정하실 수 있습니다.)
+LIVE_TICKER_MAP = {
+    "삼성전자": "005930.KS", "SK하이닉스": "000660.KS", "한미반도체": "042700.KS", 
+    "레인보우로보틱스": "277810.KQ", "두산로보틱스": "454910.KS", "현대차": "005380.KS",
+    "에코프로비엠": "247540.KQ", "엘앤에프": "066970.KQ", "알테오젠": "196170.KQ", 
+    "HLB": "028300.KQ", "유한양행": "000100.KS", "코데즈컴바인": "047770.KQ",
+    "두산퓨어셀": "336260.KS", "가온칩스": "399720.KQ", "리노공업": "058470.KQ"
 }
 
-# 🎯 [동적 가속화 패치] 대시보드 새로고침 시 5초 동안만 로컬 캐싱하고, 
-# 1분 단위 st.rerun 타이밍마다 야후 최신 CSV 맥박을 실시간으로 강제 강수 흡수합니다.
 @st.cache_data(ttl=5)
-def load_market_data():
+def load_and_sync_live_data():
+    # [뼈대 확보] 깃허브 레포지토리에 심겨있는 4,115개 마스터 데이터 로드
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
         base_df.columns = [str(col).strip().lower() for col in base_df.columns]
         base_df = base_df.rename(columns={
-            '테마': 'theme', 'theme': 'theme',
-            '종목명': 'name', 'name': 'name',
-            '시장구분': 'market', 'market': 'market',
-            '종목코드': 'code', 'code': 'code',
+            '테마': 'theme', 'theme': 'theme', 
+            '종목명': 'name', 'name': 'name', 
             '등락률': 'rate', 'rate': 'rate'
         })
     else:
+        # 베이스 파일이 유실되었을 때를 대비한 안전 장치용 임시 기틀
         sample_rows = []
-        for theme, stocks in BACKUP_STOCK_POOL.items():
-            for name, rate in stocks:
-                sample_rows.append({'theme': theme, 'name': name, 'rate': rate})
+        for t in ["대북/남북경협", "반도체 후공정", "시스템 반도체", "수소차", "전기차 부품", "로봇", "제약/바이오"]:
+            sample_rows.append({'theme': t, 'name': '삼성전자', 'rate': 0.0})
         base_df = pd.DataFrame(sample_rows)
-        
-    if 'rate' not in base_df.columns:
-        for col in base_df.columns:
-            if '등락' in col or 'rate' in col:
-                base_df = base_df.rename(columns={col: 'rate'})
-    if 'rate' not in base_df.columns:
-        base_df['rate'] = np.random.uniform(-15, 30, size=len(base_df)).round(2)
-        
-    if 'theme' in base_df.columns:
-        base_df['theme'] = base_df['theme'].astype(str).str.strip()
 
-    if os.path.exists(STATUS_FILE) and os.path.getsize(STATUS_FILE) > 0:
-        status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
-        if '테마' in status_df.columns:
-            status_df['테마'] = status_df['테마'].astype(str).str.strip()
-    else:
-        current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
-        status_df = pd.DataFrame({
-            '테마': ['대북/남북경협', '반도체 후공정', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오'],
-            '등락률': [24.75, 16.37, -11.09, -13.62, -13.36, -14.47, -14.78],
-            '화면크기_가중치': [35.0, 28.0, 20.0, 18.0, 15.0, 12.0, 10.0],
-            '업데이트시간': [current_time_str] * 7
-        })
+    base_df['theme'] = base_df['theme'].astype(str).str.strip()
+    base_df['name'] = base_df['name'].astype(str).str.strip()
+    base_df['rate'] = base_df['rate'].astype(float)
+
+    # 🎯 [형님 전략 장착] 지정한 주도 대장주 리스트만 야후 파이낸스에서 1초 만에 스캔
+    try:
+        tickers_to_fetch = list(LIVE_TICKER_MAP.values())
+        yahoo_data = yf.download(" ".join(tickers_to_fetch), period="1d", interval="1m", progress=False)
         
+        # 1분 마다 받아온 야후 라이브 등락률을 4,115개 마스터 뼈대 데이터에 실시간 오버라이드
+        for stock_name, ticker in LIVE_TICKER_MAP.items():
+            if ticker in yahoo_data['Close'].columns:
+                close_series = yahoo_data['Close'][ticker].dropna()
+                if len(close_series) >= 2:
+                    c_rate = round(((close_series.iloc[-1] - close_series.iloc[0]) / close_series.iloc[0]) * 100, 2)
+                    # 뼈대 데이터 내의 일치하는 종목 등락률을 진짜 실시간 1분 주가로 치환!
+                    base_df.loc[base_df['name'] == stock_name, 'rate'] = c_rate
+    except Exception:
+        pass # 장외 시간이거나 가벼운 통신 지연 시 기존 깃허브 마스터 정산 파일 수치 유지
+
+    # [테마 스코어 자동 연산] 종목들의 변동을 즉각 반영해 실시간 테마 평균 지수 연산
+    agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
+    status_df = pd.DataFrame({
+        '테마': agg_df['theme'],
+        '등락률': agg_df['rate'].round(2),
+        '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
+        '업데이트시간': [time.strftime('%Y-%m-%d %H:%M:%S')] * len(agg_df)
+    })
+    
+    # 등락률이 높은 주도 테마 순서대로 칼정렬 셰이핑
+    status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
+    
     return base_df, status_df
 
-raw_df, status_df = load_market_data()
-
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
-
+raw_df, status_df = load_and_sync_live_data()
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty else time.strftime('%H:%M:%S')
+# -------------------------------------------------------------------------
+# 2. 📊 상단 타이틀 및 상위 5개 테마 스코어보드 표출 영역
+# -------------------------------------------------------------------------
 title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
-    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 1분 무한 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#38BDF8; font-size:12px; font-weight:bold;'>🔄 뼈대 연동 + 1분 야후 맥박 동기화: {update_time}</p>", unsafe_allow_html=True)
 
+# 실시간 등락률이 높은 상위 5개 테마 메트릭 전광판 자동 표출
 theme_cols = st.columns(5)
 for i in range(min(5, len(status_df))):
     t_name = status_df['테마'].iloc[i]
@@ -208,15 +162,15 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
 
-left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
+# 左右 스플릿 레이아웃 설정
+left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
+
+# 🗺️ 왼쪽 영역: 실시간 테마 히트맵 배치 구역
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
-    if not top_25_themes.empty and '테마' in top_25_themes.columns:
-        if '등락률' in top_25_themes.columns:
-            top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
-            
+    if not top_25_themes.empty:
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -226,64 +180,52 @@ with left_layout:
             color_continuous_midpoint=0,
             custom_data=['테마']
         )
-        
         fig.update_traces(
             texttemplate="<b>%{label}</b>",
-            textfont=dict(size=18, color="white"),
+            textfont=dict(size=16, color="white"),
             textposition="middle center"
         )
-        
-        fig.update_layout(
-            margin=dict(t=2, b=2, l=2, r=2), 
-            height=520,
-            treemapcolorway=["#1E293B"]
-        )
+        fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=520)
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
-                try:
-                    p_target = points_list[0]
-                    if "label" in p_target and p_target["label"]:
-                        st.session_state.selected_theme_click = str(p_target["label"]).strip()
-                    elif "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
-                except Exception:
-                    pass
-    else:
-        st.info("테마 데이터를 로드하는 중입니다...")
+                p_target = points_list[0]
+                if "label" in p_target and p_target["label"]:
+                    st.session_state.selected_theme_click = str(p_target["label"]).strip()
 
+# 🗂️ 오른쪽 영역: 클릭한 테마의 실시간 소속 종목 표출 구역
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
     
-    right_sub_cols = st.columns(2)
-    
     final_stock_list = []
-    theme_detail_df = pd.DataFrame()
-    if 'theme' in raw_df.columns:
-        theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
-        
+    theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
+    
     if not theme_detail_df.empty:
         for _, row in theme_detail_df.iterrows():
             final_stock_list.append((row['name'], float(row['rate'])))
-    else:
-        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
-        
+            
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
+    # 🎯 형님이 지적하신 튜플 정렬 로직 완벽 고정 (등락률 실수 값 기준 칼정렬)
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
     st.markdown("#### 🔺 상승 종목")
     if up_stocks:
         up_cols = st.columns(2)
-        for u_idx, (s_name, s_rate) in enumerate(up_stocks[:13]):
+        for u_idx, (s_name, s_rate) in enumerate(up_stocks[:14]):
             with up_cols[u_idx % 2]:
-                st.button(f"🔺 {s_name} (+{s_rate}%)", key=f"up_btn_{u_idx}_{s_name}", use_container_width=True)
+                st.markdown(f"""
+                    <div class='stock-box-up'>
+                        <span class='stock-name-up'>🔺 {s_name}</span>
+                        <span class='stock-rate-up'>+{s_rate}%</span>
+                    </div>
+                """, unsafe_allow_html=True)
     else:
         st.text("상승 종목이 없습니다.")
         
@@ -292,14 +234,19 @@ with right_layout:
     st.markdown("#### 🔹 하락 종목")
     if down_stocks:
         down_cols = st.columns(2)
-        for d_idx, (s_name, s_rate) in enumerate(down_stocks[:13]):
+        for d_idx, (s_name, s_rate) in enumerate(down_stocks[:14]):
             with down_cols[d_idx % 2]:
-                st.button(f"🔹 {s_name} ({s_rate}%)", key=f"down_btn_{d_idx}_{s_name}", use_container_width=True)
+                st.markdown(f"""
+                    <div class='stock-box-down'>
+                        <span class='stock-name-down'>🔹 {s_name}</span>
+                        <span class='stock-rate-down'>{s_rate}%</span>
+                    </div>
+                """, unsafe_allow_html=True)
     else:
         st.text("하락 종목이 없습니다.")
 
 # =========================================================================
-# 🎯 [대혁신] 사용자가 F5를 안 눌러도 60초마다 화면이 스스로 재부팅되는 내부 자동 타이머 구역
+# 🎯 [60초 자가 재부팅 엔진] 사용자가 손대지 않아도 1분 마다 화면을 갱신해 야후 라이브 맥박을 유도합니다.
 # =========================================================================
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
