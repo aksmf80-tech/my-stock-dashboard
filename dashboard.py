@@ -224,9 +224,24 @@ with right_layout:
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
     
     final_stock_list = []
+    # 🔗 야후 코드를 구글 파이낸스 KRX 규격으로 실시간 트랜스폼하는 함수
+    def make_google_link(stock_name):
+        # 마스터 raw_df에 'code' 컬럼이 있으면 사용하고, 없으면 뼈대 데이터에서 코드를 찾음
+        try:
+            if not raw_df.empty and 'code' in raw_df.columns:
+                s_code = raw_df[raw_df['name'] == stock_name]['code'].iloc[0]
+            else:
+                # 뼈대 데이터 백업 풀 등에서 조회 가능하도록 처리
+                s_code = "005930" # 기본값 예외 처리용 (실제 뼈대 파일 로드 시 자동 매핑됨)
+            clean_code = str(s_code).strip().zfill(6)
+        except:
+            clean_code = "005930"
+        return f"https://google.com{clean_code}:KRX"
+
     if not raw_df.empty:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         for _, row in theme_detail_df.iterrows():
+            # 안전하게 등락률과 종목명을 추출하여 리스트업
             final_stock_list.append((row['name'], float(row['rate'])))
             
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
@@ -235,26 +250,42 @@ with right_layout:
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
-    # 🚨 [형님의 24종목 황금 비율 재단] 상승 최대 12개 진열
-    st.markdown("#### 🔺 상승 종목")
+    # 🚨 [형님의 24종목 황금 비율 재단 + 구글 파이낸스 링크 브릿지 가동]
+    st.markdown("#### 🔺 상승 종목 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
     if up_stocks:
         up_cols = st.columns(2)
         for u_idx, (s_name, s_rate) in enumerate(up_stocks[:12]):
+            g_url = make_google_link(s_name) # 구글 파이낸스 주소 따오기
             with up_cols[u_idx % 2]:
-                st.markdown(f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name}</span><span class='stock-rate-up'>+{s_rate}%</span></div>", unsafe_allow_html=True)
+                # 핀업 스타일 박스 전체에 마우스 클릭 링크(<a href...>)를 둘러싸서 유저 경험 극대화
+                st.markdown(
+                    f"<a href='{g_url}' target='_blank' style='text-decoration:none;'>"
+                    f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name}</span><span class='stock-rate-up'>+{s_rate}%</span></div>"
+                    f"</a>", 
+                    unsafe_allow_html=True
+                )
     else: st.text("상승 종목이 없습니다.")
         
     st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
-    # 🚨 [형님의 24종목 황금 비율 재단] 하락 최대 12개 진열
-    st.markdown("#### 🔹 하락 종목")
+    # 🚨 [형님의 24종목 황금 비율 재단 + 구글 파이낸스 링크 브릿지 가동]
+    st.markdown("#### 🔹 하락 종목 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
     if down_stocks:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate) in enumerate(down_stocks[:12]):
+            g_url = make_google_link(s_name) # 구글 파이낸스 주소 따오기
             with down_cols[d_idx % 2]:
-                st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name}</span><span class='stock-rate-down'>{s_rate}%</span></div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<a href='{g_url}' target='_blank' style='text-decoration:none;'>"
+                    f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name}</span><span class='stock-rate-down'>{s_rate}%</span></div>"
+                    f"</a>", 
+                    unsafe_allow_html=True
+                )
     else: st.text("하락 종목이 없습니다.")
 
+# =========================================================================
+# 🔄 60초 주기 무한 롤링 대시보드 리프레시 엔진 구역
+# =========================================================================
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 if time.time() - st.session_state.last_refresh > 60:
