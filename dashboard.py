@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🎯 [디자인 개편] 우측 종목 카드를 핀업 특유의 강렬한 빨강/파랑 전광판 이펙트로 튜닝하는 CSS
+# 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
 st.markdown("""
     <style>
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
@@ -32,7 +32,7 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 🎯 눈에 확 띄는 빨강/파랑 전광판 카드 스타일링 (와이드 퍼짐 및 허전함 방지) */
+    /* 🎨 우측 소속 종목 카드 콤팩트 전광판 이펙트 디자인 */
     .pinup-card {
         padding: 12px 16px;
         margin: 5px 0;
@@ -57,7 +57,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (🎯 대장주 백업 풀 데이터 30개 스케일로 대폭 확장)
+# 1. 📂 데이터 로드 및 정제 구역 (최대 30개 규모 백업 데이터 풀 확장 탑재)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
@@ -90,11 +90,11 @@ BACKUP_STOCK_POOL = {
     ],
     "로봇": [
         ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15),
-        ("티보보틱스", 2.80), ("유진로봇", 1.45), ("로보스타", -0.90), ("스맥", -2.35)
+        ("티보로보틱스", 2.80), ("유진로봇", 1.45), ("로보스타", -0.90), ("스맥", -2.35)
     ],
     "제약/바이오": [
         ("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30), ("HLB", 9.45),
-        ("유한양행", 4.20), ("한미약품", 2.15), ("SK바이오팜", -1.10), ("전진바이오", -3.40)
+        ("유한양행", 4.20), ("한미약품", 2.15), ("SK바이오팜", -1.10), ("제일약품", -3.40)
     ]
 }
 
@@ -205,8 +205,7 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 클릭 정보 트래킹 센서
-        if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
+        if chart_res and "selection" in chart_res Glen and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
@@ -229,16 +228,15 @@ with right_layout:
     
     right_sub_cols = st.columns(2)
     
-    # 출력용 통합 주식 배열 리스트 확보
     final_stock_list = []
-    
     theme_detail_df = pd.DataFrame()
     if 'theme' in raw_df.columns:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
     if not theme_detail_df.empty:
         theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
-        # 🎯 [수정 조치 2] 실데이터 수집 시 최대 30개까지 종목을 긁어오도록 범위 확장
         for _, row in theme_detail_df.head(30).iterrows():
             final_stock_list.append((row['name'], row['rate']))
     else:
+        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
+        
