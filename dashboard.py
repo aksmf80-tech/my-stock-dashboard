@@ -9,12 +9,12 @@ import time
 # 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정
 # =========================================================================
 st.set_page_config(
-    page_title="핀업 스타일 주식 테마 대시보드",
+    page_title="구글 파이낸스 스타일 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
+# 상단 타이틀 간격 및 5대 지표 글자 크기 대폭 스케일 업 CSS
 st.markdown("""
     <style>
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
@@ -32,7 +32,6 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 히트맵 글자 중앙 정렬 보정 */
     g.treemaptext text {
         text-anchor: middle !important;
         dominant-baseline: central !important;
@@ -41,12 +40,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (🎯 대장주 백업 풀 14개 스케일 확장)
+# 1. 📂 데이터 로드 및 정제 구역 (🎯 구글 파이낸스 매핑 대치 풀)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-# 실시간 파일 공백 시 자동 매핑될 14대 대장주 수량 보강 풀
+# 구글 파이낸스 수집 엔진 스펙과 대칭을 이루는 국내 핵심 14대 대장주 뼈대 풀
 BACKUP_STOCK_POOL = {
     "대북/남북경협": [
         ("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24),
@@ -70,7 +69,7 @@ BACKUP_STOCK_POOL = {
         ("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("대우부품", 1.30),
         ("두산퓨어셀", 8.90), ("에스퓨어셀", 6.30), ("상아프론테크", 3.10), ("유니크", 1.85),
         ("평화산업", -1.40), ("평화홀딩스", 2.20), ("엔케이", 0.95), ("지엠비코리아", -0.80),
-        ("일진다이아", 2.45), ("코오롱플라", -1.15)
+        ("일진다이아", 2.45), ("코오롱플라스틱", -1.15)
     ],
     "전기차 부품": [
         ("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20), ("상신이디피", 5.40),
@@ -97,11 +96,10 @@ def load_market_data():
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
         base_df.columns = [str(col).strip().lower() for col in base_df.columns]
+        # 구글 파이낸스 수집 필드명에 완벽 동기화 매핑
         base_df = base_df.rename(columns={
             '테마': 'theme', 'theme': 'theme',
             '종목명': 'name', 'name': 'name',
-            '시장구분': 'market', 'market': 'market',
-            '종목코드': 'code', 'code': 'code',
             '등락률': 'rate', 'rate': 'rate'
         })
     else:
@@ -215,7 +213,7 @@ with left_layout:
     else:
         st.info("테마 데이터를 로드하는 중입니다...")
 
-# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (🎯 최대 14개로 명밀 조율) ---
+# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (최대 14개 완결) ---
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -229,13 +227,14 @@ with right_layout:
         
     if not theme_detail_df.empty:
         theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
-        # 🎯 최대 14개 종목 추출 리미트 반영
         for _, row in theme_detail_df.head(14).iterrows():
             final_stock_list.append((row['name'], row['rate']))
     else:
         final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
         
-    # 🎯 기억1 본연의 깔끔한 순정 버튼 포맷으로 14개 그리드 분할 표출
+    # 들여쓰기 공백을 완벽 정렬하여 버튼 컴포넌트 14개 안정적 출력
     for idx, (s_name, s_rate) in enumerate(final_stock_list[:14]):
         rate_sign = "+" if s_rate >= 0 else ""
         with right_sub_cols[idx % 2]:
+            st.button(f"▪️ {s_name} ({rate_sign}{s_rate}%)", key=f"stock_btn_google_14_{idx}_{s_name}", use_container_width=True)
+
