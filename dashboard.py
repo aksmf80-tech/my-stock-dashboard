@@ -215,12 +215,15 @@ with left_layout:
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
-                try:
-                    p_target = points_list
+                            try:
+                    p_target = points_list[0]
                     if "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
+                        st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
                     elif "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "point_number" in p_target:
                         c_idx = p_target["point_number"]
                         if c_idx < len(top_25_themes):
+                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[c_idx]
+                except Exception as e:
+                    pass
