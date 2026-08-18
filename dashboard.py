@@ -41,20 +41,55 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역
+# 1. 📂 데이터 로드 및 정제 구역 (🎯 대장주 백업 풀 14개 스케일 확장)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-# 실시간 파일 공백 시 자동 매핑될 순정 4대 대장주 백업 풀
+# 실시간 파일 공백 시 자동 매핑될 14대 대장주 수량 보강 풀
 BACKUP_STOCK_POOL = {
-    "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
-    "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
-    "시스템 반도체": [("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45)],
-    "수소차": [("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("대우부품", 1.30)],
-    "전기차 부품": [("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20), ("상신이디피", 5.40)],
-    "로봇": [("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15)],
-    "제약/바이오": [("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30), ("HLB", 9.45)]
+    "대북/남북경협": [
+        ("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24),
+        ("부산산업", 18.50), ("제이에스티나", 15.30), ("신원", 12.10), ("재영솔루텍", 9.80),
+        ("아난티", 8.40), ("현대로템", 7.15), ("한일현대시멘트", 5.20), ("쌍용C&E", 4.10),
+        ("성신양회", 3.85), ("특수건설", 2.10)
+    ],
+    "반도체 후공정": [
+        ("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12),
+        ("네패스", 2.85), ("에스에프에이", 2.10), ("엘비세미콘", 1.45), ("두산테스나", 0.90),
+        ("시그네틱스", -0.40), ("윈팩", -1.15), ("에이팩트", -2.30), ("티에스이", -3.50),
+        ("고영", 3.20), ("피에스케이", 1.15)
+    ],
+    "시스템 반도체": [
+        ("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45),
+        ("가온칩스", 8.30), ("오픈엣지테크놀로지", 7.15), ("에이디테크놀로지", 5.40), ("텔레칩스", 3.10),
+        ("칩스앤미디어", 2.20), ("넥스트칩", 1.10), ("코아시아", -0.80), ("알파홀딩스", -2.40),
+        ("SFA반도체", 4.20), ("어보브반도체", 1.85)
+    ],
+    "수소차": [
+        ("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("대우부품", 1.30),
+        ("두산퓨어셀", 8.90), ("에스퓨어셀", 6.30), ("상아프론테크", 3.10), ("유니크", 1.85),
+        ("평화산업", -1.40), ("평화홀딩스", 2.20), ("엔케이", 0.95), ("지엠비코리아", -0.80),
+        ("일진다이아", 2.45), ("코오롱플라", -1.15)
+    ],
+    "전기차 부품": [
+        ("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20), ("상신이디피", 5.40),
+        ("삼기", 3.15), ("엠에스오토텍", 2.10), ("우수AMS", -1.10), ("명신산업", -2.85),
+        ("아진산업", 3.40), ("구영테크", 0.95), ("대유에이텍", -1.20), ("영화테크", 2.15),
+        ("계양전기", 1.40), ("화신", -0.55)
+    ],
+    "로봇": [
+        ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15),
+        ("티보로보틱스", 2.80), ("유진로봇", 1.45), ("로보스타", -0.90), ("스맥", -2.35),
+        ("휴림로봇", 4.10), ("에브리봇", -1.50), ("로보로보", 0.85), ("디엔에이치", 2.30),
+        ("푸른기술", 1.70), ("싸이맥스", -0.45)
+    ],
+    "제약/바이오": [
+        ("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30), ("HLB", 9.45),
+        ("유한양행", 4.20), ("한미약품", 2.15), ("SK바이오팜", -1.10), ("제일약품", -3.40),
+        ("대웅제약", 1.85), ("종근당", 0.95), ("녹십자", -1.40), ("동국제약", 2.10),
+        ("한올바이오", 5.30), ("신풍제약", -2.15)
+    ]
 }
 
 @st.cache_data(ttl=5)
@@ -106,7 +141,7 @@ raw_df, status_df = load_market_data()
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
 # =========================================================================
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
 with title_col:
@@ -131,9 +166,8 @@ st.markdown("---")
 # =========================================================================
 top_25_themes = status_df.head(25).copy()
 
-# 🎯 [버그 영구 제거] iloc 뒤에 [0]을 정확히 붙여 인덱서 객체가 튀어나오는 문법 오류를 완벽하게 고쳤습니다.
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = str(top_25_themes['테마'].iloc[0]).strip() if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
@@ -148,11 +182,11 @@ with left_layout:
             color='등락률',             
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
-            custom_data=['테마']
+            custom_data=['등락률']
         )
         
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br>%{color:.2f}%",
+            texttemplate="<b>%{label}</b><br>%{customdata:.2f}%",
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
@@ -165,26 +199,23 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [클릭 파싱 고정] 외계어 문자열 변환 필터링 방어선 구축
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    first_point = points_list[0]
-                    if "customdata" in first_point and first_point["customdata"]:
-                        st.session_state.selected_theme_click = str(first_point["customdata"][0]).strip()
-                    elif "label" in first_point and first_point["label"]:
+                    first_point = points_list
+                    if "label" in first_point:
                         st.session_state.selected_theme_click = str(first_point["label"]).strip()
                     elif "point_number" in first_point:
                         clicked_index = first_point["point_number"]
                         if clicked_index < len(top_25_themes):
-                            st.session_state.selected_theme_click = str(top_25_themes['테마'].iloc[clicked_index]).strip()
+                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[clicked_index]
                 except Exception:
                     pass
     else:
         st.info("테마 데이터를 로드하는 중입니다...")
 
-# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (오리지널 복원 완결) ---
+# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (🎯 최대 14개로 명밀 조율) ---
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -198,24 +229,13 @@ with right_layout:
         
     if not theme_detail_df.empty:
         theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
+        # 🎯 최대 14개 종목 추출 리미트 반영
         for _, row in theme_detail_df.head(14).iterrows():
             final_stock_list.append((row['name'], row['rate']))
     else:
         final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
         
-    # 복구 마감: 에러 없이 실시간으로 칼동기화되는 순정 버튼 레이아웃 출력
-    for idx, (s_name, s_rate) in enumerate(final_stock_list):
+    # 🎯 기억1 본연의 깔끔한 순정 버튼 포맷으로 14개 그리드 분할 표출
+    for idx, (s_name, s_rate) in enumerate(final_stock_list[:14]):
         rate_sign = "+" if s_rate >= 0 else ""
         with right_sub_cols[idx % 2]:
-            st.button(f"▪️ {s_name} ({rate_sign}{s_rate}%)", key=f"stock_btn_fixed_final_{idx}_{s_name}", use_container_width=True)
-
-# =========================================================================
-# 5. ⏱️ 세션 타이머 제어
-# =========================================================================
-if "last_refresh" not in st.session_state:
-    st.session_state.last_refresh = time.time()
-
-if time.time() - st.session_state.last_refresh > 60:
-    st.session_state.last_refresh = time.time()
-    st.cache_data.clear()
-    st.rerun()
