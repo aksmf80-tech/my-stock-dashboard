@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import datetime
 import time
+import os
 
 def get_naver_data():
     """
@@ -42,12 +43,12 @@ def get_naver_data():
                 
                 # 네이버 테마 테이블의 올바른 데이터 행 컬럼 수는 보통 7~8개입니다.
                 if len(cols) >= 6:
-                    theme_tag = cols[0].find("a")
+                    theme_tag = cols[0].find("a") # 0번 인덱스에서 테마 태그 탐색
                     
                     if theme_tag and "themeId=" in theme_tag.get('href', ''):
                         theme_name = theme_tag.text.strip()
                         
-                        # 🎯 [수정 1] 실제 테마 등락률은 cols[1] 칸의 텍스트에 들어있습니다.
+                        # 🎯 [정밀 정정] 실제 테마 등락률은 1번 인덱스 칸의 텍스트에 들어있습니다.
                         rate_text = cols[1].text.strip()
                         rate_text = rate_text.replace('%', '').replace('+', '').replace(' ', '').replace('\n', '').replace('\t', '')
                         
@@ -56,15 +57,15 @@ def get_naver_data():
                         except ValueError:
                             continue
                             
-                        # 🎯 [수정 2] 해당 행 내부(cols[0]~cols[3])가 아닌, 3구역(cols[5])에 배치된 실제 테마 내 대장 종목을 가져옵니다.
+                        # 🎯 [정밀 정정] 5번 인덱스(3구역)에 배치된 실제 테마 내 대장 종목을 정확하게 맵핑합니다.
                         stock_name = "종목 정보 없음"
                         if len(cols) > 5:
                             stock_tag = cols[5].find("a")
                             if stock_tag:
                                 stock_name = stock_tag.text.strip()
                         
-                        # 예외 방어: 만약 데이터를 정상적으로 추출했다면 리스트에 추가
-                        if theme_name and stock_name != "종목 정보 없음":
+                        # 데이터를 완벽하게 추출한 경우에만 리스트에 추가
+                        if theme_name and stock_name != "종목 정보 없음" and theme_name != "":
                             themes.append(theme_name)
                             stocks.append(stock_name)
                             rates.append(rate)
@@ -88,7 +89,7 @@ def get_naver_data():
     
     df = pd.DataFrame(data)
     
-    # 🎯 [수정 3] 주도력 기준 정렬 후 상위 15개 추출 (중복 제거 포함)
+    # 🎯 중복 제거 및 주도력 기준 상위 15개 테마 추출
     df = df.drop_duplicates(subset=['테마'])
     df['정렬용'] = df['등락률'].abs()
     df = df.sort_values(by="정렬용", ascending=False).head(15).drop(columns=['정렬용'])
@@ -96,13 +97,20 @@ def get_naver_data():
 
 if __name__ == "__main__":
     print("🚀 GitHub Actions 수집기 기동...")
+    DATA_FILE = "theme_data.csv"
     try:
         df = get_naver_data()
         
         if df is not None and not df.empty:
-            df.to_csv("theme_data.csv", index=False, encoding="utf-8-sig")
-            print("🎉 [성공] theme_data.csv 갱신 완료!")
-            print(df.head(5)) # 로그로 상위 5개 데이터 미리보기 출력
+            # 🎯 [버그 해결] 기존에 꼬여있던 쓰레기 데이터를 완전히 지워버리기 위해 파일을 강제 삭제 후 재생성합니다.
+            if os.path.exists(DATA_FILE):
+                os.remove(DATA_FILE)
+                print("🗑️ 기존 꼬여있던과거 CSV 파일을 완전히 삭제했습니다.")
+                
+            # 완전히 깨끗해진 상태에서 새 데이터만 기록합니다.
+            df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
+            print("🎉 [성공] 완전히 새로운 테마 데이터로 갱신 완료!")
+            print(df.head(5)) # 로그 출력으로 데이터 정상 변동 확인
         else:
             print("⚠️ 수집된 데이터가 없습니다.")
             
