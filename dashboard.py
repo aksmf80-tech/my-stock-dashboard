@@ -217,20 +217,15 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [버그 완전 박멸] 데이터 채널을 'label'과 'customdata' 채널 모두에서 다중 크로스 체크하여 
-        # 마우스로 누르는 즉시 테마명이 100% 한글로 연동되도록 정교하게 교정했습니다.
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    p_target = points_list[0]
+                    p_target = points_list
                     if "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "customdata" in p_target and p_target["customdata"]:
-                        if isinstance(p_target["customdata"], list):
-                            st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
-                        else:
-                            st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
+                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
                 except Exception:
                     pass
     else:
@@ -256,15 +251,21 @@ with right_layout:
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
-    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
+    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
     
+    # 🎯 상승/하락 버튼 컴포넌트 내부에 렉이 전혀 없는 강렬한 테두리 인라인 스타일(Style) 팩 적용
     st.markdown("#### 🔺 상승 종목")
     if up_stocks:
         up_cols = st.columns(2)
         for u_idx, (s_name, s_rate) in enumerate(up_stocks[:13]):
             with up_cols[u_idx % 2]:
+                st.markdown(
+                    f'<div style="border: 2px solid #EF4444; border-radius: 8px; padding: 1px; margin-bottom: 4px;">', 
+                    unsafe_allow_html=True
+                )
                 st.button(f"🔺 {s_name} (+{s_rate}%)", key=f"up_btn_fixed_{u_idx}_{s_name}", use_container_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.text("상승 종목이 없습니다.")
         
@@ -275,7 +276,12 @@ with right_layout:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate) in enumerate(down_stocks[:13]):
             with down_cols[d_idx % 2]:
+                st.markdown(
+                    f'<div style="border: 2px solid #3B82F6; border-radius: 8px; padding: 1px; margin-bottom: 4px;">', 
+                    unsafe_allow_html=True
+                )
                 st.button(f"🔹 {s_name} ({s_rate}%)", key=f"down_btn_fixed_{d_idx}_{s_name}", use_container_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.text("하락 종목이 없습니다.")
 
