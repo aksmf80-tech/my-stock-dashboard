@@ -190,6 +190,9 @@ left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
+        if '등락률' in top_25_themes.columns:
+            top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
+            
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -197,11 +200,11 @@ with left_layout:
             color='등락률',             
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
-            custom_data=['테마']
+            custom_data=['테마', '등락률']
         )
         
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br>%{color:.2f}%",
+            texttemplate="<b>%{label}</b><br>%{customdata[1]:.2f}%",
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
@@ -220,7 +223,7 @@ with left_layout:
                 try:
                     p_target = points_list[0]
                     if "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
+                        st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
                     elif "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "point_number" in p_target:
@@ -236,8 +239,6 @@ with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
     
-    right_sub_cols = st.columns(2)
-    
     final_stock_list = []
     theme_detail_df = pd.DataFrame()
     if 'theme' in raw_df.columns:
@@ -245,15 +246,35 @@ with right_layout:
         
     if not theme_detail_df.empty:
         theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
-        for _, row in theme_detail_df.head(26).iterrows():
+        for _, row in theme_detail_df.iterrows():
             final_stock_list.append((row['name'], row['rate']))
     else:
         final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
         
-    for idx, (s_name, s_rate) in enumerate(final_stock_list[:26]):
-        rate_sign = "+" if s_rate >= 0 else ""
-        with right_sub_cols[idx % 2]:
-            st.button(f"▪️ {s_name} ({rate_sign}{s_rate}%)", key=f"stock_btn_26_final_{idx}_{s_name}", use_container_width=True)
+    # 🎯 실시간 상승 종목과 하락 종목 필터링 분리
+    up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
+    down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
+    
+    # 🔺 1단계: 상승 종목 파트 출력 (최대 13개 리미트)
+    st.markdown("<p style='margin:0; padding:2px; font-weight:bold; color:#F87171; font-size:15px;'>🔺 상승 종목</p>", unsafe_allow_html=True)
+    if up_stocks:
+        up_cols = st.columns(2)
+        for u_idx, (s_name, s_rate) in enumerate(up_stocks[:13]):
+            with up_cols[u_idx % 2]:
+                st.button(f"▪️ {s_name} (+{s_rate}%)", key=f"up_btn_{u_idx}_{s_name}", use_container_width=True)
+    else:
+        st.text("상승 종목이 없습니다.")
+        
+    st.markdown("<p style='margin:0; padding-top:10px; padding-bottom:2px; font-weight:bold; color:#60A5FA; font-size:15px;'>🔻 하락 종목</p>", unsafe_allow_html=True)
+    
+    # 🔻 2단계: 하락 종목 파트 출력 (최대 13개 리미트)
+    if down_stocks:
+        down_cols = st.columns(2)
+        for d_idx, (s_name, s_rate) in enumerate(down_stocks[:13]):
+            with down_cols[d_idx % 2]:
+                st.button(f"▪️ {s_name} ({s_rate}%)", key=f"down_btn_{d_idx}_{s_name}", use_container_width=True)
+    else:
+        st.text("하락 종목이 없습니다.")
 
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
