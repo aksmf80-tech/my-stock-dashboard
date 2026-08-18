@@ -22,8 +22,8 @@ st.markdown("""
     
     /* 타이틀 마진 축소 */
     h1 {
-        margin-top: 10px !important;
-        margin-bottom: 30px !important;
+        margin-top: 15px !important;
+        margin-bottom: 15px !important;
         font-size: 36px !important;
     }
 
