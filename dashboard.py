@@ -14,11 +14,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🎯 [레이아웃 대수술] 짤림을 막기 위해 상단 패딩(padding-top)을 2.5rem으로 넉넉히 확보하여 아래로 내림
+# 🎯 [레이아웃 조정] 상단 바에 가려지는 현상을 완벽 차단하기 위해 padding-top을 3.8rem으로 전격 확대
 st.markdown("""
     <style>
-    /* 상단 지표가 짤리지 않도록 padding-top 여백을 2.5rem으로 확장 */
-    .block-container { padding-top: 2.5rem !important; padding-bottom: 0.5rem !important; }
+    /* 상단 5단 지표가 메뉴바 아래로 완전히 내려오도록 여백을 3.8rem으로 추가 확장 */
+    .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
@@ -66,7 +66,7 @@ def load_market_data():
             '반도체 후공정': [('한미반도체', 14.20), ('리노공업', 5.12), ('이오테크닉스', 3.45)],
             '시스템 반도체': [('삼성전자', -1.20), ('SK하이닉스', -2.50), ('DB하이텍', 0.85)],
             '수소차': [('현대차', 2.10), ('일진하이솔루스', -0.50)],
-            '전기차 부품': [('에코프로비엠', 4.35), ('엘앤에프', -3.10)],
+            '전기차 부품': [('エ코프로비엠', 4.35), ('엘앤에프', -3.10)],
             '로봇': [('레인보우로보틱스', 8.90), ('두산로보틱스', 11.20)],
             '제약/바이오': [('삼성바이오로직스', -0.80), ('셀트리온', 1.50)]
         }
@@ -98,9 +98,9 @@ def load_market_data():
 raw_df, status_df = load_market_data()
 
 # =========================================================================
-# 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5 (여백 하향 조정 완료)
+# 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5 (여백 대폭 확보)
 # =========================================================================
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
 with title_col:
@@ -127,7 +127,7 @@ top_25_themes = status_df.head(25).copy()
 
 # 세션 상태 클릭 초기값 선언
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
 
 # 핵심 공간 분할 (왼쪽 공간과 오른쪽 공간을 가로 배치)
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
@@ -136,6 +136,7 @@ left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
+        # 🎯 [에러 버그 전면 제거 완료] 
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -145,11 +146,9 @@ with left_layout:
             color_continuous_midpoint=0      
         )
         
-        # 🎯 [NaN% 원인 수정] 수치 대입 문법을 Plotly 표준인 %{customdata[0]} 방식으로 우회 치환하여 NaN 에러 완벽 해결
-        fig.update_scalars = False
-        fig.data[0].customdata = np.column_stack([top_25_themes['등락률']])
+        # 🎯 포맷 문자열 정상 바인딩을 통해 수치가 완벽히 표출되도록 고정
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br><b>%{customdata[0]:.2f}%</b>",
+            texttemplate="<b>%{label}</b><br><b>%{color:.2f}%</b>",
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
@@ -168,7 +167,7 @@ with left_layout:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    first_point = points_list[0]
+                    first_point = points_list
                     if "point_number" in first_point:
                         clicked_index = first_point["point_number"]
                         if clicked_index < len(top_25_themes):
