@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🎯 [수정 조치] Plotly 트리맵 내부의 글자를 강제로 정중앙 정렬하고 키우는 CSS 추가
+# 핀업 스타일의 다크 테마 및 테이블 너비 100% 강제 적용 CSS
 st.markdown("""
     <style>
     .block-container { padding-top: 1.5rem; padding-bottom: 1.5rem; }
@@ -109,19 +109,22 @@ if not top_25_themes.empty and '테마' in top_25_themes.columns and '화면크�
         color_continuous_midpoint=0      
     )
     
-    # 🎯 [수정 완결] 에러를 내던 미지원 옵션을 빼고 트리맵 전용 정렬 옵션으로 대체
     fig.update_traces(
         texttemplate="<b>%{label}</b><br>%{color:.2f}%",
-        textfont=dict(size=22, color="white"), # 글자 크기 시원하게 22px로 확장
+        textfont=dict(size=22, color="white"), 
     )
     
-    # 레이아웃 단에서 글자 위치 강제 지정 속성 부여
+    # 🎯 [수정 조치] 가로폭 대응을 위해 높이를 380px -> 500px로 약 30% 이상 전격 확대!
     fig.update_layout(
         margin=dict(t=5, b=5, l=5, r=5), 
-        height=380,
+        height=500,
         treemapcolorway=["#1E293B"]
     )
-    st.plotly_chart(fig, use_container_width=True)
+    
+    # 🎯 [수정 조치] 좌우가 너무 퍼지는 것을 막기 위해 0.5 : 9 : 0.5 비율로 양옆에 여백 배치
+    side_space1, center_map, side_space2 = st.columns([0.5, 9.0, 0.5])
+    with center_map:
+        st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("테마 상태 데이터를 읽어오는 중입니다.")
 
