@@ -2,7 +2,9 @@ name: Naver Stock Data Crawler
 
 on:
   schedule:
-    - cron: '*/10 0-6 * * 1-5'
+    # 🎯 한국 시간(KST) 오전 8시 50분에 딱 한 번 시동을 겁니다.
+    # UTC 기준으로는 오후 11시 50분 (월~금 작동)
+    - cron: '50 23 * * 0-4'
   workflow_dispatch:
 
 jobs:
@@ -18,21 +20,33 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 🎯 [핵심 교정 1] 라이브러리 설치는 설치만 깔끔하게 끝내도록 분리합니다.
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas plotly yfinance beautifulsoup4 requests streamlit
+          pip install pandas beautifulsoup4 requests
 
-      # 🎯 [핵심 교정 2] 딴짓하지 않고 오직 주식 수집기 파일만 순수하게 가동시킵니다.
-      - name: Run Crawler Engine
-        run: python fetch_data.py
-
-      # 🎯 [핵심 교정 3] 생성된 데이터의 이름표를 정품 규격인 theme_data.csv로 박아 강제 푸시합니다.
-      - name: Commit and Force Push Changes
+      # 🎯 [실시간 강제 가동 엔지니어링]
+      # 크론에 맡기지 않고, 리눅스 서버 내부 스크립트로 장 마감까지 1분마다 무한 반복 수집 및 푸시를 실행합니다.
+      - name: Run Realtime Crawler Loop
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@://github.com"
-          git add theme_data.csv
-          git commit -m "🔄 [글로벌 해방] 정품 테마 데이터 실시간 전면 갱신 완료" || echo "No changes"
-          git push origin main --force
+          for i in {1..400}
+          do
+            echo "🔄 실시간 수집 사이클 가동 중 ($i 번째 갱신)..."
+            
+            # 1. 수집기 엔진 실행 (theme_data.csv 갱신)
+            python fetch_data.py
+            
+            # 2. 변경된 파일이 있으면 깃허브에 즉시 커밋 및 푸시
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add theme_data.csv
+            
+            # 변경사항이 있을 때만 푸시하여 서버 충돌 방지
+            if ! git diff --cached --quiet; then
+              git commit -m "🔄 [실시간 전면 갱신] 장중 데이터 동기화 완료 (타임스탬프 자동)"
+              git push origin main --force
+            fi
+            
+            # 3. 🎯 정밀 60초(1분) 대기 후 다음 수집으로 토스
+            sleep 60
+          done
