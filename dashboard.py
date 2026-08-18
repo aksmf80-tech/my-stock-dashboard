@@ -200,11 +200,11 @@ with left_layout:
             color='등락률',             
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
-            custom_data=['테마', '등락률']
+            custom_data=['테마']
         )
         
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br>%{customdata:.2f}%",
+            texttemplate="<b>%{label}</b>",
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
@@ -215,21 +215,19 @@ with left_layout:
             treemapcolorway=["#1E293B"]
         )
         
+        # 🎯 순정 클릭 센서 신호 연동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
+        # 🎯 [연동 잠금 영구 격파] 외계어 인덱서 충돌을 완전히 피하고 순수 텍스트 라벨만 안전하게 추출하는 알고리즘 고정
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    p_target = points_list
-                    if "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
-                    elif "label" in p_target and p_target["label"]:
+                    p_target = points_list[0]
+                    if "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
-                    elif "point_number" in p_target:
-                        c_idx = p_target["point_number"]
-                        if c_idx < len(top_25_themes):
-                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[c_idx]
+                    elif "customdata" in p_target and p_target["customdata"]:
+                        st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
                 except Exception:
                     pass
     else:
@@ -238,6 +236,8 @@ with left_layout:
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
+    
+    right_sub_cols = st.columns(2)
     
     final_stock_list = []
     theme_detail_df = pd.DataFrame()
@@ -254,25 +254,24 @@ with right_layout:
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
-    # 🎯 [인코딩 교정] 글씨가 깨지던 HTML 태그를 버리고, 순정 마크다운 볼드체 가이드 주입
     st.markdown("#### 🔺 상승 종목")
     if up_stocks:
         up_cols = st.columns(2)
         for u_idx, (s_name, s_rate) in enumerate(up_stocks[:13]):
             with up_cols[u_idx % 2]:
-                st.button(f"▪️ {s_name} (+{s_rate}%)", key=f"up_btn_{u_idx}_{s_name}", use_container_width=True)
+                st.button(f"🔺 {s_name} (+{s_rate}%)", key=f"up_btn_fixed_{u_idx}_{s_name}", use_container_width=True)
     else:
         st.text("상승 종목이 없습니다.")
         
     st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
-    # 🎯 [인코딩 교정] 하락 종목 타이틀 글씨 깨짐 방지 마크다운 주입
-    st.markdown("#### 🔻 하락 종목")
+    # 🎯 [요청 사양 반영] 하락 종목의 타이틀과 내부 버튼 아이콘을 모두 파란색 화살표(🔹)로 완벽 체인지!
+    st.markdown("#### 🔹 하락 종목")
     if down_stocks:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate) in enumerate(down_stocks[:13]):
             with down_cols[d_idx % 2]:
-                st.button(f"▪️ {s_name} ({s_rate}%)", key=f"down_btn_{d_idx}_{s_name}", use_container_width=True)
+                st.button(f"🔹 {s_name} ({s_rate}%)", key=f"down_btn_fixed_{d_idx}_{s_name}", use_container_width=True)
     else:
         st.text("하락 종목이 없습니다.")
 
@@ -283,4 +282,3 @@ if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
     st.rerun()
-
