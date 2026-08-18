@@ -32,23 +32,6 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 🎨 우측 소속 종목 카드 콤팩트 디자인 */
-    .stock-card {
-        background-color: #1E293B;
-        border-left: 5px solid #EF4444;
-        padding: 12px 14px;
-        margin: 5px 0;
-        border-radius: 6px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-    }
-    .stock-name { font-size: 15px; font-weight: bold; color: #F8FAFC; }
-    .stock-rate { font-size: 15px; font-weight: bold; }
-    .rate-up { color: #F87171; }
-    .rate-down { color: #60A5FA; }
-    
     /* 히트맵 글자 중앙 정렬 보정 */
     g.treemaptext text {
         text-anchor: middle !important;
@@ -63,6 +46,7 @@ st.markdown("""
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
+# 💡 실시간 유실 대비용 하드웨어 7대 대장주 백업 풀 데이터셋
 BACKUP_STOCK_POOL = {
     "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
     "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
@@ -122,7 +106,7 @@ raw_df, status_df = load_synchronized_market_data()
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
 # =========================================================================
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
 title_col, time_col = st.columns(2)
 with title_col:
@@ -148,7 +132,7 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
@@ -178,23 +162,16 @@ with left_layout:
             treemapcolorway=["#1E293B"]
         )
         
-        # 순정 인터랙션 리런 센서 가동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [클릭 잠금 해제 핵심 수술] 
-        # Streamlit 데이터 패키지인 'selection' -> 'points' 리스트 구조 내부를 
-        # 정밀 검사하여 클릭된 테마 이름을 정확히 도출해내는 로직으로 튜닝을 완료했습니다.
+        # 클릭 정보 정밀 인덱싱 트래킹 센서
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    # 리스트의 첫 번째 원소(클릭한 박스의 정보 딕셔너리)를 가져옵니다.
                     first_point = points_list[0]
-                    
-                    # 1순위: 딕셔너리 내부의 고유 라벨명 직접 낚아채기
                     if "label" in first_point:
                         st.session_state.selected_theme_click = str(first_point["label"]).strip()
-                    # 2순위: 딕셔너리에 인덱스 번호만 넘어왔을 때 테이블 역추적 마운트
                     elif "point_number" in first_point:
                         clicked_index = first_point["point_number"]
                         if clicked_index < len(top_25_themes):
@@ -211,33 +188,36 @@ with right_layout:
     
     right_sub_cols = st.columns(2)
     
+    # 원본 파일에서 클릭한 테마 필터링
     theme_detail_df = pd.DataFrame()
     if 'theme' in raw_df.columns:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
+    # 출력용 통합 주식 배열 리스트 확보
+    final_stock_list = []
+    
     if not theme_detail_df.empty:
         theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
-        for idx, row in theme_detail_df.head(14).iterrows():
-            s_name = row['name']
-            s_rate = row['rate']
-            rate_class = "rate-up" if s_rate >= 0 else "rate-down"
-            rate_sign = "+" if s_rate >= 0 else ""
-            
-            with right_sub_cols[idx % 2]:
-                st.markdown(f"""
-                    <div class="stock-card">
-                        <span class="stock-name">▪️ {s_name}</span>
-                        <span class="stock-rate {rate_class}">{rate_sign}{s_rate}%</span>
-                    </div>
-                """, unsafe_allow_html=True)
+        for _, row in theme_detail_df.head(14).iterrows():
+            final_stock_list.append((row['name'], row['rate']))
     else:
-        # 파일 수집 공백 상황이나 클릭 매핑 누락 시 즉각 대응하는 하드웨어 백업 풀 동기화 레이어
-        active_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
-        for idx, (s_name, s_rate) in enumerate(active_list):
-            rate_class = "rate-up" if s_rate >= 0 else "rate-down"
-            rate_sign = "+" if s_rate >= 0 else ""
-            
-            with right_sub_cols[idx % 2]:
-                st.markdown(f"""
-                    <div class="stock-card">
-                        <span class="stock-name">▪️ {s_name}</span>
+        # 🎯 [백업 동기화 완결] 파일 꼬임 시 하드웨어 백업 데이터셋 자동 매핑 연동
+        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
+        
+    # 🎯 [대혁신] 에러를 내던 지저분한 HTML 따옴표 블록을 완전히 파괴하고 순정 st.button(또는 st.metric) 스타일 카드로 전면 교체
+    for idx, (s_name, s_rate) in enumerate(final_stock_list):
+        rate_sign = "+" if s_rate >= 0 else ""
+        with right_sub_cols[idx % 2]:
+            # 📌 문법이 절대 깨지지 않는 무결점 순정 지표 카드 배치 완료
+            st.button(f"▪️ {s_name} ({rate_sign}{s_rate}%)", key=f"stock_btn_{idx}_{s_name}", use_container_width=True)
+
+# =========================================================================
+# 5. ⏱️ 세션 타이머 제어
+# =========================================================================
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    st.cache_data.clear()
+    st.rerun()
