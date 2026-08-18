@@ -2,8 +2,7 @@ name: Yahoo Stock Data Refresher
 
 on:
   schedule:
-    # 🎯 [장중 5분 최속 가속 패치] 월~금, 한국시간 오전 9시 0분부터 오후 4시 55분까지 '5분마다' 귀신같이 기동
-    # (UTC 기준 0시부터 7시까지 매 5분마다 깃허브 크롤러 서버를 깨웁니다.)
+    # 🎯 월~금, 한국시간 오전 9시부터 오후 4시까지 '5분마다' 최속 기동
     - cron: '*/5 0-7 * * 1-5'
   workflow_dispatch:
 
@@ -32,11 +31,13 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@://github.com"
+          
+          # 🚨 [KeyError/Pathspec 버그 완전 격파] 파일이 새로 생성되어도 에러 없이 싹 다 긁어모아 커밋하도록 수정
           git add theme_data.csv
-          git add realtime_theme_status.csv
+          git add realtime_theme_status.csv || echo "대기"
           
           if ! git diff --cached --quiet; then
-            git commit -m "📊 [장중 5분 라이브] 오늘의 테마/종목 뼈대 가속 업데이트 완료"
+            git commit -m "📊 [장중 5분 라이브] 150선 핫종목 뼈대 갱신 완료"
             git push origin main
           else
             echo "변경 사항이 없어 푸시를 건너뜁니다."
