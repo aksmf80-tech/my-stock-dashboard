@@ -204,7 +204,7 @@ with left_layout:
         )
         
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br>%{customdata[1]:.2f}%",
+            texttemplate="<b>%{label}</b><br>%{customdata:.2f}%",
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
@@ -221,9 +221,9 @@ with left_layout:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    p_target = points_list[0]
+                    p_target = points_list
                     if "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
+                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
                     elif "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "point_number" in p_target:
@@ -251,12 +251,11 @@ with right_layout:
     else:
         final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
         
-    # 🎯 실시간 상승 종목과 하락 종목 필터링 분리
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
-    # 🔺 1단계: 상승 종목 파트 출력 (최대 13개 리미트)
-    st.markdown("<p style='margin:0; padding:2px; font-weight:bold; color:#F87171; font-size:15px;'>🔺 상승 종목</p>", unsafe_allow_html=True)
+    # 🎯 [인코딩 교정] 글씨가 깨지던 HTML 태그를 버리고, 순정 마크다운 볼드체 가이드 주입
+    st.markdown("#### 🔺 상승 종목")
     if up_stocks:
         up_cols = st.columns(2)
         for u_idx, (s_name, s_rate) in enumerate(up_stocks[:13]):
@@ -265,9 +264,10 @@ with right_layout:
     else:
         st.text("상승 종목이 없습니다.")
         
-    st.markdown("<p style='margin:0; padding-top:10px; padding-bottom:2px; font-weight:bold; color:#60A5FA; font-size:15px;'>🔻 하락 종목</p>", unsafe_allow_html=True)
+    st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
-    # 🔻 2단계: 하락 종목 파트 출력 (최대 13개 리미트)
+    # 🎯 [인코딩 교정] 하락 종목 타이틀 글씨 깨짐 방지 마크다운 주입
+    st.markdown("#### 🔻 하락 종목")
     if down_stocks:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate) in enumerate(down_stocks[:13]):
@@ -283,3 +283,4 @@ if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
     st.rerun()
+
