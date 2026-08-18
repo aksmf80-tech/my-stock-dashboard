@@ -170,8 +170,23 @@ def load_market_data():
         
     return base_df, status_df
 
+# [앞선 1번 CSS 설정 및 2번 데이터 로드(load_market_data) 구역은 동일하게 유지됩니다]
+
 raw_df, status_df = load_market_data()
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+
+# 🔗 구글 파이낸스 링크 변환 함수
+def make_google_link_v2(stock_name):
+    try:
+        if not raw_df.empty and 'code' in raw_df.columns:
+            s_code = raw_df[raw_df['name'] == stock_name]['code'].iloc[0]
+        else:
+            # 뼈대 데이터나 코드 수동 매핑 백업
+            s_code = "005930" if stock_name == "삼성전자" else "000660"
+        return f"https://google.com{str(s_code).strip().zfill(6)}:KRX"
+    except:
+        return "https://google.com005930:KRX"
+
 # =========================================================================
 # 2. 📊 상단 메트릭 전광판 및 레이아웃 출력 구역
 # =========================================================================
@@ -181,6 +196,7 @@ with title_col:
 with time_col:
     st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 1분 무한 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
+# 1층: 테마 톱5 전광판
 theme_cols = st.columns(5)
 for i in range(min(5, len(status_df))):
     t_name = status_df['테마'].iloc[i]
@@ -191,6 +207,43 @@ for i in range(min(5, len(status_df))):
 
 st.markdown("---")
 
+# 🚨 [형님의 핵심 피드백] 2층: 삼성전자 & SK하이닉스 2대장 상시 고정 전광판 개설!
+st.markdown("### 🏛️ 시장 주도 마스터 보드 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
+master_cols = st.columns(2)
+
+for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
+    # 마스터 CSV 데이터프레임에서 실시간 가격/등락률 파싱
+    m_rate = 0.0
+    if not raw_df.empty and 'name' in raw_df.columns:
+        target_row = raw_df[raw_df['name'] == m_name]
+        if not target_row.empty:
+            m_rate = float(target_row['rate'].iloc[0])
+            
+    m_url = make_google_link_v2(m_name)
+    
+    with master_cols[idx]:
+        if m_rate >= 0:
+            st.markdown(
+                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
+                f"<div class='stock-box-up' style='padding: 14px 20px !important; border-left: 8px solid #EF4444 !important;'>"
+                f"<span class='stock-name-up' style='font-size:18px !important;'>🏛️ {m_name}</span>"
+                f"<span class='stock-rate-up' style='font-size:20px !important; font-weight:900;'>+{m_rate}%</span>"
+                f"</div></a>", 
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"<a href='{m_url}' target='_blank' style='text-decoration:none;'>"
+                f"<div class='stock-box-down' style='padding: 14px 20px !important; border-left: 8px solid #3B82F6 !important;'>"
+                f"<span class='stock-name-down' style='font-size:18px !important;'>🏛️ {m_name}</span>"
+                f"<span class='stock-rate-down' style='font-size:20px !important; font-weight:900;'>{m_rate}%</span>"
+                f"</div></a>", 
+                unsafe_allow_html=True
+            )
+
+st.markdown("---")
+
+# 3층: 좌축 히트맵 / 우측 소속 종목 쪼개기 레이아웃
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
@@ -209,7 +262,6 @@ with left_layout:
         fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
         fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=520)
         
-        # 🚨 [가장 중요한 클릭 이벤트 전달 링크 정품 복원 고정]
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
@@ -224,24 +276,9 @@ with right_layout:
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
     
     final_stock_list = []
-    # 🔗 야후 코드를 구글 파이낸스 KRX 규격으로 실시간 트랜스폼하는 함수
-    def make_google_link(stock_name):
-        # 마스터 raw_df에 'code' 컬럼이 있으면 사용하고, 없으면 뼈대 데이터에서 코드를 찾음
-        try:
-            if not raw_df.empty and 'code' in raw_df.columns:
-                s_code = raw_df[raw_df['name'] == stock_name]['code'].iloc[0]
-            else:
-                # 뼈대 데이터 백업 풀 등에서 조회 가능하도록 처리
-                s_code = "005930" # 기본값 예외 처리용 (실제 뼈대 파일 로드 시 자동 매핑됨)
-            clean_code = str(s_code).strip().zfill(6)
-        except:
-            clean_code = "005930"
-        return f"https://google.com{clean_code}:KRX"
-
     if not raw_df.empty:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         for _, row in theme_detail_df.iterrows():
-            # 안전하게 등락률과 종목명을 추출하여 리스트업
             final_stock_list.append((row['name'], float(row['rate'])))
             
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
@@ -250,14 +287,12 @@ with right_layout:
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
-    # 🚨 [형님의 24종목 황금 비율 재단 + 구글 파이낸스 링크 브릿지 가동]
     st.markdown("#### 🔺 상승 종목 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
     if up_stocks:
         up_cols = st.columns(2)
         for u_idx, (s_name, s_rate) in enumerate(up_stocks[:12]):
-            g_url = make_google_link(s_name) # 구글 파이낸스 주소 따오기
+            g_url = make_google_link_v2(s_name)
             with up_cols[u_idx % 2]:
-                # 핀업 스타일 박스 전체에 마우스 클릭 링크(<a href...>)를 둘러싸서 유저 경험 극대화
                 st.markdown(
                     f"<a href='{g_url}' target='_blank' style='text-decoration:none;'>"
                     f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name}</span><span class='stock-rate-up'>+{s_rate}%</span></div>"
@@ -268,12 +303,11 @@ with right_layout:
         
     st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
-    # 🚨 [형님의 24종목 황금 비율 재단 + 구글 파이낸스 링크 브릿지 가동]
     st.markdown("#### 🔹 하락 종목 <span style='font-size:12px; color:#94A3B8; font-weight:normal;'>(클릭 시 구글차트 이동)</span>", unsafe_allow_html=True)
     if down_stocks:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate) in enumerate(down_stocks[:12]):
-            g_url = make_google_link(s_name) # 구글 파이낸스 주소 따오기
+            g_url = make_google_link_v2(s_name)
             with down_cols[d_idx % 2]:
                 st.markdown(
                     f"<a href='{g_url}' target='_blank' style='text-decoration:none;'>"
@@ -282,6 +316,9 @@ with right_layout:
                     unsafe_allow_html=True
                 )
     else: st.text("하락 종목이 없습니다.")
+
+# [하단 60초 무한 동력 캐시 클리어 및 st.rerun() 루틴 유지]
+
 
 # =========================================================================
 # 🔄 60초 주기 무한 롤링 대시보드 리프레시 엔진 구역
