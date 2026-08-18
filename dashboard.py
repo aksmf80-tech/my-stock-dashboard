@@ -61,32 +61,29 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (🎯 캐시명 전면 교체로 무조건 강제 초기화)
+# 1. 📂 데이터 로드 및 정제 구역
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
 @st.cache_data(ttl=5)
-def load_synchronized_market_data():  # 💡 옛날 캐시 쓰레기를 강제 거부하기 위해 함수 이름 변경 완료!
+def load_synchronized_market_data():
     # 1. 종목 및 등락률 데이터 결합 및 가공
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
         base_df.columns = [str(col).strip().lower() for col in base_df.columns]
         base_df = base_df.rename(columns={'테마': 'theme', '종목명': 'name', '시장': 'market', '종목코드': 'code', '등락률': 'rate'})
     else:
-        # 💡 [KeyError 완벽 방어] 소문자 필터를 타더라도 무조건 통과되도록 이중으로 안전장치 구축
         mock_stocks = {
             'theme': ['대북/남북경협', '대북/남북경협', '반도체 후공정', '시스템 반도체', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오'],
             'name': ['코데즈컴바인', '좋은사람들', '한미반도체', '삼성전자', '코데즈컴바인', '현대차', '에코프로비엠', '레인보우로보틱스', '셀트리온'],
-            'rate': [30.00, 30.00, 14.20, -1.20, 25.40, 2.10, 4.35, 8.90, 1.50],
-            'theme': ['대북/남북경협', '대북/남북경협', '반도체 후공정', '시스템 반도체', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오']
+            'rate': [30.00, 30.00, 14.20, -1.20, 25.40, 2.10, 4.35, 8.90, 1.50]
         }
         base_df = pd.DataFrame(mock_stocks)
         
     if 'rate' not in base_df.columns:
         base_df['rate'] = np.random.uniform(-15, 30, size=len(base_df)).round(2)
         
-    # 'theme' 문자열 안전 필터링 실행
     if 'theme' in base_df.columns:
         base_df['theme'] = base_df['theme'].astype(str).str.strip()
 
@@ -106,7 +103,6 @@ def load_synchronized_market_data():  # 💡 옛날 캐시 쓰레기를 강제 �
         
     return base_df, status_df
 
-# 💡 신형 함수 호출로 변수 꽂아넣기
 raw_df, status_df = load_synchronized_market_data()
 
 # =========================================================================
@@ -146,19 +142,20 @@ left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
+        # 🎯 [에러 완벽 조치] custom_data 파라미터에 '등락률'을 공식 주입하여 AttributeError 원천 제거
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
             values='화면크기_가중치',    
             color='등락률',             
             color_continuous_scale='RdBu_r',  
-            color_continuous_midpoint=0      
+            color_continuous_midpoint=0,
+            custom_data=['등락률']  # 📌 공식 데이터 채널로 등록
         )
         
-        # 정밀 보완 완료된 무결점 데이터 슬롯 매핑
-        fig.data.customdata = top_25_themes['등락률']
+        # 🎯 등록된 customdata[0] 슬롯을 매핑하여 실제 수치 완벽 출력 고정
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br>%{customdata:.2f}%",
+            texttemplate="<b>%{label}</b><br>%{customdata[0]:.2f}%",
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
@@ -175,7 +172,7 @@ with left_layout:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    first_point = points_list
+                    first_point = points_list[0]
                     if "point_number" in first_point:
                         clicked_index = first_point["point_number"]
                         if clicked_index < len(top_25_themes):
