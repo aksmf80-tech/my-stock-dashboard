@@ -27,6 +27,9 @@ if df is None or df.empty or not all(col in df.columns for col in required_cols)
     st.warning("📊 현재 표시할 주식 데이터 형식이 올바르지 않거나 데이터가 없습니다. 장이 열리면 자동으로 갱신됩니다.")
     st.stop()
 
+# 💡 [핵심 교정 1] 특정 급등 테마의 화면 독점을 막기 위해 모든 테마 사각형의 크기를 동일하게 고정합니다.
+df['화면크기_고정'] = 10 
+
 # 🛠️ 마이너스 등락률로 인한 트리맵 붕괴 막기 (면적용 절댓값 계산)
 df['등락률_절댓값'] = df['등락률'].abs().apply(lambda x: max(x, 0.1))
 
@@ -55,8 +58,8 @@ current_theme = st.selectbox(
 fig = px.treemap(
     df, 
     path=['테마'], 
-    values='등락률_절댓값', 
-    color='등락률',
+    values='화면크기_고정',  # 💡 [핵심 교정 2] 등락률_절댓값 대신 고정값을 지정하여 15개 테마가 균등하게 다 노출되도록 강제합니다.
+    color='등락률',        # 🎨 색상 강도는 등락률 수치 그대로 추적하여 급등주는 새빨갛게 표시됩니다.
     color_continuous_scale='RdBu_r', 
     hover_data=['종목명']
 )
