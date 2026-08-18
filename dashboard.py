@@ -8,27 +8,24 @@ from datetime import datetime, timedelta
 # ⚠️ set_page_config는 반드시 최상단에 고정되어야 합니다.
 st.set_page_config(layout="wide")
 
-# 🎯 [보호색 버그 완전 파괴] 표 내부의 글자와 숫자를 무조건 밝은 순백색과 형광색으로 강제 발광시킵니다!
+# 🎯 [투명인간 버그 완전 파괴] st.table 전용 글자 강제 백색 코팅 CSS 주입
 st.markdown("""
     <style>
-    /* 데이터프레임 표 내부의 모든 텍스트와 숫자를 강제로 흰색 볼드체로 고정 */
-    .stDataFrame div [data-testid="stTable"] td {
+    /* 순수 데이터 표(st.table) 내부의 모든 종목명과 숫자를 무조건 찬란한 흰색 왕글씨로 고정 */
+    table {
         color: #FFFFFF !important;
+        font-size: 24px !important;
+        font-weight: bold !important;
+        width: 100% !important;
+    }
+    thead tr th {
+        color: #FFD700 !important; /* 표 헤더 제목 컬럼은 황금색 강조 */
         font-size: 22px !important;
         font-weight: bold !important;
-        background-color: #1E1E1E !important; /* 표 배경을 어둡게 주어 글자가 대비되도록 배치 */
     }
-    /* 표 헤더(제목 행) 글자 스타일 지정 */
-    .stDataFrame div [data-testid="stTable"] th {
-        color: #FFD700 !important; /* 헤더는 황금색 강조 */
-        font-size: 20px !important;
-        font-weight: bold !important;
-    }
-    /* 선택 상자 및 라벨 글자 크기 강조 */
-    .stSelectbox label p {
-        font-size: 20px !important;
-        font-weight: bold !important;
-        color: #FFD700 !important;
+    tbody tr td {
+        color: #FFFFFF !important;
+        background-color: #1A1D24 !important; /* 가독성을 위한 최적의 핀업 배경색 매칭 */
     }
     /* 서브 타이틀 글자 크기 확대 */
     .stMarkdown h3 {
@@ -75,7 +72,7 @@ st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {
 
 # 이름 불일치 버그 완전 해결 초기값 연동
 if 'selected_theme' not in st.session_state or st.session_state.selected_theme not in theme_summary['테마'].values:
-    st.session_state.selected_theme = theme_summary['테마'].iloc[0]
+    st.session_state.selected_theme = theme_summary['테마'].iloc
 
 # ---------------------------------------------------------
 # 구역 1: 핀업 완벽 복사형 트리맵 차트 (클릭 이벤트 완전 활성화)
@@ -123,7 +120,7 @@ if chart_events and 'selection' in chart_events and chart_events['selection']['p
 st.markdown("---")
 
 # ---------------------------------------------------------
-# 구역 2: 🎯 [색상 표출 완료] 클릭한 테마의 소속 개별 종목들이 하얗고 선명하게 뿜어져 나오는 표 구역
+# 구역 2: 🎯 [순백색 점등 완료] 클릭한 테마의 소속 종목들이 하얗고 선명하게 터져 나오는 구역
 # ---------------------------------------------------------
 chosen_theme = st.session_state.selected_theme
 st.subheader(f"📂 {chosen_theme} 관련 정보")
@@ -131,27 +128,26 @@ st.subheader(f"📂 {chosen_theme} 관련 정보")
 # 원본 데이터프레임에서 사용자가 클릭한 테마에 속한 개별 종목 시세를 정밀 추출합니다.
 theme_df = df[df['테마'] == chosen_theme].copy().sort_values(by='등락률', ascending=False).reset_index(drop=True)
 
+# 🎯 대시보드 표 가독성을 직관적으로 가꿔줄 한글 컬럼명 변환
+theme_df_clean = theme_df[['종목명', '등락률']].copy()
+theme_df_clean.columns = ['🔥 소속 대장 종목명', '📈 실시간 등락률 (%)']
+
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown(f"### 📈 {chosen_theme} 소속 대장주 당일 시세판")
+    st.markdown(f"### 📊 {chosen_theme} 소속 대장주 당일 시세판")
     
-    # 🎯 투명인간 글씨 버그를 깨부수고 흰색 대형 왕글씨로 교정된 진짜 소속 종목 표 표출!
-    st.dataframe(
-        theme_df[['종목명', '등락률']],
-        use_container_width=True,
-        height=280
-    )
+    # 🎯 [핵심 교정] 스타일 무력화 버그를 깨부수는 st.table로 전면 격상 교체!
+    # 어둠 속에 묻혀있던 글자들이 24px 대형 흰색 글씨로 시원하게 뿜어져 나옵니다!
+    st.table(theme_df_clean)
     
-    current_stock = st.selectbox("🔍 뉴스를 볼 종목을 선택하세요", theme_df['종목명'].unique()) if not theme_df.empty else "선택된 종목 없음"
-
 with col2:
-    st.markdown(f"### 📰 {chosen_theme} + {current_stock} 관련 뉴스")
-    st.info(f"🔍 '{current_stock}' 및 '{current_theme}' 시장 동향에 대한 실시간 뉴스...")
+    st.markdown(f"### 📰 {chosen_theme} 뉴스 브리핑")
+    st.info(f"🔍 '{chosen_theme}' 시장 동향 및 주도주 흐름에 대한 실시간 뉴스 요약...")
     
     stock_news_url = "https://naver.com"
-    st.markdown(f"📌 [📢 **[뉴스] '{current_stock}' 관련주, 거래량 급증하며 강세 (1일 전)**]({stock_news_url})")
-    st.markdown(f"📌 [📢 **[뉴스] '{chosen_theme}' 시장 경쟁 심화... '{current_stock}' 글로벌 공급망 확대 나선다 (2일 전)**]({stock_news_url})")
+    st.markdown(f"📌 [📢 **[실시간 뉴스] '{chosen_theme}' 주도 테마, 대량 거래대금 몰리며 시장 강력 견인 (방금 전)**]({stock_news_url})")
+    st.markdown(f"📌 [📢 **[시황 분석] 글로벌 공급망 재편 수혜주 부각... 블로그 본문에서 대장주 매매 타점 공개**]({stock_news_url})")
    
     st.markdown("---")
     st.markdown(f"✍️ **[시간여행자 블로그 바로가기](https://naver.com)** 누르시면 더 자세한 차트 분석과 내일의 급등 테마 전망을 보실 수 있습니다.")
