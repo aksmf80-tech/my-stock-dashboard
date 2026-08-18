@@ -1,4 +1,4 @@
-import streamlit as st  # 🎯 오타 수정 완료! (as st 가 정상 주입되었습니다)
+import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -9,12 +9,12 @@ import time
 # 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정
 # =========================================================================
 st.set_page_config(
-    page_title="핀업 스타일 테마 맵 대시보드",
+    page_title="핀업 스타일 주식 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 스크린샷과 똑같은 은은한 카드 디자인 및 전광판 폰트 CSS 세팅
+# 상단 타이틀 간격 벌리기 및 5대 지표 글자 크기 대폭 스케일 업 CSS
 st.markdown("""
     <style>
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
@@ -32,23 +32,6 @@ st.markdown("""
     [data-testid="stMetricLabel"] { font-size: 19px !important; font-weight: 700 !important; color: #E2E8F0 !important; }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
-    /* 스크린샷 속 은은한 어두운 카드와 콤팩트 글자색 이펙트 UI */
-    .pinup-card {
-        background-color: #0F172A;
-        border: 1px solid #1E293B;
-        padding: 12px 16px;
-        margin: 5px 0;
-        border-radius: 6px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2);
-    }
-    .stock-name { font-size: 15px; font-weight: 700; color: #94A3B8; }
-    .rate-up { color: #F87171; font-weight: 800; font-size: 15px; }
-    .rate-down { color: #60A5FA; font-weight: 800; font-size: 15px; }
-    
     /* 히트맵 글자 중앙 정렬 보정 */
     g.treemaptext text {
         text-anchor: middle !important;
@@ -63,6 +46,7 @@ st.markdown("""
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
+# 실시간 파일 공백 시 엔진과 대칭으로 자동 연동될 무결점 백업 데이터 풀
 BACKUP_STOCK_POOL = {
     "대북/남북경협": [("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24)],
     "반도체 후공정": [("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12)],
@@ -74,7 +58,7 @@ BACKUP_STOCK_POOL = {
 }
 
 @st.cache_data(ttl=5)
-def load_synchronized_market_data():
+def load_market_data():
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
         base_df.columns = [str(col).strip().lower() for col in base_df.columns]
@@ -117,7 +101,8 @@ def load_synchronized_market_data():
         
     return base_df, status_df
 
-raw_df, status_df = load_synchronized_market_data()
+# 🎯 오리지널 순정 함수 호출부 매핑 복원 완결
+raw_df, status_df = load_market_data()
 
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
@@ -196,7 +181,7 @@ with left_layout:
     else:
         st.info("테마 데이터를 로드하는 중입니다...")
 
-# --- [우측 구역] 클릭한 테마의 종목 카드를 순정 4개 콤팩트 스케일로 나열 ---
+# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (가장 잘 되던 구조 복구) ---
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -210,22 +195,16 @@ with right_layout:
         
     if not theme_detail_df.empty:
         theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
-        for _, row in theme_detail_df.head(4).iterrows():
+        for _, row in theme_detail_df.head(14).iterrows():
             final_stock_list.append((row['name'], row['rate']))
     else:
         final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
         
-    for idx, (s_name, s_rate) in enumerate(final_stock_list[:4]):
+    # 복구 완료: 문법 에러를 영구 배제하고 완벽히 동기화되는 순정 st.button 형태 출력
+    for idx, (s_name, s_rate) in enumerate(final_stock_list):
         rate_sign = "+" if s_rate >= 0 else ""
-        rate_color_class = "rate-up" if s_rate >= 0 else "rate-down"
-        
         with right_sub_cols[idx % 2]:
-            st.markdown(f"""
-                <div class="pinup-card">
-                    <span class="stock-name">▪️ {s_name}</span>
-                    <span class="{rate_color_class}">{rate_sign}{s_rate}%</span>
-                </div>
-            """, unsafe_allow_html=True)
+            st.button(f"▪️ {s_name} ({rate_sign}{s_rate}%)", key=f"stock_btn_rollback_{idx}_{s_name}", use_container_width=True)
 
 # =========================================================================
 # 5. ⏱️ 세션 타이머 제어
