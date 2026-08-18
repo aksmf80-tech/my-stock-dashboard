@@ -211,9 +211,14 @@ if "selected_theme_click" not in st.session_state:
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
+# 📌 파일 내 'left_layout, right_layout = ...' 바로 아랫줄부터 맨 밑바닥까지 전부 지우고 이 아래를 붙여넣으세요.
+
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
+        if '등락률' in top_25_themes.columns:
+            top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
+            
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -238,6 +243,8 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
+        # 🎯 [대혁신 연동 브릿지] 리스트의 0번째 원소인 딕셔너리를 명확하게 지정([0])하여
+        # 누르는 즉시 외계어 없이 한글 라벨 텍스트명만 안전하게 세션에 고정 주입합니다.
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
@@ -246,7 +253,10 @@ with left_layout:
                     if "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
+                        if isinstance(p_target["customdata"], list):
+                            st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
+                        else:
+                            st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
                 except Exception:
                     pass
     else:
@@ -302,4 +312,3 @@ if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
     st.rerun()
-
