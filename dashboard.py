@@ -57,19 +57,35 @@ st.markdown("""
 
 st.title("📊 테마별 현황판")
 
-# 수집 엔진이 만들어내는 실시간 테마 상태 파일과 기본 뼈대 파일 정의
 THEME_STATUS_FILE = "realtime_theme_status.csv"
 RAW_DATA_FILE = "theme_data.csv"
 
-# 두 파일 중 하나라도 없으면 대기 메시지 출력
-if not os.path.exists(THEME_STATUS_FILE) or not os.path.exists(RAW_DATA_FILE):
-    st.warning("⌛ 실시간 테마 데이터 동기화 중입니다. 깃허브 액션 수집기가 완료될 때까지 잠시만 기다려 주세요.")
+# 🚨 [원천 차단] 뼈대 파일마저 없으면 중단
+if not os.path.exists(RAW_DATA_FILE):
+    st.error("❌ 기초 뼈대 파일(theme_data.csv)이 깃허브에 없습니다. 파일 업로드를 확인해 주세요.")
     st.stop()
 
-# 1. 282개 테마 요약 데이터 로드
-theme_summary = pd.read_csv(THEME_STATUS_FILE, encoding="utf-8-sig")
+# 데이터 로드 로직 (실시간 수집 파일이 없으면 뼈대에서 가상 데이터 임시 생성하여 대시보드 무조건 실행)
+if os.path.exists(THEME_STATUS_FILE):
+    theme_summary = pd.read_csv(THEME_STATUS_FILE, encoding="utf-8-sig")
+else:
+    # 💡 깃허브 액션이 도는 중일 때 화면 멈춤 방지용 가상 데이터 빌드
+    raw_df = pd.read_csv(RAW_DATA_FILE, encoding="utf-8-sig")
+    
+    # 열 이름 표준화 (수집 엔진과 동일하게 세팅)
+    raw_df.columns = [str(col).strip().lower() for col in raw_df.columns]
+    if '테마' in raw_df.columns: raw_df = raw_df.rename(columns={'테마': 'theme'})
+    
+    # 임시 테마 요약본 생성
+    theme_list = raw_df['theme'].dropna().unique()
+    theme_summary = pd.DataFrame({
+        '테마': theme_list,
+        '등락률': [0.0] * len(theme_list),
+        '화면크기_가중치': [10.0] * len(theme_list)
+    })
+    st.info("🔄 야후 파이낸스 실시간 주가 동기화 파일 생성 중입니다. 현재 화면은 뼈대 기반 임시 배치입니다.")
 
-# 트리맵에 표시할 문구 가공 (상승은 +, 하락은 기호 없음)
+# 트리맵에 표시할 문구 가공
 def make_pinup_label(row):
     rate = round(row['등락률'], 2)
     sign = "+" if rate > 0 else ""
@@ -78,7 +94,7 @@ def make_pinup_label(row):
 theme_summary['핀업라벨'] = theme_summary.apply(make_pinup_label, axis=1)
 
 # ---------------------------------------------------------
-# 구역 1: 핀업 바둑판 트리맵 차트 (282개 대규모 테마 반영)
+# 구역 1: 핀업 바둑판 트리맵 차트 (282개 대규모 테마 완벽 표출)
 # ---------------------------------------------------------
 COLOR_LIMIT = 5.0 
 
@@ -107,7 +123,7 @@ fig.update_layout(
     height=700 
 )
 
-# 트리맵 차트 화면 출력 및 선택 이벤트 바인딩
+# 트리맵 차트 화면 출력
 selected_point = st.plotly_chart(
     fig, 
     use_container_width=True, 
@@ -116,13 +132,13 @@ selected_point = st.plotly_chart(
     key="treemap_selector"
 )
 
-# 선택 테마 추출 및 기본값 예외 처리 (첫 번째 순위 테마 자동 선택)
-chosen_theme = theme_summary['테마'].iloc[0] 
+# 첫 번째 순위 테마 자동 선택 기본값
+chosen_theme = theme_summary['테마'].iloc[0] if not theme_summary.empty else "선택된 테마 없음"
 
+# 사용자 피드백 반영한 안전한 대형 인덱싱 수정
 if selected_point and "points" in selected_point and len(selected_point["points"]) > 0:
     clicked_id = selected_point["points"][0].get("id")
     if clicked_id:
-        # Plotly 트리맵의 id 값 분리 ('테마명' 추출)
         chosen_theme = clicked_id.split('/')[-1]
 
 st.markdown("<hr style='margin: 15px 0px;'/>", unsafe_allow_html=True)
@@ -132,32 +148,26 @@ st.markdown("<hr style='margin: 15px 0px;'/>", unsafe_allow_html=True)
 # ---------------------------------------------------------
 st.subheader(f"📂 {chosen_theme} 관련 정보")
 
-# 4,115개 종목 뼈대 파일에서 실시간 주가 조회를 위해 수집 엔진의 연동 정보 매핑
 try:
-    # 수집기 엔진에서 전수 매핑 데이터를 만들기 위해 fetch_data 작업 흐름 추적
-    # 깃허브 액션이 실행되면 야후 파이낸스에서 실시간 가격을 가져와 뼈대와 결합하는 구조입니다.
-    # 안전하게 하단 시세판을 구현하기 위해 종목 상세 매핑 데이터를 읽어옵니다.
-    # 만약 fetch_data.py가 작동 전이라면 뼈대 파일에서 소속 종목만 먼저 추출합니다.
-    
-    # 뼈대 데이터 로드
     raw_df = pd.read_csv(RAW_DATA_FILE, encoding="utf-8-sig")
+    raw_df.columns = [str(col).strip().lower() for col in raw_df.columns]
     
-    # 4,115개 종목 중 현재 선택된 테마의 종목들만 필터링
+    # 매핑 이름 통일화
+    if '테마' in raw_df.columns: raw_df = raw_df.rename(columns={'테마': 'theme'})
+    if '종목명' in raw_df.columns: raw_df = raw_df.rename(columns={'종목명': 'name'})
+    if '시장' in raw_df.columns: raw_df = raw_df.rename(columns={'시장': 'market'})
+    
+    # 현재 선택된 테마 필터링
     theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
     
-    # 만약 수집 완료된 실시간 종목별 데이터가 필요하다면 원천 결합 로직 추적 가능하도록 세팅
-    # 여기서는 깔끔하게 소속 종목의 리스트와 기틀을 화면에 26px 왕글씨 표로 뿌려줍니다.
-    theme_detail_df = theme_detail_df.rename(columns={"name": "종목명", "market": "시장"})
-    
-    # 화면용 깔끔한 서식 정제
-    theme_df_clean = theme_detail_df[['종목명', '시장']].reset_index(drop=True)
+    theme_df_clean = theme_detail_df[['name', 'market']].reset_index(drop=True)
     theme_df_clean.columns = ['🔥 소속 대장 종목명', '📈 소속 시장']
     
     st.markdown(f"### 📊 {chosen_theme} 소속 대장주 전체 라인업 (총 {len(theme_df_clean)}개 종목)")
     st.table(theme_df_clean)
 
 except Exception as e:
-    st.info("🔄 상세 종목 리스트를 불러오는 중입니다...")
+    st.info("🔄 상세 종목 리스트를 매핑하는 중입니다...")
 
 # 60초 자동 리셋 시스템 유지
 if "last_refresh" not in st.session_state:
