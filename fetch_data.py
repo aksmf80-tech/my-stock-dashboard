@@ -1,6 +1,5 @@
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
 import datetime
 import time
 import os
@@ -10,7 +9,7 @@ def get_naver_data():
     네이버 금융 테마별 시세 테이블을 데이터프레임으로 직관적으로 추출하여
     테마명, 대장주, 실제 테마 등락률을 정확하게 매핑합니다.
     """
-    url = "https://finance.naver.com/sise/theme.nhn"
+    url = "https://naver.com"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
     }
@@ -22,7 +21,7 @@ def get_naver_data():
         page_url = f"{url}?&page={page}"
         try:
             response = requests.get(page_url, headers=headers)
-            response.encoding = 'euc-kr' # 네이버 한글 방지
+            response.encoding = 'euc-kr' # 네이버 한글 깨짐 방지
             
             if response.status_code != 200:
                 continue
@@ -48,23 +47,27 @@ def get_naver_data():
     # 쓰레기 데이터 행(NaN 또는 구분선 행) 완벽 청소
     full_df = full_df.dropna(subset=['테마명', '전일대비'])
     
-    # 🎯 [핵심 교정] 등락률 문정 정제 및 수치화
+    # 등락률 문자열 정제 및 수치화
     full_df['전일대비'] = full_df['전일대비'].astype(str).str.replace('%', '').str.replace('+', '').str.strip()
     full_df['등락률'] = pd.to_numeric(full_df['전일대비'], errors='coerce')
     full_df = full_df.dropna(subset=['등락률'])
     
-    # 🎯 [핵심 교정] 주도 종목 컬럼 재정렬 (네이버 테이블 기준 대장주는 보통 '주요종목' 컬럼에 순서대로 기재됩니다)
-    # 컬럼명이 유동적일 수 있으므로 3등락 자리에 위치한 종목 데이터를 안전하게 캐치합니다.
     full_df = full_df.rename(columns={'테마명': '테마'})
     
-    # 네이버 테마 테이블의 3번째 텍스트 컬럼(주요종목) 추출 방어막
+    # 🎯 [문법 버그 수정 완료] 주요종목 텍스트에서 첫 번째 종목만 안전하게 잘라냅니다.
+    def extract_first_stock(x):
+        val = str(x).strip()
+        if ',' in val:
+            return val.split(',')[0].strip()
+        return val
+
     if '주요종목' in full_df.columns:
-        full_df['종목명'] = full_df['주요종목'].astype(str).apply(lambda x: x.split(',')[0].strip() if ',' in x else x.strip())
+        full_df['종목명'] = full_df['주요종목'].apply(extract_first_stock)
     elif '주요종목.1' in full_df.columns:
-        full_df['종목명'] = full_df['주요종목.1'].astype(str).apply(lambda x: x.split(',')[0].strip() if ',' in x else x.strip())
+        full_df['종목명'] = full_df['주요종목.1'].apply(extract_first_stock)
     else:
-        # 컬럼명이 깨졌을 경우 우측 유령 맵핑 방지를 위해 테이블 내 실존 텍스트로 보정
-        full_df['종목명'] = full_df.iloc[:, 3].astype(str).apply(lambda x: x.split(',')[0].strip() if isinstance(x, str) else "종목 정보")
+        # 컬럼명이 유동적으로 깨질 경우를 대비해 4번째 열(인덱스 3) 데이터를 강제 파싱합니다.
+        full_df['종목명'] = full_df.iloc[:, 3].apply(extract_first_stock)
 
     # 대시보드 필수 구조로 최종 압축
     final_df = full_df[['테마', '종목명', '등락률']].copy()
@@ -87,8 +90,9 @@ if __name__ == "__main__":
         if df is not None and not df.empty:
             if os.path.exists(DATA_FILE):
                 os.remove(DATA_FILE)
+                print("🗑️ 구형 유령 데이터를 삭제했습니다.")
             df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
-            print("🎉 [성공] 깨끗한 테이블 연동 구조로 theme_data.csv 생성 완료!")
+            print("🎉 [성공] 완전히 정제된 theme_data.csv 생성 완료!")
             print(df.head(5))
         else:
             print("⚠️ 파싱된 테이블이 비어있습니다.")
