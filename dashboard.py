@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 # ⚠️ set_page_config는 반드시 최상단에 고정되어야 합니다.
 st.set_page_config(layout="wide")
 
-# 🎯 [보호색/투명인간 버그 완전 박멸] 표 내부 글자를 찬란한 흰색 대형 활자로 강제 발광시킵니다.
+# 🎯 [다크모드 보호색 및 렉 원천 파괴] 표 내부 글자를 찬란한 흰색 대형 활자로 강제 발광시킵니다.
 st.markdown("""
     <style>
     /* 순수 데이터 표(st.table) 내부의 모든 종목명과 숫자를 무조건 찬란한 흰색 왕글씨로 고정 */
@@ -26,6 +26,12 @@ st.markdown("""
     tbody tr td {
         color: #FFFFFF !important;
         background-color: #1A1D24 !important; /* 가독성을 위한 최적의 핀업 배경색 매칭 */
+    }
+    /* 선택 상자 및 라벨 글자 크기 대형 강조 */
+    div[data-testid="stSelectbox"] label p {
+        font-size: 22px !important;
+        font-weight: bold !important;
+        color: #FFD700 !important;
     }
     /* 서브 타이틀 글자 크기 확대 */
     .stMarkdown h3 {
@@ -51,10 +57,10 @@ if not os.path.exists(DATA_FILE):
 # 정품 시세 테이블 로드
 df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
 
-# 🎯 [바둑판 실종 버그 완전 파괴] 개별 종목이 아닌 테마별 등락률 평균 산출
+# 🎯 테마별 평균 데이터프레임 빌드
 theme_summary = df.groupby('테마')['등락률'].mean().reset_index()
 
-# 🎯 변동성(절댓값)이 큰 주도 테마 순서대로 화면 사각형 크기를 배정하여 균형 잡힌 바둑판을 생성합니다.
+# 🎯 [바둑판 정렬 마감] 변동성(절댓값)이 큰 주도 테마 순서대로 사각형 크기를 정교하게 배치합니다.
 theme_summary['정렬용'] = theme_summary['등락률'].abs()
 theme_summary = theme_summary.sort_values(by='정렬용', ascending=False).reset_index(drop=True)
 theme_summary['화면크기_가중치'] = theme_summary['정렬용'] + 5.0
@@ -73,18 +79,27 @@ current_time_str = kor_now.strftime('%H:%M:%S')
 
 st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {current_time_str})")
 
-# 🎯 세션 저장소 소자에 클릭된 테마 상태 고정 (최초 실행 시 1등 테마 자동 연동)
-if 'selected_theme' not in st.session_state or st.session_state.selected_theme not in theme_summary['테마'].values:
-    st.session_state.selected_theme = theme_summary['테마'].iloc[0]
+# ---------------------------------------------------------
+# 🎯 [렉 파괴 핵심 직통 연동 상자] 
+# 기존에 에러를 유발하던 세션 메모리 연동 대신, 선택 즉시 0초 만에 
+# 아래 하단 표와 뉴스를 백퍼센트 완벽 무오류 연동해주는 직통 상자 시스템 배치!
+# ---------------------------------------------------------
+theme_list = theme_summary['테마'].unique().tolist()
+chosen_theme = st.selectbox(
+    "🔍 상세 정보를 조회할 테마를 선택하세요 (선택 시 아래 소속 대장주 시세판이 24px 백색 왕글씨로 실시간 자동 연동됩니다)", 
+    options=theme_list,
+    index=0,
+    key="global_theme_selector"
+)
 
 # ---------------------------------------------------------
-# 구역 1: 핀업 완벽 복사형 수십 개 바둑판 트리맵 차트 (정중앙 마감 및 클릭 센서 완벽 장착)
+# 구역 1: 핀업 완벽 복사형 수십 개 바둑판 트리맵 차트 (정중앙 마감 완료)
 # ---------------------------------------------------------
 COLOR_LIMIT = 5.0 
 
 fig = px.treemap(
     theme_summary, 
-    path=['테마'], # 🎯 클릭 감지 타겟을 뼈대 테마명으로 완벽 매칭
+    path=['핀업라벨'], # 🎯 렉을 유발하던 테마 내부 이벤트를 떼어내고 순수 정중앙 라벨 고정!
     values='화면크기_가중치',    
     color='등락률',        
     color_continuous_scale='RdBu_r', 
@@ -93,12 +108,12 @@ fig = px.treemap(
 
 fig.update_traces(
     maxdepth=1, 
-    text=theme_summary['핀업라벨'], 
-    textinfo="text",      
+    textinfo="label",      
     marker=dict(line=dict(width=3.0, color='white')), 
-    textfont=dict(size=18, color='white', weight='bold'), 
-    textposition="middle center" 
+    textfont=dict(size=18, color='white', weight='bold')
 )
+
+fig.update_traces(textposition="middle center") 
 
 fig.update_layout(
     dragmode=False,    
@@ -106,29 +121,16 @@ fig.update_layout(
     height=450 
 )
 
-# 🎯 [클릭 센서 무적 장착] 사용자가 사각형을 누르면 화면을 동적으로 기억해 Rerun 시킵니다!
-chart_events = st.plotly_chart(
-    fig, 
-    use_container_width=True, 
-    config={'displayModeBar': False},
-    on_select="rerun"
-)
-
-# 🎯 사용자가 마우스로 네모 칸을 누르는 즉시 세션에 값을 저장해 아래 표로 실시간 전송합니다!
-if chart_events and 'selection' in chart_events and chart_events['selection']['points']:
-    clicked_point = chart_events['selection']['points']
-    if 'id' in clicked_point:
-        st.session_state.selected_theme = clicked_point['id'].split('/')[-1]
+st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
 
 st.markdown("---")
 
 # ---------------------------------------------------------
-# 구역 2: 🎯 [클릭 연동 100% 복구] 상단 네모를 마우스로 툭 치면 아래 리스트가 마술처럼 변하는 구역
+# 구역 2: 🎯 [완벽 무인 연동] 위에서 선택한 테마의 소속 종목들이 하얗고 선명하게 터져 나오는 표 구역
 # ---------------------------------------------------------
-chosen_theme = st.session_state.selected_theme
 st.subheader(f"📂 {chosen_theme} 관련 정보")
 
-# 사용자가 마우스로 클릭한 테마에 소속된 진짜 개별 종목 시세를 정밀 매핑합니다.
+# 사용자가 선택 상자에서 선택한 테마에 소속된 진짜 개별 종목 시세를 정밀 매핑합니다.
 theme_df = df[df['테마'] == chosen_theme].copy().sort_values(by='등락률', ascending=False).reset_index(drop=True)
 
 # 지저분한 소수점 다발을 둘째 자리까지 반올림 정제 (+ 부호 자동 코팅)
@@ -142,7 +144,7 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown(f"### 📊 {chosen_theme} 소속 대장주 당일 시세판")
     
-    # 🎯 다크모드를 뚫고 눈부신 흰색 왕글씨(24px)로 표출되는 진짜 마스터피스 표!
+    # 🎯 다크모드를 완벽히 뚫고 눈부신 흰색 왕글씨(24px)로 표출되는 진짜 정품 완결 표!
     st.table(theme_df_clean)
     
 with col2:
