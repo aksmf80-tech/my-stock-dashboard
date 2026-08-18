@@ -34,13 +34,12 @@ STATUS_FILE = "realtime_theme_status.csv"
 
 @st.cache_data(ttl=10)  # 실시간 인터랙션을 위해 캐시 타임아웃 최소화
 def load_market_data():
-    # 1. 종목 뼈대 데이터 로드 (한 종목이 여러 테마에 속할 수 있는 원본 DB)
+    # 1. 종목 뼈대 데이터 로드
     if os.path.exists(BASE_FILE):
         base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
         base_df.columns = [str(col).strip().lower() for col in base_df.columns]
         base_df = base_df.rename(columns={'테마': 'theme', '종목명': 'name', '시장': 'market', '종목코드': 'code'})
     else:
-        # 가상 방어용 종목 데이터 (한 종목이 여러 테마에 중복 매핑된 예시)
         sample = {
             'theme': ['대북/남북경협', '대북/남북경협', '반도체 후공정', '시스템 반도체', '시스템 반도체'], 
             'name': ['코데즈컴바인', '좋은사람들', '한미반도체', '삼성전자', '코데즈컴바인'], 
@@ -49,16 +48,15 @@ def load_market_data():
         }
         base_df = pd.DataFrame(sample)
 
-    # 2. 실시간 테마 상태 데이터 로드 (수집 엔진 아웃풋)
+    # 2. 실시간 테마 상태 데이터 로드
     if os.path.exists(STATUS_FILE):
         status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
     else:
-        # 💡 [문법 에러 수정 및 원소 개수 일치 완벽 보완]
         current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
         status_df = pd.DataFrame({
             '테마': ['대북/남북경협', '반도체 후공정', '시스템 반도체', '수소차', '전기차 부품', '로봇', '제약/바이오'],
             '등락률': [24.75, 16.37, -11.09, -13.62, -13.36, -14.47, -14.78],
-            '화면크기_가중치': [35.0, 28.0, 20.0, 18.0, 15.0, 12.0, 10.0],  # 정상 수치 입력 완료
+            '화면크기_가중치': [35.0, 28.0, 20.0, 18.0, 15.0, 12.0, 10.0],
             '업데이트시간': [current_time_str] * 7
         })
         
@@ -70,18 +68,18 @@ raw_df, status_df = load_market_data()
 # 2. 🗺️ 상단 구역: 핀업 스타일 실시간 가변 테마 맵 (박스 25개 스케일 제한)
 # =========================================================================
 st.title("📊 핀업 스타일 주식 테마 대시보드")
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 st.caption(f"⚙️ 4,115개 전수 수집 연동 엔진 작동 중 | 최근 갱신: {update_time}")
 
-# 🖼️ 상단 콤팩트 구역: 실시간 상위 주도 테마 가로 요약 바
-st.write("### 🔥 현재 시장 주도 상위 테마")
-theme_cols = st.columns(3)
-for i in range(min(3, len(status_df))):
+# 🎯 [수정 조치 1] 현재 시장 주도 상위 테마 가로 요약 바를 5개 영역으로 확장
+st.write("### 🔥 현재 시장 주도 상위 테마 (TOP 5)")
+theme_cols = st.columns(5) # 3개에서 5개로 칼럼 늘림
+for i in range(min(5, len(status_df))):
     t_name = status_df['테마'].iloc[i]
     t_rate = status_df['등락률'].iloc[i]
     with theme_cols[i]:
         if t_rate >= 0:
-            st.metric(label=f"🔺 {t_name}", value=f"+{t_rate}%", delta="시장 주도 테마")
+            st.metric(label=f"🔺 {t_name}", value=f"+{t_rate}%", delta="시장 주도")
         else:
             st.metric(label=f"🔻 {t_name}", value=f"{t_rate}%", delta="하락세", delta_color="inverse")
 
@@ -93,22 +91,23 @@ st.write("💡 거래량이 많을수록 박스가 커지고, 상승 종목이 �
 top_25_themes = status_df.head(25).copy()
 
 if not top_25_themes.empty and '테마' in top_25_themes.columns and '화면크기_가중치' in top_25_themes.columns:
-    # 핀업 특유의 빨강/파랑 히트맵을 생성하는 Plotly 트리맵 컴포넌트
     fig = px.treemap(
         top_25_themes,
         path=['테마'],
-        values='화면크기_가중치',    # 📦 거래량/대금이 많을수록 박스가 커짐
-        color='등락률',             # 🎨 상승률이 높으면 빨강(Red), 낙폭이 크면 파랑(Blue)
-        color_continuous_scale='RdBu_r',  # 주식 직관 컬러 스케일 (Red-Blue 반전)
-        color_continuous_midpoint=0      # 0%를 기준으로 색상 분기
+        values='화면크기_가중치',    
+        color='등락률',             
+        color_continuous_scale='RdBu_r',  
+        color_continuous_midpoint=0      
     )
     
-    # 맵 내부 텍스트 템플릿 세팅 (테마명과 등락률 동시 표출)
+    # 🎯 [수정 조치 2] 핀업 스타일 글씨 크기 확대 및 정중앙(Center) 정렬 보완
     fig.update_traces(
-        texttemplate="<b>%{label}</b><br>%{color:.2f}%",
-        textfont=dict(size=14, color="white")
+        texttemplate="<br><b>%{label}</b><br><span style='font-size:16px;'>%{color:.2f}%</span>", # 등락률도 강조
+        textfont=dict(size=19, color="white"), # 글자 기본 크기를 14px -> 19px로 대폭 확대
+        insidetexthalign="center", # 가로 정렬 정중앙 고정
+        insidetextvalign="middle"  # 세로 정렬 정중앙 고정
     )
-    fig.update_layout(margin=dict(t=5, b=5, l=5, r=5), height=350)
+    fig.update_layout(margin=dict(t=5, b=5, l=5, r=5), height=380) # 시원하게 세로폭도 380으로 확장
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("테마 상태 데이터를 읽어오는 중입니다.")
@@ -127,7 +126,6 @@ st.subheader(f"🗂️ {chosen_theme} 테마 소속 종목 가이드")
 
 try:
     if not raw_df.empty and 'theme' in raw_df.columns:
-        # 사용자가 위에서 지정한 테마에 소속된 종목만 필터링 (중복 속성 자동 해결)
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
         avail_cols = []
@@ -140,7 +138,6 @@ try:
         theme_df_clean = theme_detail_df[avail_cols].reset_index(drop=True)
         theme_df_clean.columns = col_names
         
-        # 뉴스를 걷어낸 자리에 시원하게 100% 너비로 테이블 배치 (상위 15개 노출)
         if not theme_df_clean.empty:
             st.table(theme_df_clean.head(15))
         else:
