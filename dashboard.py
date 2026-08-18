@@ -70,46 +70,26 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (1분 장중 무한 실시간 동기화 데이터 풀)
+# 1. 📂 데이터 로드 및 정제 구역 (형님 4,115개 뼈대 + 야후 1분 직동기화 융합 엔진)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
-BACKUP_STOCK_POOL = {
-    "대북/남북경협": [
-        ("코데즈컴바인", 30.00), ("좋은사람들", 30.00), ("인디에프", 29.81), ("일신석재", 22.24),
-        ("부산산업", 18.50), ("제이에스티나", 15.30), ("신원", 12.10), ("재영솔루텍", 9.80),
-        ("아난티", 8.40), ("현대로템", 7.15), ("한일현대시멘트", 5.20), ("쌍용C&E", 4.10)
-    ],
-    "반도체 후공정": [
-        ("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12),
-        ("네패스", 2.85), ("에스에프에이", 2.10), ("엘비세미콘", 1.45), ("두산테스나", 0.90)
-    ],
-    "시스템 반도체": [
-        ("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45),
-        ("가온칩스", 8.30), ("오픈엣지테크놀로지", 7.15), ("에이디테크놀로지", 5.40)
-    ],
-    "수소차": [
-        ("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("대우부품", 1.30),
-        ("두산퓨어셀", 8.90), ("에스퓨어셀", 6.30), ("상아프론테크", 3.10)
-    ],
-    "전기차 부품": [
-        ("에코프로비엠", 4.35), ("엘앤에프", -3.10), ("신흥에스이씨", 1.20), ("상신이디피", 5.40),
-        ("삼기", 3.15), ("엠에스오토텍", 2.10), ("우수AMS", -1.10)
-    ],
-    "로봇": [
-        ("레인보우로보틱스", 8.90), ("두산로보틱스", 11.20), ("뉴로메카", 5.40), ("로보티즈", 3.15),
-        ("티보로보틱스", 2.80), ("유진로봇", 1.45), ("로보스타", -0.90)
-    ],
-    "제약/바이오": [
-        ("삼성바이오로직스", -0.80), ("셀트리온", 1.50), ("알테오젠", 12.30), ("HLB", 9.45),
-        ("유한양행", 4.20), ("한미약품", 2.15), ("SK바이오팜", -1.10)
-    ]
+# 🎯 장중에 실시간으로 주가를 쪼아와 뼈대에 주입할 테마별 주요 대장주 매핑 주소록
+# (야후 서버 차단 방지 및 속도 향상을 위해 한국 주식 코드 끝에 .KS 또는 .KQ를 붙여 선언합니다.)
+LIVE_TICKER_MAP = {
+    "삼성전자": "005930.KS", "SK하이닉스": "000660.KS", "한미반도체": "042700.KS", 
+    "레인보우로보틱스": "277810.KQ", "두산로보틱스": "454910.KS", "현대차": "005380.KS",
+    "에코프로비엠": "247540.KQ", "엘앤에프": "066970.KQ", "알테오젠": "196170.KQ", 
+    "HLB": "028300.KQ", "유한양행": "000100.KS", "코데즈컴바인": "047770.KQ",
+    "두산퓨어셀": "336260.KS", "가온칩스": "399720.KQ", "리노공업": "058470.KQ"
 }
 
 @st.cache_data(ttl=5)
 def load_market_data():
     base_df = pd.DataFrame()
+    
+    # [1단계: 형님의 마스터 뼈대 파일 우선 로드]
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
         try:
             base_df = pd.read_csv(BASE_FILE, encoding='utf-8-sig')
@@ -123,6 +103,7 @@ def load_market_data():
         except Exception:
             base_df = pd.DataFrame()
 
+    # 안전 보장용 최소 마진 백업 풀 가동
     if base_df.empty or 'theme' not in base_df.columns:
         sample_rows = []
         for theme_key, stocks in BACKUP_STOCK_POOL.items():
@@ -130,13 +111,38 @@ def load_market_data():
                 sample_rows.append({'theme': theme_key, 'name': name, 'rate': rate})
         base_df = pd.DataFrame(sample_rows)
         
-    if 'rate' not in base_df.columns:
-        base_df['rate'] = np.random.uniform(-15, 30, size=len(base_df)).round(2)
-        
-    base_df['theme'] = base_df['theme'].fillna('미분류').astype(str).apply(lambda x: x.strip())
-    base_df['name'] = base_df['name'].fillna('알수없음').astype(str).apply(lambda x: x.strip())
+    base_df['theme'] = base_df['theme'].fillna('미분류').astype(str).str.strip()
+    base_df['name'] = base_df['name'].fillna('알수없음').astype(str).str.strip()
     base_df['rate'] = pd.to_numeric(base_df['rate'], errors='coerce').fillna(0.0).astype(float)
 
+    # 🎯 [2단계: 문법 에러 없는 순정 야후 파이낸스 1분 라이브 가속 엔진 가동]
+    try:
+        import yfinance as yf
+        # 주소록에 등록된 대장주 리스트만 야후 파이낸스에서 1초 만에 초경량 통신 수신
+        tickers_to_fetch = list(LIVE_TICKER_MAP.values())
+        yahoo_data = yf.download(" ".join(tickers_to_fetch), period="1d", interval="1m", progress=False)
+        
+        if not yahoo_data.empty:
+            if isinstance(yahoo_data.columns, pd.MultiIndex):
+                yahoo_close = yahoo_data['Close']
+            else:
+                yahoo_close = yahoo_data
+            
+            # 받아온 실시간 등락률 수치를 형님의 4,115개 마스터 뼈대 데이터에 실시간 오버라이드(치환)
+            for stock_name, ticker in LIVE_TICKER_MAP.items():
+                if ticker in yahoo_close.columns:
+                    close_series = yahoo_close[ticker].dropna()
+                    if len(close_series) >= 2:
+                        val_first = float(close_series.iloc)
+                        val_last = float(close_series.iloc[-1])
+                        if val_first != 0:
+                            live_rate = round(((val_last - val_first) / val_first) * 100, 2)
+                            # 뼈대 데이터 내의 해당 대장주 주가를 진짜 1분 실시간 가격으로 치환!
+                            base_df.loc[base_df['name'] == stock_name, 'rate'] = live_rate
+    except Exception:
+        pass # 장외 시간, 주말, 휴장일에는 야후가 멈추므로 형님의 파일 원본 등락률 데이터를 100% 안전하게 유지!
+
+    # [3단계: 상단 전광판 및 히트맵용 상태 파일 로드]
     if os.path.exists(STATUS_FILE) and os.path.getsize(STATUS_FILE) > 0:
         try:
             status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
@@ -169,7 +175,8 @@ def load_market_data():
     return base_df, status_df
 
 raw_df, status_df = load_market_data()
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+
 # -------------------------------------------------------------------------
 # 2. 📊 상단 타이틀 및 상위 5개 테마 메트릭 스코어보드 표출 영역
 # -------------------------------------------------------------------------
