@@ -231,7 +231,7 @@ with right_layout:
             }
             active_list = backup_pool.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
             
-            # 🎯 [239라인 오타 패치 완결] 닫는 따옴표의 쌍을 한 줄에 정확히 닫아주어 문법 에러 완전 차단
+            # 🎯 [들여쓰기 버그 완전 박멸] with문 다음 줄에 4칸 들여쓰기 공백을 완벽하게 주입했습니다.
             for idx, (s_name, s_rate) in enumerate(active_list):
                 rate_class = "rate-up" if s_rate >= 0 else "rate-down"
                 rate_sign = "+" if s_rate >= 0 else ""
