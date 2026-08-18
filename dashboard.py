@@ -6,15 +6,14 @@ import os
 import time
 
 # =========================================================================
-# 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정 (왼쪽 포인트 컬러 바)
+# 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정 (6px 매니큐어 바 고정)
 # =========================================================================
 st.set_page_config(
-    page_title="핀업 스타일 주식 테마 대시보드",
+    page_title="1분 연동 핀업 스타일 주식 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 🎯 [최종 디자인 패치] 테두리 크기 변경 전혀 없이 버튼 내측 왼쪽에만 6px 두께 매니큐어 컬러 바 주입
 st.markdown("""
     <style>
     .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
@@ -65,6 +64,10 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
+# =========================================================================
+# 1. 📂 데이터 로드 및 정제 구역 (1분 장중 무한 실시간 동기화 데이터 풀)
+# =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
 
@@ -134,6 +137,8 @@ BACKUP_STOCK_POOL = {
     ]
 }
 
+# 🎯 [동적 가속화 패치] 대시보드 새로고침 시 5초 동안만 로컬 캐싱하고, 
+# 1분 단위 st.rerun 타이밍마다 야후 최신 CSV 맥박을 실시간으로 강제 강수 흡수합니다.
 @st.cache_data(ttl=5)
 def load_market_data():
     if os.path.exists(BASE_FILE) and os.path.getsize(BASE_FILE) > 0:
@@ -186,7 +191,7 @@ title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
-    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 동기화 완료: {update_time}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 1분 무한 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 theme_cols = st.columns(5)
 for i in range(min(5, len(status_df))):
@@ -203,13 +208,15 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
-
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
+        if '등락률' in top_25_themes.columns:
+            top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
+            
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -242,7 +249,7 @@ with left_layout:
                     if "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
+                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
                 except Exception:
                     pass
     else:
@@ -279,6 +286,7 @@ with right_layout:
                 st.button(f"🔺 {s_name} (+{s_rate}%)", key=f"up_btn_{u_idx}_{s_name}", use_container_width=True)
     else:
         st.text("상승 종목이 없습니다.")
+        
     st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
     st.markdown("#### 🔹 하락 종목")
@@ -290,6 +298,9 @@ with right_layout:
     else:
         st.text("하락 종목이 없습니다.")
 
+# =========================================================================
+# 🎯 [대혁신] 사용자가 F5를 안 눌러도 60초마다 화면이 스스로 재부팅되는 내부 자동 타이머 구역
+# =========================================================================
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 
