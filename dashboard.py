@@ -9,7 +9,7 @@ import time
 # 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정
 # =========================================================================
 st.set_page_config(
-    page_title="핀업 스타일 주식 테마 대시보드",
+    page_title="핀업 스타일 테마 맵 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -76,7 +76,7 @@ def load_synchronized_market_data():
             'name': ['코데즈컴바인', '좋은사람들', '한미반도체', '삼성전자', '코데즈컴바인', '현대차', '에코프로비엠', '레인보우로보틱스', '셀트리온'],
             'rate': [30.00, 30.00, 14.20, -1.20, 25.40, 2.10, 4.35, 8.90, 1.50]
         }
-        base_df = pd.DataFrame(mock_stocks)
+        base_df = pd.DataFrame(sample_rows)
         
     if 'rate' not in base_df.columns:
         for col in base_df.columns:
@@ -103,7 +103,7 @@ def load_synchronized_market_data():
         
     return base_df, status_df
 
-raw_df, status_df = load_synchronized_market_data()
+raw_df, status_df = load_market_data()
 
 # =========================================================================
 # 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
@@ -134,7 +134,7 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
@@ -143,7 +143,7 @@ with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
         
-        # 🎯 [대혁신 1] maxdepth=1 속성을 심어 하위 뎁스(Zoom-in 확장) 진입을 차트 자체에서 거부하도록 설계
+        # maxdepth=1 속성을 심어 하위 뎁스 확장을 차단
         fig = px.treemap(
             top_25_themes,
             path=['테마'],
@@ -152,7 +152,7 @@ with left_layout:
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
             custom_data=['등락률'],
-            maxdepth=1  # 📌 더 이상 박스가 혼자 뚱뚱하게 커지지 않도록 한계 깊이 고정!
+            maxdepth=1
         )
         
         fig.update_traces(
@@ -161,7 +161,7 @@ with left_layout:
             textposition="middle center"
         )
         
-        # 🎯 [대혁신 2] clickmode를 조절하여 클릭했을 때 순수 이벤트 신호만 우측으로 송출하도록 정밀 조율
+        # 🎯 [확대 방멸 완결 속성] clickmode 고정과 함께 차트의 모든 인터랙션 리셋 속성 선언
         fig.update_layout(
             margin=dict(t=2, b=2, l=2, r=2), 
             height=520,
@@ -172,13 +172,12 @@ with left_layout:
         # 순정 인터랙션 연동 센서 작동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [버그 영구 박멸] 변수 파싱 다각도 구조화로 우측 카드 실시간 동기화 완결
+        # 변수 파싱 다각도 구조화로 우측 카드 실시간 동기화 완결
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    first_point = points_list[0]
-                    # 트리맵의 공식 label 속성에서 한글 테마명을 낚아채어 꽂아줍니다.
+                    first_point = points_list
                     if "label" in first_point:
                         st.session_state.selected_theme_click = str(first_point["label"]).strip()
                     elif "point_number" in first_point:
@@ -197,7 +196,6 @@ with right_layout:
     
     right_sub_cols = st.columns(2)
     
-    # 🎯 [문법 에러 완벽 해결 구역] try-except 들여쓰기 공백을 완벽 정렬하여 Syntax 에러 소멸
     try:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
@@ -232,4 +230,10 @@ with right_layout:
                 "제약/바이오": [("삼성바이오로직스", -0.80), ("셀트리온", 1.50)]
             }
             active_list = backup_pool.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
+            
+            # 🎯 [들여쓰기 버그 완전 박멸] 아래 마크다운 출력 줄의 띄어쓰기를 정밀 정렬 완료했습니다.
             for idx, (s_name, s_rate) in enumerate(active_list):
+                rate_class = "rate-up" if s_rate >= 0 else "rate-down"
+                rate_sign = "+" if s_rate >= 0 else ""
+                with right_sub_cols[idx % 2]:
+                    st.markdown(f"""
