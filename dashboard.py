@@ -186,17 +186,16 @@ for i in range(min(5, len(status_df))):
     t_name = status_df['테마'].iloc[i]
     t_rate = status_df['등락률'].iloc[i]
     with theme_cols[i]:
-        if t_rate >= 0:
-            st.metric(label=f"🔺 {t_name}", value=f"+{t_rate}%")
-        else:
-            st.metric(label=f"🔻 {t_name}", value=f"{t_rate}%")
+        if t_rate >= 0: st.metric(label=f"🔺 {t_name}", value=f"+{t_rate}%")
+        else: st.metric(label=f"🔻 {t_name}", value=f"{t_rate}%")
 
 st.markdown("---")
 
 top_25_themes = status_df.head(25).copy()
 
+# 세션 상태 초기화 및 교차 간섭 차단
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
 
 # 左右 스플릿 레이아웃 설정
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
@@ -205,35 +204,25 @@ left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty:
-        if '등락률' in top_25_themes.columns:
-            top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
-            
+        top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
         fig = px.treemap(
-            top_25_themes,
-            path=['테마'],
-            values='화면크기_가중치',    
-            color='등락률',             
-            color_continuous_scale='RdBu_r',  
-            color_continuous_midpoint=0,
-            custom_data=['테마']
+            top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
+            color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
         )
-        fig.update_traces(
-            texttemplate="<b>%{label}</b>",
-            textfont=dict(size=16, color="white"),
-            textposition="middle center"
-        )
+        fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
         fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=520)
         
+        # 🚨 [클릭 연동 버그 격파 패치] 데이터 전달 규격을 딕셔너리 구조에 맞춰 유연하게 튜닝
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
-        
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
-            points_list = chart_res["selection"]["points"]
-            if points_list and len(points_list) > 0:
-                p_target = points_list
-                if "label" in p_target and p_target["label"]:
-                    st.session_state.selected_theme_click = str(p_target["label"]).strip()
-                elif "customdata" in p_target and p_target["customdata"]:
-                    st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
+            p_list = chart_res["selection"]["points"]
+            if p_list and len(p_list) > 0:
+                p_target = p_list[0]
+                # label 또는 customdata에서 테마명을 정확하게 가로채 세션에 전달합니다.
+                chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
+                if chosen_lbl: 
+                    st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
 # 🗂️ 오른쪽 영역: 클릭한 테마의 소속 종목 24선 고정 표출 구역
 with right_layout:
@@ -241,57 +230,43 @@ with right_layout:
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
     
     final_stock_list = []
-    theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
-    
-    if not theme_detail_df.empty:
+    if not raw_df.empty:
+        theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         for _, row in theme_detail_df.iterrows():
             final_stock_list.append((row['name'], float(row['rate'])))
             
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
     
-    # 등락률 실수 수치 기준으로 오리지널 내림차순/오름차순 정렬
-    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
+    # 등락률 실수 수치 기준으로 칼같이 오리지널 정렬
+    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
-    # 🚨 [형님의 황금 비율 24선 필터] 상승 대장주 상위 12개만 정밀 컷트
+    # 🚨 [형님의 황금 비율 24선 규격 고정] 상승 상위 최대 12개 컷트
     st.markdown("#### 🔺 상승 종목")
     if up_stocks:
         up_cols = st.columns(2)
         for u_idx, (s_name, s_rate) in enumerate(up_stocks[:12]):
             with up_cols[u_idx % 2]:
-                st.markdown(f"""
-                    <div class='stock-box-up'>
-                        <span class='stock-name-up'>🔺 {s_name}</span>
-                        <span class='stock-rate-up'>+{s_rate}%</span>
-                    </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.text("상승 종목이 없습니다.")
+                st.markdown(f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name}</span><span class='stock-rate-up'>+{s_rate}%</span></div>", unsafe_allow_html=True)
+    else: st.text("상승 종목이 없습니다.")
         
     st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
-    # 🚨 [형님의 황금 비율 24선 필터] 하락 마이너주 하위 12개만 정밀 컷트
+    # 🚨 [형님의 황금 비율 24선 규격 고정] 하락 하위 최대 12개 컷트
     st.markdown("#### 🔹 하락 종목")
     if down_stocks:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate) in enumerate(down_stocks[:12]):
             with down_cols[d_idx % 2]:
-                st.markdown(f"""
-                    <div class='stock-box-down'>
-                        <span class='stock-name-down'>🔹 {s_name}</span>
-                        <span class='stock-rate-down'>{s_rate}%</span>
-                    </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.text("하락 종목이 없습니다.")
+                st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name}</span><span class='stock-rate-down'>{s_rate}%</span></div>", unsafe_allow_html=True)
+    else: st.text("하락 종목이 없습니다.")
 
 # =========================================================================
 # 🎯 [60초 자가 무한 리런 스케줄러] 1분 마다 화면을 흔들어 데이터 동기화 강제 유도
 # =========================================================================
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
-
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
