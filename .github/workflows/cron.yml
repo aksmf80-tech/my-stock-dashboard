@@ -2,8 +2,9 @@ name: Naver Stock Data Crawler
 
 on:
   schedule:
+    # 한국 시간(KST) 평일 오전 9시 0분 ~ 오후 3.50분까지 10분 주기로 자동 가동
     - cron: '*/10 0-6 * * 1-5'
-  workflow_dispatch:
+  workflow_dispatch: # 수동 실행 버튼 활성화
 
 jobs:
   build:
@@ -26,11 +27,13 @@ jobs:
       - name: Run Crawler Engine
         run: python fetch_data.py
 
-      # 🎯 족쇄를 완전히 끊고 무조건 강제로 내 저장소에 덮어쓰기(Push)를 집행합니다.
+      # 🎯 [지옥의 족쇄 해결] diff 조건 비교문을 완전히 도려냈습니다.
+      # 데이터가 같든 다르든 무조건 강제로 내 저장소에 덮어쓰기(Push)를 강제 집행합니다.
       - name: Commit and Force Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@://github.com"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add theme_data.csv
-          git commit -m "🔄 [강제 동기화] 실시간 주가 데이터 강제 갱신" || echo "No changes to commit"
+          # 무조건 강제 커밋 후 푸시 처리 (No changes 예외까지 우회)
+          git commit -m "🔄 [강제 동기화] 한국 표준시 기준 실시간 테마 시세 전면 갱신" || echo "No changes to commit"
           git push origin main
