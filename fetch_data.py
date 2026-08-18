@@ -5,7 +5,8 @@ import os
 
 def get_market_theme_data():
     """
-    장중 pykrx 소수점 배수 등락률 데이터를 100을 곱해 진짜 퍼센트(%) 수치로 완벽하게 변환합니다.
+    pykrx 장중 스냅샷의 등락률 누락 버그를 완벽히 해결하기 위해
+    [ (현재가 - 전일종가) / 전일종가 * 100 ] 공식을 활용해 진짜 등락률을 강제 정밀 역산합니다.
     """
     try:
         current_base = datetime.datetime.now()
@@ -15,8 +16,10 @@ def get_market_theme_data():
             kst_now = current_base
             
         today_str = kst_now.strftime("%Y%m%d")
-        print(f"📊 pykrx 장중 실시간 스냅샷 엔진 가동 (기준일: {today_str})...")
+        print(f"📊 pykrx 장중 실시간 강제 역산 엔진 가동 (기준일: {today_str})...")
         
+        # 🎯 [0.0 버그 완전 박멸 핵심]
+        # 등락률 컬럼이 비어있을 때를 대비해, 거래소 종가(현재가)와 전일대비 변동폭 데이터를 함께 긁어옵니다.
         df_kospi = stock.get_market_snapshot_by_ticker("KOSPI")
         df_kosdaq = stock.get_market_snapshot_by_ticker("KOSDAQ")
         
@@ -34,21 +37,26 @@ def get_market_theme_data():
             
         df_market = df_market.reset_index()
         
+        # 종목명 컬럼 정제
         if '종목명' not in df_market.columns:
             df_market['종목명'] = df_market.iloc[:, 1].astype(str).str.strip()
         else:
             df_market['종목명'] = df_market['종목명'].astype(str).str.strip()
             
-        if '등락률' in df_market.columns:
-            df_market['등락률'] = pd.to_numeric(df_market['등rak률'], errors='coerce').fillna(0.0)
-        else:
-            # 컬럼명이 다른 스냅샷 대응용 보어벽
-            target_col = '등락률' if '등락률' in df_market.columns else df_market.columns[df_market.columns.str.contains('등락|비율|Ratio')][0]
-            df_market['등락률'] = pd.to_numeric(df_market[target_col], errors='coerce').fillna(0.0)
+        # 🎯 [진짜 등락률 공식 강제 연동]
+        # 라이브러리가 등락률을 0.0으로 뱉더라도, '종가(현재가)'와 '대비(변동금액)' 컬럼을 이용해 진짜 %를 직접 계산합니다.
+        # 공식: (변동금액 / (현재가 - 변동금액)) * 100
+        df_market['현재가'] = pd.to_numeric(df_market['종가'], errors='coerce').fillna(0)
+        df_market['변동금액'] = pd.to_numeric(df_market['대비'], errors='coerce').fillna(0)
+        df_market['전일종가'] = df_market['현재가'] - df_market['변동금액']
+        
+        df_market['진짜등락률'] = 0.0
+        mask = df_market['전일종가'] > 0
+        df_market.loc[mask, '진짜등락률'] = (df_market.loc[mask, '변동금액'] / df_market.loc[mask, '전일종가']) * 100.0
 
         theme_map = {
             "자동차 부품": ["현대모비스", "한온시스템", "현대위아", "성우하이텍", "서연이화", "화신", "에스엘"],
-            "로봇/AI": ["레인보우로보틱스", "두산로보틱스", "뉴로메카", "루닛", "뷰노", "이랜시스", "RS오토ベーション"],
+            "로봇/AI": ["레인보우로보틱스", "두산로보틱스", "뉴로메카", "루닛", "뷰노", "이랜시스", "RS오토메이션"],
             "시스템 반도체": ["네패스", "리노공업", "한미반도체", "두산테스나", "가온칩스", "오픈엣지테크놀로지"],
             "방산": ["한화에어로스페이스", "한국항공우주", "LIG넥스원", "현대로템", "풍산", "휴니드"],
             "2차전지": ["에코프로", "에코프로비엠", "포스코퓨처엠", "엘앤에프", "금양", "나노신소재", "엔켐"],
@@ -65,17 +73,10 @@ def get_market_theme_data():
             
             if not theme_stocks_df.empty:
                 for _, row in theme_stocks_df.iterrows():
-                    # 🎯 [핵심 보정] 장중 소수점 배수 수치를 진짜 주식 % 수치(예: 3.45%)로 100배 키워줍니다.
-                    raw_rate = float(row['등락률'])
-                    if abs(raw_rate) <= 1.0 and raw_rate != 0.0:
-                        real_rate = raw_rate * 100.0
-                    else:
-                        real_rate = raw_rate
-                        
                     rows_list.append({
                         "테마": theme_name,
                         "종목명": row['종목명'],
-                        "등락률": round(real_rate, 2)
+                        "등락률": round(float(row['진짜등락률']), 2)
                     })
                     
         if not rows_list:
@@ -93,7 +94,7 @@ def get_market_theme_data():
         return None
 
 if __name__ == "__main__":
-    print("🚀 pykrx 장중 실시간 100배 보정형 엔진 구동...")
+    print("🚀 pykrx 장중 실시간 강제 역산형 엔진 구동...")
     DATA_FILE = "theme_data.csv"
     
     df = get_market_theme_data()
@@ -102,7 +103,7 @@ if __name__ == "__main__":
             os.remove(DATA_FILE)
             
         df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
-        print("🎉 [성공] 진짜 퍼센트 수치 보정 완료 후 CSV 저장 성공!")
+        print("🎉 [성공] 진짜 수식 계산 완료 후 CSV 저장 성공!")
         print(df.head(5))
     else:
         print("⚠️ 데이터를 정상적으로 추출하지 못했습니다.")
