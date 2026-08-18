@@ -19,21 +19,29 @@ if not os.path.exists(DATA_FILE):
     st.warning("⌛ 실시간 데이터 파일(theme_data.csv)을 기다리는 중입니다. 수집 앱을 확인해 주세요.")
     st.stop()
 
-# 최신 데이터 읽기
-df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
+# 최신 종목 데이터 읽기
+raw_df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
 
 required_cols = ['테마', '종목명', '등락률']
-if df is None or df.empty or not all(col in df.columns for col in required_cols):
+if raw_df is None or raw_df.empty or not all(col in raw_df.columns for col in required_cols):
     st.warning("📊 현재 표시할 주식 데이터 형식이 올바르지 않거나 데이터가 없습니다.")
     st.stop()
 
-# 🎯 [핀업 스타일 교정 1] 등락률이 높은 주도 테마일수록 화면 사각형 크기를 더 크게 배정합니다.
-# 변동 폭(절댓값)에 비례하여 크기를 유동적으로 셋팅하되 최소 크기(5)를 보장합니다.
-df['화면크기_가중치'] = df['등락률'].abs() + 5.0
+# ---------------------------------------------------------
+# 🎯 [핀업 스타일 초정밀 데이터 재조립 엔진]
+# ---------------------------------------------------------
+# 1. 개별 종목으로 쪼개진 데이터를 그룹화하여 '테마별 평균 등락률'을 완벽하게 계산합니다.
+theme_grouped = raw_df.groupby('테마')['등락률'].mean().reset_index()
 
-# 🎯 [핀업 스타일 교정 2] 숫자 앞에 '+' 기호와 '%' 단위를 붙여서 핀업과 완벽히 똑같은 라벨을 만듭니다.
+# 2. 🔥 [핵심] 왼쪽(빨강/상승)에서 오른쪽(파랑/하락)으로 칼같이 정렬하기 위해 등락률 높은 순으로 정렬합니다.
+theme_grouped = theme_grouped.sort_values(by='등락률', ascending=False).reset_index(drop=True)
+
+# 3. 주도 테마일수록 사각형 크기가 커지도록 절댓값 기준 크기 가중치를 부여합니다 (최소 크기 5 보장).
+theme_grouped['화면크기_가중치'] = theme_grouped['등락률'].abs() + 5.0
+
+# 4. 핀업과 완벽히 일치하는 등락률 부호 기호 라벨 텍스트 조합
 def make_pinup_label(row):
-    rate = row['등락률']
+    rate = round(row['등락률'], 2)
     if rate > 0:
         return f"{row['테마']}\n+{rate}%"
     elif rate < 0:
@@ -41,9 +49,9 @@ def make_pinup_label(row):
     else:
         return f"{row['테마']}\n0.0%"
 
-df['핀업라벨'] = df.apply(make_pinup_label, axis=1)
+theme_grouped['핀업라벨'] = theme_grouped.apply(make_pinup_label, axis=1)
 
-# 해외 서버 기준 시간을 대한민국 서울 표준시(KST)로 정확히 연동
+# 해외 서버 시차 해결 (KST 동기화)
 utc_now = datetime.utcnow()
 kor_now = utc_now + timedelta(hours=9)
 current_time_str = kor_now.strftime('%H:%M:%S')
@@ -53,7 +61,7 @@ st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {
 # ---------------------------------------------------------
 # 상단 테마 선택 컨트롤러 배치
 # ---------------------------------------------------------
-theme_list = df['테마'].unique().tolist()
+theme_list = theme_grouped['테마'].unique().tolist()
 current_theme = st.selectbox(
     "🔍 **상세 정보를 조회할 테마를 선택하세요**", 
     options=theme_list,
@@ -62,52 +70,51 @@ current_theme = st.selectbox(
 )
 
 # ---------------------------------------------------------
-# 구역 1: 등락률 시각화용 트리맵 (0을 중심으로 선명한 핀업 스타일 대칭 정렬)
+# 구역 1: 핀업 완벽 복사형 트리맵 차트 (좌측 빨강 / 우측 파랑 대조)
 # ---------------------------------------------------------
-# 🎯 [핀업 스타일 교정 3] 색상 대비 극대화 범위를 강제로 정밀 타겟팅합니다.
-# 최대 범위를 ±5% 혹은 ±7% 수준으로 꽉 조여놓으면, 조금만 올라도 사각형이 핀업처럼 시뻘갛게 타오릅니다!
-COLOR_LIMIT = 5.0  # 🎯 ±5%를 기준으로 색상 최대 맑기 고정 (원하시면 7.0이나 10.0으로 변경 가능)
+# 조금만 올라도 선명하게 불타오르도록 민감도를 ±5% 범위로 고정합니다.
+COLOR_LIMIT = 5.0 
 
 fig = px.treemap(
-    df, 
-    path=['핀업라벨'],     # 🎯 글자 포맷팅이 완료된 핀업 라벨 적용
-    values='화면크기_가중치', # 🎯 주도 테마가 더 크게 나오도록 크기 가중치 연동
+    theme_grouped, 
+    path=['핀업라벨'],        # 🎯 테마 합산 수치가 반영된 라벨 고정
+    values='화면크기_가중치',    # 🎯 변동 폭이 큰 테마일수록 큼직하게 배정
     color='등락률',        
-    color_continuous_scale='RdBu_r', # 상승 빨강, 하락 파랑
-    range_color=[-COLOR_LIMIT, COLOR_LIMIT], # 🎯 핵심: 좁은 범위 대칭 강제로 색감 극대화!
-    hover_data=['종목명']
+    color_continuous_scale='RdBu_r', # 상승 빨강 / 하락 파랑
+    range_color=[-COLOR_LIMIT, COLOR_LIMIT], # 색상 대비 극대화
 )
 
-# 핀업 스타일 테두리 마감 및 가독성 설정
+# 핀업 특유의 두꺼운 바둑판 테두리 및 가독성 폰트 마감
 fig.update_traces(
     maxdepth=1, 
-    textinfo="label", # 라벨 텍스트만 깔끔하게 표출
-    marker=dict(line=dict(width=2.0, color='white')), # 사각형 구분선을 핀업처럼 선명하게 분할
-    textfont=dict(size=16, color='white', weight='bold') # 글자 크기 키우고 볼드체 두껍게 강조
+    textinfo="label",
+    marker=dict(line=dict(width=3.0, color='white')), # 🎯 핀업처럼 테두리를 두껍게 성곽선 분할
+    textfont=dict(size=18, color='white', weight='bold') # 글씨 크기 확대 및 두껍게 강조
 )
 
+# 트리맵이 등락률 순서대로 왼쪽->오른쪽으로 강제 배열되도록 Plotly 내부 레이아웃 고정
 fig.update_layout(
     dragmode=False,    
     margin=dict(t=10, l=10, r=10, b=10), 
-    height=420 # 핀업 비율에 맞게 높이 소폭 상향
+    height=450 # 시각적 개방감을 위해 차트 높이 확대
 )
 
-# 차트 표출
 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
 
 st.markdown("---")
 
 # ---------------------------------------------------------
-# 구역 2: 테마 클릭 시 아래에 목록이 주르륵 나오는 부분 & 뉴스 연동
+# 구역 2: 테마 선택 시 아래에 소속 종목이 주르륵 나오는 리스트 테이블 구역
 # ---------------------------------------------------------
 st.subheader(f"📂 {current_theme} 관련 정보")
 
-theme_df = df[df['테마'] == current_theme].copy()
+# 원본 데이터에서 현재 선택된 테마의 개별 종목들을 매칭하여 리스트업합니다.
+theme_df = raw_df[raw_df['테마'] == current_theme].copy()
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown(f"**📈 {current_theme} 종목 리스트**")
+    st.markdown(f"**📈 {current_theme} 소속 개별 종목 시세**")
     
     st.data_editor(
         theme_df[['종목명', '등락률']],
