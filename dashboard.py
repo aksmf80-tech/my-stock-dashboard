@@ -1,4 +1,4 @@
-import streamlit st
+import streamlit as st  # 🎯 오타 수정 완료! (as st 가 정상 주입되었습니다)
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -117,7 +117,6 @@ def load_synchronized_market_data():
         
     return base_df, status_df
 
-# 🎯 [NameError 해결] 상단 선언된 짝꿍 명칭인 load_synchronized_market_data()로 정확히 일치화 완료
 raw_df, status_df = load_synchronized_market_data()
 
 # =========================================================================
