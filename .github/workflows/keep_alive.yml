@@ -15,8 +15,8 @@ jobs:
     - name: Auto Commit to Reset Streamlit Timer
       run: |
         git config --global user.name "github-actions[bot]"
-        git config --global user.email "41898282+github-actions[bot]@://github.com"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         echo "Last check: $(date)" > keep_alive.txt
         git add keep_alive.txt
         git commit -m "chore: keep streamlit app alive [skip ci]" || echo "No changes to commit"
-        git push
+        git push origin main
