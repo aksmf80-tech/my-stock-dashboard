@@ -26,14 +26,14 @@ if df is None or df.empty or not all(col in df.columns for col in required_cols)
     st.warning("📊 현재 표시할 주식 데이터 형식이 올바르지 않거나 데이터가 없습니다. 장이 열리면 자동으로 갱신됩니다.")
     st.stop()
 
-# 마이너스 등락률로 인한 트리맵 붕괴 막기 (면적용 절댓값 계산)
+# 🛠️ 마이너스 등락률로 인한 트리맵 붕괴 막기 (면적용 절댓값 계산)
 df['등락률_절댓값'] = df['등락률'].abs().apply(lambda x: max(x, 0.1))
 
 # 상단에 갱신 시각 표시
 st.success(f"🔄 실시간 데이터 동기화 완료! (최근 갱신 시각: {time.strftime('%H:%M:%S')})")
 
 # ---------------------------------------------------------
-# 구역 1: 등락률 시각화용 트리맵 (단순 뷰어용)
+# 구역 1: 등락률에 따라 몸집만 커지고 클릭 확대는 안 되는 핀업 트리맵
 # ---------------------------------------------------------
 fig = px.treemap(
     df, 
@@ -43,43 +43,40 @@ fig = px.treemap(
     color_continuous_scale='RdBu_r', 
     hover_data=['종목명']
 )
+
+# maxdepth를 1로 잠그고 조작 제한
 fig.update_traces(maxdepth=1, textinfo="label+value")
 fig.update_layout(
+    clickmode='event', 
+    dragmode=False,    
     margin=dict(t=10, l=10, r=10, b=10), 
-    height=320
-)
-st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-
-
-# ---------------------------------------------------------
-# 🛠️ [핵심 우회책] 완벽한 연동을 위한 테마 선택 컨트롤러 배치
-# ---------------------------------------------------------
-st.markdown("### 🗂️ 분석할 테마를 클릭하세요")
-
-# 전체 데이터에서 테마별 평균 등락률을 구해 깔끔하게 리스트 피벗
-summary_df = df.groupby('테마')['등락률'].mean().reset_index()
-summary_df.columns = ['테마명', '평균 등락률']
-
-# 스트림릿 공식 단일 선택 데이터프레임 구성
-selected_rows = st.dataframe(
-    summary_df,
-    use_container_width=True,
-    hide_index=True,
-    on_select="rerun",  # 💡 이 방식은 스트림릿이 버그 없이 100% 잡아냅니다.
-    selection_mode="single-row"
+    height=400
 )
 
-# 기본 선택 테마 지정
-current_theme = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
+# 스트림릿 최신 버전에서 완벽 구동되는 대화형 차트 선언
+selected_theme = st.plotly_chart(
+    fig, 
+    use_container_width=True, 
+    on_select="rerun", 
+    config={'displayModeBar': False, 'scrollZoom': False}
+)
 
-# 사용자가 행을 클릭했다면 해당 테마로 즉시 변경
-if selected_rows and "selection" in selected_rows:
-    row_indices = selected_rows["selection"].get("rows", [])
-    if row_indices:
-        current_theme = summary_df['테마명'].iloc[row_indices[0]]
+# 🛠️ 최초 실행 시 세션 기본값 저장
+if "chosen_theme" not in st.session_state:
+    st.session_state["chosen_theme"] = df['테마'].iloc[0] if not df.empty else "선택된 테마 없음"
+
+# 🛠️ 최신 버전 Streamlit의 SelectionState 객체에서 클릭 데이터 완벽 추출
+if selected_theme and hasattr(selected_theme, "selection") and selected_theme.selection:
+    points = selected_theme.selection.get("points", [])
+    if points and len(points) > 0:
+        clicked_label = points[0].get("label")
+        if clicked_label and str(clicked_label).strip() != "":
+            st.session_state["chosen_theme"] = clicked_label
+
+# 최종 화면 출력용 테마 변수 고정
+current_theme = st.session_state["chosen_theme"]
 
 st.markdown("---")
-
 
 # ---------------------------------------------------------
 # 구역 2: 테마 클릭 시 아래에 목록이 주르륵 나오는 부분 & 뉴스 연동
