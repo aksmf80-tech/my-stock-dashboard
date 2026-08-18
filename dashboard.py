@@ -14,11 +14,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 좌우 배치 최적화 및 스크롤 없는 한 화면 뷰 구현 전용 CSS
+# 🎯 [레이아웃 대수술] 짤림을 막기 위해 상단 패딩(padding-top)을 2.5rem으로 넉넉히 확보하여 아래로 내림
 st.markdown("""
     <style>
-    /* 상하 여백 최소화하여 모니터 한 화면에 레이아웃 강제 고정 */
-    .block-container { padding-top: 1.0rem !important; padding-bottom: 0.5rem !important; }
+    /* 상단 지표가 짤리지 않도록 padding-top 여백을 2.5rem으로 확장 */
+    .block-container { padding-top: 2.5rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
@@ -98,11 +98,10 @@ def load_market_data():
 raw_df, status_df = load_market_data()
 
 # =========================================================================
-# 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5
+# 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5 (여백 하향 조정 완료)
 # =========================================================================
 update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
-# 🎯 [수정 조치 1] 에러 원인이었던 빈 괄호 내부에 숫자 2를 넣어 칸 분할을 명확히 명시했습니다.
 title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 style='margin:0; padding:0; font-size:24px; color:#F8FAFC;'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
@@ -145,11 +144,16 @@ with left_layout:
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0      
         )
+        
+        # 🎯 [NaN% 원인 수정] 수치 대입 문법을 Plotly 표준인 %{customdata[0]} 방식으로 우회 치환하여 NaN 에러 완벽 해결
+        fig.update_scalars = False
+        fig.data[0].customdata = np.column_stack([top_25_themes['등락률']])
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br>%{color:.2f}%",
+            texttemplate="<b>%{label}</b><br><b>%{customdata[0]:.2f}%</b>",
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
+        
         fig.update_layout(
             margin=dict(t=2, b=2, l=2, r=2), 
             height=520,
@@ -159,12 +163,11 @@ with left_layout:
         # 순정 최신 리런 센서 작동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [수정 조치 2] 리스트와 딕셔너리 구조 추출 문법을 완벽히 패치하여 클릭 연동을 정상화했습니다.
+        # Plotly 순정 리스트 구조 인덱스 추적 및 실시간 브릿지 연동
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    # 리스트 내부 첫 번째 딕셔너리 원소 정보 추출
                     first_point = points_list[0]
                     if "point_number" in first_point:
                         clicked_index = first_point["point_number"]
