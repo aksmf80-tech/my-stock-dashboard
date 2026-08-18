@@ -215,19 +215,17 @@ with left_layout:
             treemapcolorway=["#1E293B"]
         )
         
-        # 🎯 순정 클릭 센서 신호 연동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 🎯 [연동 잠금 영구 격파] 외계어 인덱서 충돌을 완전히 피하고 순수 텍스트 라벨만 안전하게 추출하는 알고리즘 고정
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    p_target = points_list[0]
+                    p_target = points_list
                     if "label" in p_target and p_target["label"]:
                         st.session_state.selected_theme_click = str(p_target["label"]).strip()
                     elif "customdata" in p_target and p_target["customdata"]:
-                        st.session_state.selected_theme_click = str(p_target["customdata"][0]).strip()
+                        st.session_state.selected_theme_click = str(p_target["customdata"]).strip()
                 except Exception:
                     pass
     else:
@@ -245,14 +243,20 @@ with right_layout:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
     if not theme_detail_df.empty:
-        theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
         for _, row in theme_detail_df.iterrows():
-            final_stock_list.append((row['name'], row['rate']))
+            final_stock_list.append((row['name'], float(row['rate'])))
     else:
         final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
         
+    # 🎯 상승 종목과 하락 종목 분리 필터링
     up_stocks = [(n, r) for n, r in final_stock_list if r >= 0]
     down_stocks = [(n, r) for n, r in final_stock_list if r < 0]
+    
+    # 🎯 [대혁신 수술] 각 섹션별 주도주 순서대로 정렬 고정
+    # 상승 종목: 등락률이 높은 순서대로 (내림차순 정렬)
+    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
+    # 하락 종목: 낙폭이 가장 큰(-10%가 -1%보다 먼저 오도록) 순서대로 (오름차순 정렬)
+    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
     st.markdown("#### 🔺 상승 종목")
     if up_stocks:
@@ -265,7 +269,6 @@ with right_layout:
         
     st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
-    # 🎯 [요청 사양 반영] 하락 종목의 타이틀과 내부 버튼 아이콘을 모두 파란색 화살표(🔹)로 완벽 체인지!
     st.markdown("#### 🔹 하락 종목")
     if down_stocks:
         down_cols = st.columns(2)
