@@ -10,19 +10,23 @@ import time
 # =========================================================================
 st.set_page_config(
     page_title="핀업 스타일 테마 맵 대시보드",
-    layout="wide",  # 📰 스크롤 없는 풀화면을 위한 와이드 기본 적용
+    layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 🎯 [레이아웃 조정] 상단 바에 가려지는 현상을 완벽 차단하기 위해 padding-top을 3.8rem으로 전격 확대
+# 🎯 상단 글자 크기 밸런싱 및 가독성 증폭 디자인 CSS 튜닝
 st.markdown("""
     <style>
-    /* 상단 5단 지표가 메뉴바 아래로 완전히 내려오도록 여백을 3.8rem으로 추가 확장 */
-    .block-container { padding-top: 3.8rem !important; padding-bottom: 0.5rem !important; }
+    /* 상단 요소를 완전히 내려서 가독성 확보 */
+    .block-container { padding-top: 3.5rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
-    /* 🎨 우측 종목 카드를 좌우로 퍼지지 않게 딱 떨어지도록 튜닝 */
+    /* 🎯 상단 5대 테마 글자 크기 및 수치(%) 비율 레이아웃 커스텀 */
+    [data-testid="stMetricLabel"] { font-size: 15px !important; font-weight: bold !important; color: #CBD5E1 !important; }
+    [data-testid="stMetricValue"] { font-size: 24px !important; font-weight: 800 !important; color: #F8FAFC !important; }
+    
+    /* 🎨 우측 종목 카드 콤팩트 격자 디자인 */
     .stock-card {
         background-color: #1E293B;
         border-left: 5px solid #EF4444;
@@ -48,7 +52,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역
+# 1. 📂 데이터 로드 및 정제 구역 (컬럼 동기화 정상화)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
@@ -66,7 +70,7 @@ def load_market_data():
             '반도체 후공정': [('한미반도체', 14.20), ('리노공업', 5.12), ('이오테크닉스', 3.45)],
             '시스템 반도체': [('삼성전자', -1.20), ('SK하이닉스', -2.50), ('DB하이텍', 0.85)],
             '수소차': [('현대차', 2.10), ('일진하이솔루스', -0.50)],
-            '전기차 부품': [('エ코프로비엠', 4.35), ('엘앤에프', -3.10)],
+            '전기차 부품': [('에코프로비엠', 4.35), ('엘앤에프', -3.10)],
             '로봇': [('레인보우로보틱스', 8.90), ('두산로보틱스', 11.20)],
             '제약/바이오': [('삼성바이오로직스', -0.80), ('셀트리온', 1.50)]
         }
@@ -77,8 +81,7 @@ def load_market_data():
         
     if 'rate' not in base_df.columns:
         base_df['rate'] = np.random.uniform(-15, 30, size=len(base_df)).round(2)
-    if 'theme' in base_df.columns:
-        base_df['theme'] = base_df['theme'].astype(str).str.strip()
+    base_df['theme'] = base_df['theme'].astype(str).str.strip()
 
     if os.path.exists(STATUS_FILE) and os.path.getsize(STATUS_FILE) > 0:
         status_df = pd.read_csv(STATUS_FILE, encoding='utf-8-sig')
@@ -98,16 +101,17 @@ def load_market_data():
 raw_df, status_df = load_market_data()
 
 # =========================================================================
-# 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5 (여백 대폭 확보)
+# 2. 🗺️ 상단 구역: 타이틀 및 실시간 주도 테마 TOP 5 (글자 크기 밸런스 패치)
 # =========================================================================
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else "미정"
 
-title_col, time_col = st.columns(2)
+title_col, time_col = st.columns([6, 4])
 with title_col:
-    st.markdown("<h2 style='margin:0; padding:0; font-size:24px; color:#F8FAFC;'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='margin:0; padding:0; font-size:22px; color:#F8FAFC;'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
-    st.markdown(f"<p style='text-align:right; margin:0; padding-top:8px; color:#94A3B8; font-size:13px; font-weight:bold;'>⏱️ 동기화 완료: {update_time}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 동기화 완료: {update_time}</p>", unsafe_allow_html=True)
 
+# 🎯 상단 5대 테마 지표 가로 비율 정렬 완료
 theme_cols = st.columns(5)
 for i in range(min(5, len(status_df))):
     t_name = status_df['테마'].iloc[i]
@@ -125,30 +129,33 @@ st.markdown("---")
 # =========================================================================
 top_25_themes = status_df.head(25).copy()
 
-# 세션 상태 클릭 초기값 선언
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
 
-# 핵심 공간 분할 (왼쪽 공간과 오른쪽 공간을 가로 배치)
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
 # --- [좌측 구역] 테마 히트맵 배치 ---
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty and '테마' in top_25_themes.columns:
-        # 🎯 [에러 버그 전면 제거 완료] 
+        
+        # 🎯 [NaN% 완벽 해결 조치] 음수 연산 버그를 우회하기 위해 한글명과 퍼센트 수치를 미리 합친 정적 텍스트 필드 생성
+        display_texts = []
+        for _, row in top_25_themes.iterrows():
+            sign = "+" if row['등락률'] >= 0 else ""
+            display_texts.append(f"<b>{row['테마']}</b><br>{sign}{row['등락률']:.2f}%")
+        top_25_themes['display_text'] = display_texts
+        
         fig = px.treemap(
             top_25_themes,
-            path=['테마'],
+            path=['display_text'], # 📌 테마명 대신 치환이 완료된 정적 텍스트 경로를 태워 NaN% 원천 차단
             values='화면크기_가중치',    
             color='등락률',             
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0      
         )
         
-        # 🎯 포맷 문자열 정상 바인딩을 통해 수치가 완벽히 표출되도록 고정
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br><b>%{color:.2f}%</b>",
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
@@ -159,20 +166,19 @@ with left_layout:
             treemapcolorway=["#1E293B"]
         )
         
-        # 순정 최신 리런 센서 작동
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # Plotly 순정 리스트 구조 인덱스 추적 및 실시간 브릿지 연동
+        # 클릭 데이터 센서 바인딩 및 파싱 매핑
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             points_list = chart_res["selection"]["points"]
             if points_list and len(points_list) > 0:
                 try:
-                    first_point = points_list
-                    if "point_number" in first_point:
-                        clicked_index = first_point["point_number"]
-                        if clicked_index < len(top_25_themes):
-                            clicked_theme = top_25_themes['테마'].iloc[clicked_index]
-                            st.session_state.selected_theme_click = clicked_theme
+                    first_point = points_list[0]
+                    if "id" in first_point:
+                        # 정적 텍스트 경로 구조에서 HTML 태그를 분리하여 순수 테마 한글명만 추출해냄
+                        raw_id = first_point["id"]
+                        parsed_theme = raw_id.split("<b>")[1].split("</b>")[0].strip()
+                        st.session_state.selected_theme_click = parsed_theme
                 except Exception:
                     pass
     else:
