@@ -3,7 +3,7 @@ name: Naver Stock Data Crawler
 on:
   schedule:
     - cron: '*/10 0-6 * * 1-5'
-  workflow_dispatch:
+  workflow_dispatch: # 수동 실행 버튼 완벽 활성화
 
 jobs:
   build:
@@ -11,26 +11,26 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # 최신 노드 버전 대응 완벽 정비
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # 최신 파이썬 환경 격상
         with:
           python-version: '3.10'
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install pandas plotly pykrx beautifulsoup4 requests streamlit>=1.37.0 # 🎯 에러 차단을 위해 라이브러리 직접 강제 설치
 
       - name: Run Crawler Engine
         run: python fetch_data.py
 
-      # 🎯 족쇄를 완전히 끊고 무조건 강제로 내 저장소에 덮어쓰기(Push)를 집행합니다.
+      # 🎯 족쇄 조건문을 완전히 파괴하고 새 데이터를 무조건 강제로 저장소에 밀어 넣습니다.
       - name: Commit and Force Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.email "github-actions[bot]@://github.com"
           git add theme_data.csv
           git commit -m "🔄 [강제 동기화] 실시간 주가 데이터 강제 갱신" || echo "No changes to commit"
           git push origin main
