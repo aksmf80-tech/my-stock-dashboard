@@ -9,7 +9,7 @@ import time
 # 0. 🛠️ 대시보드 기본 환경 및 다크 테마 디자인 설정
 # =========================================================================
 st.set_page_config(
-    page_title="핀업 스타일 테마 맵 대시보드",
+    page_title="핀업 스타일 주식 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -41,7 +41,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 1. 📂 데이터 로드 및 정제 구역 (🎯 대장주 백업 풀 데이터 30개 스케일 확장)
+# 1. 📂 데이터 로드 및 정제 구역 (30개 규모 데이터 풀 완전 고정)
 # =========================================================================
 BASE_FILE = "theme_data.csv"
 STATUS_FILE = "realtime_theme_status.csv"
@@ -52,8 +52,7 @@ BACKUP_STOCK_POOL = {
         ("부산산업", 18.50), ("제이에스티나", 15.30), ("신원", 12.10), ("재영솔루텍", 9.80),
         ("아난티", 8.40), ("현대로템", 7.15), ("한일현대시멘트", 5.20), ("쌍용C&E", 4.10),
         ("성신양회", 3.85), ("특수건설", 2.10), ("우원개발", 1.45), ("남광토건", -0.80),
-        ("삼부토건", -1.20), ("동아지질", -2.50), ("서암기계공업", -3.10), ("대호에이엘", -4.20),
-        ("일성건설", 3.40), ("범양건영", -0.90), ("동신건설", 1.20), ("신원우", 2.55)
+        ("삼부토건", -1.20), ("동아지질", -2.50), ("서암기계공업", -3.10), ("대호에이엘", -4.20)
     ],
     "반도체 후공정": [
         ("한미반도체", 14.20), ("리노공업", 5.12), ("하나마이크론", 4.30), ("이오테크닉스", 3.12),
@@ -65,7 +64,7 @@ BACKUP_STOCK_POOL = {
         ("삼성전자", -1.20), ("SK하이닉스", -2.50), ("DB하이텍", 0.90), ("네패스아크", 1.45),
         ("가온칩스", 8.30), ("오픈엣지테크놀로지", 7.15), ("에이디테크놀로지", 5.40), ("텔레칩스", 3.10),
         ("칩스앤미디어", 2.20), ("넥스트칩", 1.10), ("코아시아", -0.80), ("알파홀딩스", -2.40),
-        ("SFA반도체", 4.20), ("어보브반도체", 1.85), ("제주반도체", -1.10), ("픽셀플러스", 0.50)
+        ("SFA반도체", 4.20), ("어보브반도체", 1.85), ("제주반도체", -1.10)
     ],
     "수소차": [
         ("현대차", 2.10), ("일진하이솔루스", -0.50), ("동아화성", 4.15), ("두산퓨어셀", 8.90),
@@ -164,7 +163,7 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "대북/남북경협"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "대북/남북경협"
 
 left_layout, right_layout = st.columns([5.5, 4.5], gap="large")
 
@@ -179,11 +178,11 @@ with left_layout:
             color='등락률',             
             color_continuous_scale='RdBu_r',  
             color_continuous_midpoint=0,
-            custom_data=['등락률']
+            custom_data=['테마'] # 📌 클릭 역추적을 위한 순수 테마 문자열 전용 슬롯 마운트
         )
         
         fig.update_traces(
-            texttemplate="<b>%{label}</b><br>%{customdata:.2f}%",
+            texttemplate="<b>%{label}</b><br>%{color:.2f}%",
             textfont=dict(size=18, color="white"),
             textposition="middle center"
         )
@@ -196,23 +195,33 @@ with left_layout:
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         
+        # 🎯 [대혁신 기민 연동 솔루션] 
+        # 사용자가 마우스로 박스를 누르면 발생하는 모든 수신 데이터 객체를 
+        # 구조 분해하여 텍스트명을 즉시 발굴해내는 전방위 스캐너 엔진 작동
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
-            points_list = chart_res["selection"]["points"]
-            if points_list and len(points_list) > 0:
+            points_data = chart_res["selection"]["points"]
+            if points_data and len(points_data) > 0:
                 try:
-                    first_point = points_list
-                    if "label" in first_point:
-                        st.session_state.selected_theme_click = str(first_point["label"]).strip()
-                    elif "point_number" in first_point:
-                        clicked_index = first_point["point_number"]
-                        if clicked_index < len(top_25_themes):
-                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[clicked_index]
+                    # 첫 번째 포인트 엘리먼트 타격
+                    p_info = points_data[0]
+                    
+                    # 1안: 등록된 수집기 커스텀 데이터 채널에서 추출
+                    if "customdata" in p_info and p_info["customdata"]:
+                        st.session_state.selected_theme_click = str(p_info["customdata"][0]).strip()
+                    # 2안: 라벨 필드에서 다이렉트 텍스트 낚아채기
+                    elif "label" in p_info and p_info["label"]:
+                        st.session_state.selected_theme_click = str(p_info["label"]).strip()
+                    # 3안: 인덱스 번호를 기반으로 순위 테이블 대칭 스캔
+                    elif "point_number" in p_info:
+                        clicked_idx = p_info["point_number"]
+                        if clicked_idx < len(top_25_themes):
+                            st.session_state.selected_theme_click = top_25_themes['테마'].iloc[clicked_idx]
                 except Exception:
                     pass
     else:
         st.info("테마 데이터를 로드하는 중입니다...")
 
-# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (🎯 최대 30개로 확장) ---
+# --- [우측 구역] 클릭한 테마의 종목 버튼형 카드 나열 (최대 30개 규모 완결) ---
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -225,12 +234,3 @@ with right_layout:
         theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
         
     if not theme_detail_df.empty:
-        theme_detail_df = theme_detail_df.sort_values(by='rate', ascending=False).reset_index(drop=True)
-        # 🎯 실제 파일 수집 시 종목 제한을 최대 30개로 크게 늘림
-        for _, row in theme_detail_df.head(30).iterrows():
-            final_stock_list.append((row['name'], row['rate']))
-    else:
-        # 백업 데이터 사용 시에도 상위 선언한 대량의 백업 리스트 자동 가동
-        final_stock_list = BACKUP_STOCK_POOL.get(chosen_theme, [("샘플대장주A", 4.25), ("샘플대장주B", -1.80)])
-        
-    # 최대 30개 종목을 2열 바둑판 배열로 촘촘히 렌더링
