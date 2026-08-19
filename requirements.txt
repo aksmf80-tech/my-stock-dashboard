@@ -4,3 +4,4 @@ yfinance
 beautifulsoup4
 requests
 streamlit>=1.37.0
+supabase
