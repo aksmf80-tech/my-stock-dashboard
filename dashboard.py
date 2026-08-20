@@ -253,40 +253,6 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
 st.markdown("---")
 
 
-# -------------------------------------------------------------
-# 🏛️ 마스터 보드 2층: 삼성전자 & SK하이닉스 대장주 전광판 (기존 기능 유지)
-# -------------------------------------------------------------
-master_cols = st.columns(2)
-
-for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
-    m_rate = 0.0
-    m_price = 0
-    if not raw_df.empty and 'name' in raw_df.columns:
-        target_row = raw_df[raw_df['name'] == m_name]
-        if not target_row.empty:
-            m_rate = float(target_row['rate'].iloc[0])
-            m_price = int(target_row['price'].iloc[0])
-            
-    with master_cols[idx]:
-        if m_rate >= 0:
-            st.markdown(
-                f"  <div class='master-box-up'>\n"
-                f"    <span class='master-name'>🏛️ {m_name}</span>\n"
-                f"    <span class='master-rate-up'>{m_price:,}원 (+{m_rate}%)</span>\n"
-                f"  </div>\n", 
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                f"  <div class='master-box-down'>\n"
-                f"    <span class='master-name'>🏛️ {m_name}</span>\n"
-                f"    <span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span>\n"
-                f"  </div>\n", 
-                unsafe_allow_html=True
-            )
-
-st.markdown("---")
-
 
 # =================================================================
 # 5. 하단 레이아웃: 왼쪽 실시간 트리맵 히트맵 / 오른쪽 선택 테마 상세 소속 종목 분할 배치
