@@ -128,16 +128,16 @@ update_time = status_df['업데이트시간'].iloc if not status_df.empty and '�
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
-title_col, link_col, time_col = st.columns([4, 3, 3])
+title_col, link_col, time_col = st.columns([3.5, 3.5, 3.0])
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with link_col:
-    # 💡 [핵심 추가] '시그널공장' 네이버 카페로 다이렉트 워프하는 녹색 바로가기 버튼 배치
+    # 💡 네이버 고유 색상 명세를 정확히 지킨 입체형 카페 바로가기 링크 버튼
     st.markdown(
-        "<div style='padding-top:8px; text-align:center;'>"
+        "<div style='padding-top:4px; text-align:center;'>"
         "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>"
         "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:14px; "
-        "    border:none; padding:10px 20px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>"
+        "    border:none; padding:10px 20px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); width:100%;'>"
         "      🏛️ 시그널공장 카페 바로가기"
         "    </button>"
         "  </a>"
@@ -156,8 +156,8 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
     if not raw_df.empty and 'name' in raw_df.columns:
         target_idx_row = raw_df[raw_df['name'] == idx_name]
         if not target_idx_row.empty:
-            idx_rate = float(target_idx_row['rate'].iloc)
-            idx_price = int(target_idx_row['price'].iloc) if idx_name == "코스피" else float(target_idx_row['price'].iloc)
+            idx_rate = float(target_idx_row['rate'].iloc[0])
+            idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
             
     with master_4_cols[idx]:
         price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
@@ -170,11 +170,12 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
 for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     m_rate = 0.0
     m_price = 0
-    if not raw_df.empty Barb in raw_df.columns:
+    # 💡 [교정 오완료] 에러의 원인이었던 변수 오타 Barb를 깨끗하게 청소하고 완벽한 인덱스 파싱 수식으로 교체했습니다!
+    if not raw_df.empty and 'name' in raw_df.columns:
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
-            m_rate = float(target_row['rate'].iloc)
-            m_price = int(target_row['price'].iloc)
+            m_rate = float(target_row['rate'].iloc[0])
+            m_price = int(target_row['price'].iloc[0])
             
     with master_4_cols[idx + 2]:
         if m_rate >= 0:
