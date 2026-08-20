@@ -190,28 +190,18 @@ with left_layout:
             color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
         )
         fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
-        fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=520)
+        
+        # 💡 [화면 여백 해결 포인트 1] 히트맵 고유 높이를 520에서 750으로 늘려 하단 빈 공간을 꽉 채웁니다!
+        fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=750)
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                # 💡 [원인 파괴 완료] 리스트 규격으로 들어오는 데이터를 인덱스로 정확히 깨부숴 텍스트를 추출합니다!
                 p_target = p_list[0]
-                
-                # Plotly selection 포인트 구조에 맞춰 라벨 단어 직접 추출 보정
-                if isinstance(p_target, dict):
-                    chosen_lbl = p_target.get("label", p_target.get("customdata", [""])[0])
-                elif isinstance(p_target, list) or isinstance(p_target, tuple):
-                    chosen_lbl = p_target[0] if len(p_target) > 0 else ""
-                else:
-                    chosen_lbl = ""
-                    
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: 
-                    chosen_lbl = chosen_lbl[0]
-                    
-                if chosen_lbl: 
-                    st.session_state.selected_theme_click = str(chosen_lbl).strip()
+                chosen_lbl = p_target.get("label", p_target.get("customdata", [""]))
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
+                if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
@@ -232,7 +222,8 @@ with right_layout:
     st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
     if up_stocks:
         up_cols = st.columns(2)
-        for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:12]):
+        # 💡 [화면 여백 해결 포인트 2] 종목 노출 제한을 12개에서 20개로 확대해 히트맵 높이와 수평 균형을 맞춥니다!
+        for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:20]):
             with up_cols[u_idx % 2]:
                 st.markdown(f"  <div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
     else:
@@ -243,7 +234,8 @@ with right_layout:
     st.markdown("#### 🔹 하락 종목", unsafe_allow_html=True)
     if down_stocks:
         down_cols = st.columns(2)
-        for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:12]):
+        # 💡 동일하게 하락 종목도 최대 20개까지 가독성 있게 뿜어내도록 확장합니다.
+        for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:20]):
             with down_cols[d_idx % 2]:
                 st.markdown(f"  <div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
     else:
@@ -252,15 +244,13 @@ with right_layout:
 # =================================================================
 # 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
 # =================================================================
-# 💡 [과부하 방지 정밀 튜닝] 1초마다 무조건 껐다 켜던 무한 랙 유발 구문을 파괴했습니다.
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 
-# 정확히 60초가 지났을 때만 단 한 번 '새로고침'을 수행하여 수파베이스 DB를 긁어옵니다.
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
     st.rerun()
 else:
-    # 💡 1초마다 st.rerun()을 때리던 자리에 대기 정지 명령(time.sleep)만 남겨두어 브라우저를 쉬게 만듭니다.
+    # 💡 무한 뱅글이 로딩 현상을 정지시키고 60초 타이머 동안 브라우저 과부하를 막는 방어선
     time.sleep(2)
