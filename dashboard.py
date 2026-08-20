@@ -129,8 +129,7 @@ update_time = status_df['업데이트시간'].iloc if not status_df.empty and '�
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
-# 🔒 [형님 지시 100% 무결점 복원] 삐뚤어지게 만들던 수평 분할 코드를 파괴했습니다.
-# 초록 배너가 맨 위 첫 줄 화면 가로 전체(100%)를 꽉 채우는 웅장한 레이아웃으로 빌드 완료!
+# 형님이 지정해주신 상단 100% 가로 와이드 네이버 카페 배너 레이아웃 상시 락 고정
 st.markdown(
     "<div style='margin-bottom:8px; text-align:center;'>\n"
     "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>\n"
@@ -143,7 +142,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 랙 유발을 차단하기 위해 실시간 타임스탬프 문구는 배너 바로 밑 오른쪽 구석으로 정갈하게 배치합니다.
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 master_4_cols = st.columns(4)
@@ -155,8 +153,8 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
     if not raw_df.empty and 'name' in raw_df.columns:
         target_idx_row = raw_df[raw_df['name'] == idx_name]
         if not target_idx_row.empty:
-            idx_rate = float(target_idx_row['rate'].iloc)
-            idx_price = int(target_idx_row['price'].iloc) if idx_name == "코스피" else float(target_idx_row['price'].iloc)
+            idx_rate = float(target_idx_row['rate'].iloc[0])
+            idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
             
     with master_4_cols[idx]:
         price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
@@ -172,8 +170,9 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     if not raw_df.empty and 'name' in raw_df.columns:
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
-            m_rate = float(target_row['rate'].iloc)
-            m_price = int(target_row['price'].iloc)
+            # 💡 [진짜 최종 오타 진압] 대괄호 영번([0]) 인덱서를 확실하게 붙여 형님 화면의 TypeError를 완벽히 격파합니다!
+            m_rate = float(target_row['rate'].iloc[0])
+            m_price = int(target_row['price'].iloc[0])
             
     with master_4_cols[idx + 2]:
         if m_rate >= 0:
