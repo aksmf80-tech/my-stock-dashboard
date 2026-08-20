@@ -173,12 +173,29 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "미분류"
 
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
 with left_layout:
-    st.markdown("### 🗺️ 실시간 테마 히트맵")
+    # 💡 [핵심 교정] 히트맵 제목과 네이버 카페 버튼을 완벽하게 가로 1줄로 나란히 나열합니다!
+    title_sub_col, button_sub_col = st.columns([4.5, 5.5])
+    with title_sub_col:
+        st.markdown("### 🗺️ 실시간 테마 히트맵")
+    with button_sub_col:
+        # 💡 [황금 비율 안착] 히트맵 제목 옆자리 빈 여백 공간에 버튼을 정교하게 밀착 바인딩!
+        st.markdown(
+            "<div style='padding-top:4px; text-align:left;'>"
+            "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>"
+            "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:13px; "
+            "    border:none; padding:8px 16px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2);'>"
+            "      🏛️ 시그널공장 카페 바로가기"
+            "    </button>"
+            "  </a>"
+            "</div>", 
+            unsafe_allow_html=True
+        )
+
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
         fig = px.treemap(
@@ -187,17 +204,16 @@ with left_layout:
         )
         fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
         
-        # 💡 형님이 가장 보기 편하다고 감탄하셨던 황금 비율 620 높이 고정 규격입니다.
+        # 황금 비율 620 높이 세팅 고정
         fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=620)
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                # 💡 [순정 인덱싱 장착] 에러를 완벽히 빗겨나가며 우측 종목판을 필터링해주는 원본 수식입니다.
-                p_target = p_list[0]
+                p_target = p_list
                 chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
 with right_layout:
@@ -213,8 +229,8 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
-    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
+    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
     
     st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
     if up_stocks:
@@ -239,12 +255,11 @@ with right_layout:
 # =================================================================
 # 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
 # =================================================================
-# 💡 [무한 뺑뺑이 완전 진압] 1초마다 무한 재부팅을 때리던 악성 else 구문을 통째로 파괴했습니다!
-if "last_refresh" not in st.session_state:
-    st.session_state.last_refresh = time.time()
+if "timer_trigger" not in st.session_state:
+    st.session_state.timer_trigger = time.time()
 
-# 오직 내부 타이머 시계가 '정확히 60초'를 넘겼을 때만 딱 한 번 영리하게 캐시를 비우고 새로고침을 쏩니다.
-if time.time() - st.session_state.last_refresh > 60:
-    st.session_state.last_refresh = time.time()
+if time.time() - st.session_state.timer_trigger > 60:
+    st.session_state.timer_trigger = time.time()
     st.cache_data.clear()
     st.rerun()
+
