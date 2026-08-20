@@ -191,15 +191,15 @@ with left_layout:
         )
         fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
         
-        # 💡 [화면 여백 해결 포인트 1] 히트맵 고유 높이를 520에서 750으로 늘려 하단 빈 공간을 꽉 채웁니다!
-        fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=750)
+        # 💡 [황금 비율 조정] 무식하게 컸던 높이를 750에서 '620'으로 줄여 콤팩트한 가시성을 획득했습니다!
+        fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=620)
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
                 p_target = p_list[0]
-                chosen_lbl = p_target.get("label", p_target.get("customdata", [""]))
+                chosen_lbl = p_target.get("label", p_target.get("customdata", [""])[0])
                 if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
@@ -222,8 +222,8 @@ with right_layout:
     st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
     if up_stocks:
         up_cols = st.columns(2)
-        # 💡 [화면 여백 해결 포인트 2] 종목 노출 제한을 12개에서 20개로 확대해 히트맵 높이와 수평 균형을 맞춥니다!
-        for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:20]):
+        # 💡 히트맵 높이 620과 딱 대칭을 이루도록 소속 종목 노출 카드를 최대 14개로 황금 밸런스 조정!
+        for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:14]):
             with up_cols[u_idx % 2]:
                 st.markdown(f"  <div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
     else:
@@ -234,8 +234,7 @@ with right_layout:
     st.markdown("#### 🔹 하락 종목", unsafe_allow_html=True)
     if down_stocks:
         down_cols = st.columns(2)
-        # 💡 동일하게 하락 종목도 최대 20개까지 가독성 있게 뿜어내도록 확장합니다.
-        for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:20]):
+        for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:14]):
             with down_cols[d_idx % 2]:
                 st.markdown(f"  <div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
     else:
@@ -252,5 +251,5 @@ if time.time() - st.session_state.last_refresh > 60:
     st.cache_data.clear()
     st.rerun()
 else:
-    # 💡 무한 뱅글이 로딩 현상을 정지시키고 60초 타이머 동안 브라우저 과부하를 막는 방어선
+    # 💡 브라우저 무한 백화현상 및 로딩 뱅글이를 완벽히 차단 정지시켜주는 타이머 브레이크 옵션
     time.sleep(2)
