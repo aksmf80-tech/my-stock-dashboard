@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
+import plotly.graph_objects as go
 import time
 from supabase import create_client, Client
 
@@ -95,7 +95,7 @@ st.markdown("""
 # =================================================================
 # 3. 수파베이스 클라우드 직통 연동 세팅
 # =================================================================
-# 💡 스트림릿 Advanced Settings -> Secrets 금고에 넣어둔 보안 정보를 안전하게 호출합니다.
+# 💡 스트림릿 Secrets 금고에서 주소와 아논 키값을 안전하게 불러옵니다.
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -104,9 +104,8 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 @st.cache_data(ttl=5)
 def load_market_data():
     try:
-        # 아이윈v 서버가 1분마다 무인 적재하는 stock_skeleton 단일 테이블 원장 전체 동기화 조회
+        # 아이윈v 서버가 적재하는 stock_skeleton 테이블 원장 전체 동기화 조회
         response = supabase.table("stock_skeleton").select("*").execute()
-        
         rows = []
         for item in response.data:
             # 원장 테이블의 실제 컬럼명 구조인 fluctuation과 1:1 완벽 맵핑
@@ -121,7 +120,7 @@ def load_market_data():
     except Exception as e:
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
-    # 테마별 평균 등락률 산출 및 정렬 구조화 (가로형 대장 배너 및 히트맵 바인딩 규격)
+    # 테마별 평균 등락률 산출 및 정렬 구조화
     if not base_df.empty:
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -137,20 +136,18 @@ def load_market_data():
         
     return base_df, status_df
 
-# 데이터 동기화 가동 및 상단 시계 연동 타임스탬프 추출
+# 데이터 동기화 가동
 raw_df, status_df = load_market_data()
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
-# 대시보드 메인 타이틀 헤더와 실시간 동기화 타임스탬프 레이아웃
 title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
     st.markdown(f"<p style='text-align:right; margin:0; padding-top:14px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
-# 💡 공간 확보를 위해 기존의 테마 5개 메트릭 블록을 완전히 지우고, 4열 마스터 전광판을 즉시 한 줄로 당겨 배치합니다.
 master_4_cols = st.columns(4)
 
 # [1~2번째 칸] 코스피 & 코스닥 지수 상시 노출 매핑
@@ -163,7 +160,7 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
             idx_rate = float(target_idx_row['rate'].iloc[0])
             idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
             
-    with master_4_cols[idx]: # 0번 칸(코스피), 1번 칸(코스닥) 진입
+    with master_4_cols[idx]:
         price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
         if idx_rate >= 0:
             st.markdown(
@@ -182,7 +179,7 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
                 unsafe_allow_html=True
             )
 
-# [3~4번째 칸] 삼성전자 & SK하이닉스 투톱 대장주 상시 노출 매핑
+# [3~4번째 칸] 삼성전자 & SK하이닉스 대장주 상시 노출 매핑
 for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     m_rate = 0.0
     m_price = 0
@@ -192,7 +189,7 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             m_rate = float(target_row['rate'].iloc[0])
             m_price = int(target_row['price'].iloc[0])
             
-    with master_4_cols[idx + 2]: # 2번 칸(삼성전자), 3번 칸(SK하이닉스) 진입
+    with master_4_cols[idx + 2]:
         if m_rate >= 0:
             st.markdown(
                 f"  <div class='master-box-up'>\n"
@@ -219,7 +216,6 @@ top_25_themes = status_df.head(25).copy()
 if "selected_theme_click" not in st.session_state:
     st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
 
-# 히트맵과 종목 가독성 밸런스를 고려한 컬럼 가로 분할 너비 세팅
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
 with left_layout:
@@ -228,41 +224,41 @@ with left_layout:
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
         
-        # Plotly Express 트리맵 가동
-        fig = px.treemap(
-            top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
-            color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
-        )
+        # 💡 [핀업 스타일 완벽 락] 최상위 모듈 제어로 돋보기 확대 기능을 물리적으로 원천 무력화 처리
+        fig = go.Figure(go.Treemap(
+            labels=top_25_themes['테마'],
+            parents=[""] * len(top_25_themes),
+            values=top_25_themes['화면크기_가중치'],
+            marker=dict(
+                colors=top_25_themes['등락률'],
+                colorscale='RdBu_r',
+                cmid=0,
+                showscale=True
+            ),
+            texttemplate="<b>%{label}</b>",
+            textposition="inside",
+            textfont=dict(size=16, color="white"),
+            tiling=dict(packing="squarify"),
+            hoverinfo="none"
+        ))
         
-        # 🔒 [화면 커짐 원천 방어 락 공식 옵션]
-        # maxdepth=1을 주어 더 이상 하위 테마로 확대(Zoom-in)되는 통로를 물리적으로 끊어버립니다.
-        fig.update_traces(
-            texttemplate="<b>%{label}</b>", 
-            textfont=dict(size=16, color="white"), 
-            textposition="middle center",
-            maxdepth=1
-        )
-        
-        # 🔒 에러를 유발하던 treemapmode를 완벽히 제거하고 안전한 크기 및 클릭 락 옵션만 부여
+        # 🔒 아무리 누르고 연타해도 절대 사각형 박스가 대형으로 확대되지 않게 고정하는 철통 락 레이아웃
         fig.update_layout(
             margin=dict(t=2, b=2, l=2, r=2), 
             height=520,
             clickmode="select",
+            dragmode=False,
             hovermode=False
         )
         
-        # 스트림릿 차트 드로잉 및 오른쪽 종목 연동용 클릭 수집 파이프라인
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
                 p_target = p_list[0]
-                chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: 
-                    chosen_lbl = chosen_lbl[0]
+                chosen_lbl = p_target.get("label", "")
                 if chosen_lbl: 
                     st.session_state.selected_theme_click = str(chosen_lbl).strip()
-
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -276,7 +272,6 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
-    # 상승주는 가장 많이 오르는 순, 하락주는 하락폭이 가장 큰 순서대로 가시성 확보 정렬
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
@@ -315,15 +310,13 @@ with right_layout:
 # =================================================================
 # 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
 # =================================================================
-# 💡 [정밀 정렬] with layout 외곽에 귀속되어 전체 페이지를 새로고침하도록 스페이스바 4칸 여백 교정 마감
-    if "last_refresh" not in st.session_state:
-        st.session_state.last_refresh = time.time()
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
 
-    if time.time() - st.session_state.last_refresh > 60:
-        st.session_state.last_refresh = time.time()
-        st.cache_data.clear()
-        st.rerun()
-    else:
-        # 60초가 되기 전까지 1초씩 백그라운드에서 쉬면서 스트림릿 엔진을 계속 작동 유지시킵니다.
-        time.sleep(1)
-        st.rerun()
+if time.time() - st.session_state.last_refresh > 60:
+    st.session_state.last_refresh = time.time()
+    st.cache_data.clear()
+    st.rerun()
+else:
+    time.sleep(1)
+    st.rerun()
