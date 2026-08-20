@@ -110,7 +110,7 @@ def load_market_data():
     if not base_df.empty:
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         
-        # 💡 [한국 표준시 KST 정밀 주입] 9시간 시차를 정확히 가산합니다.
+        # 💡 [KST 정밀 주입] 영국 서버 시간에 강제로 9시간을 더해 한국 표준시로 동기화합니다.
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
         
@@ -130,10 +130,9 @@ def load_market_data():
 import datetime
 raw_df, status_df = load_market_data()
 
-# 💡 [외계어 완전 진압 소스코드] 리스트 뭉치가 아닌, 정석 문자열로 '시:분:초'만 칼같이 도려냅니다!
+# 💡 [외계어 완전 진압] 리스트 뭉치가 아닌 정석 문자열로 현재 한국 시각의 시:분:초만 칼같이 도려냅니다.
 if not status_df.empty and '업데이트시간' in status_df.columns:
-    full_time_str = str(status_df['업데이트시간'].iloc).strip()
-    # '2026-08-21 00:04:35' 구조에서 뒤의 8글자 시간 파트만 자석처럼 쏙 파싱합니다.
+    full_time_str = str(status_df['업데이트시간'].iloc[0]).strip()
     update_time = full_time_str[-8:] if len(full_time_str) >= 8 else time.strftime('%H:%M:%S')
 else:
     update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
@@ -165,8 +164,8 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
     if not raw_df.empty and 'name' in raw_df.columns:
         target_idx_row = raw_df[raw_df['name'] == idx_name]
         if not target_idx_row.empty:
-            idx_rate = float(target_idx_row['rate'].iloc)
-            idx_price = int(target_idx_row['price'].iloc) if idx_name == "코스피" else float(target_idx_row['price'].iloc)
+            idx_rate = float(target_idx_row['rate'].iloc[0])
+            idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
             
     with master_4_cols[idx]:
         price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
@@ -182,8 +181,9 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     if not raw_df.empty and 'name' in raw_df.columns:
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
-            m_rate = float(target_row['rate'].iloc)
-            m_price = int(target_row['price'].iloc)
+            # 💡 [크래시 완전 해결] 누락되었던 대괄호 영번([0]) 인덱서를 정확히 붙여 형님 화면의 TypeError를 완벽히 격파합니다!
+            m_rate = float(target_row['rate'].iloc[0])
+            m_price = int(target_row['price'].iloc[0])
             
     with master_4_cols[idx + 2]:
         if m_rate >= 0:
