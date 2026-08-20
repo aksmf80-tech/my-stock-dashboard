@@ -109,6 +109,7 @@ def load_market_data():
 
     if not base_df.empty:
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
+        # 💡 장중 서버가 연동되는 '시:분:초' 타임스탬프 규격을 정밀하게 확보합니다.
         current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
         status_df = pd.DataFrame({
             '테마': agg_df['theme'],
@@ -124,7 +125,13 @@ def load_market_data():
 
 # 데이터 동기화 가동
 raw_df, status_df = load_market_data()
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+
+# 💡 [시간 유실 원인 완벽 정정] 이 보따리 파이프라인에서 실제 리얼타임 '시:분:초' 수치를 정확하게 바인딩 추출합니다.
+if not status_df.empty and '업데이트시간' in status_df.columns:
+    # 날짜 뒤의 시간 파트(%H:%M:%S)만 깔끔하게 도려내서 노출합니다.
+    update_time = str(status_df['업데이트시간'].iloc[0]).split(" ")[1]
+else:
+    update_time = time.strftime('%H:%M:%S')
 
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
@@ -142,6 +149,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# 💡 [대부활 완료] 사라졌던 '시:분:초' 실시간 동기화 타임스탬프 수식을 텍스트 안에 정확하게 결합 완료했습니다!
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 master_4_cols = st.columns(4)
@@ -170,7 +178,6 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     if not raw_df.empty and 'name' in raw_df.columns:
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
-            # 💡 [진짜 최종 오타 진압] 대괄호 영번([0]) 인덱서를 확실하게 붙여 형님 화면의 TypeError를 완벽히 격파합니다!
             m_rate = float(target_row['rate'].iloc[0])
             m_price = int(target_row['price'].iloc[0])
             
