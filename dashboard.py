@@ -282,3 +282,6 @@ if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
     st.rerun()
+ # 60초가 되기 전까지 1초씩 쉬면서 백그라운드 타이머가 쉬지 않고 돌게 만듭니다.
+    time.sleep(1)
+    st.rerun()
