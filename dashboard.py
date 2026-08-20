@@ -253,47 +253,23 @@ left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
-        if not top_25_themes.empty:
+           if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
-        
-        # 1. 트리맵 차트 생성
         fig = px.treemap(
-            top_25_themes, 
-            path=['테마'], 
-            values='화면크기_가중치', 
-            color='등락률',             
-            color_continuous_scale='RdBu_r', 
-            color_continuous_midpoint=0, 
-            custom_data=['테마']
+            top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
+            color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
         )
+        fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
+        fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=520)
         
-        # 2. 형님의 오리지널 가독성 폰트 세팅 스타일 적용 (안정성 100%)
-        fig.update_traces(
-            texttemplate="<b>%{label}</b>", 
-            textfont=dict(size=16, color="white"), 
-            textposition="middle center"
-        )
-        
-        # 3. 🔒 아무리 광클해도 테마 박스가 대형으로 커지지 않게 제자리에 박아버리는 고정 락 옵션
-        fig.update_layout(
-            margin=dict(t=2, b=2, l=2, r=2), 
-            height=520,
-            treemapmode="squarify",
-            clickmode="select",
-            hovermode=False
-        )
-
-        # 4. 차트 출력 및 오른쪽 종목판 실시간 클릭 연동 파이프라인
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
                 p_target = p_list[0]
                 chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: 
-                    chosen_lbl = chosen_lbl[0]
-                if chosen_lbl: 
-                    st.session_state.selected_theme_click = str(chosen_lbl).strip()
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
+                if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
@@ -324,7 +300,7 @@ with right_layout:
                     unsafe_allow_html=True
                 )
     else: st.text("상승 종목이 없습니다.")
-        
+
     st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
     st.markdown("#### 🔹 하락 종목", unsafe_allow_html=True)
@@ -341,15 +317,12 @@ with right_layout:
                 )
     else: st.text("하락 종목이 없습니다.")
 
-# =================================================================
-# 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
-# =================================================================
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
     st.rerun()
- # 60초가 되기 전까지 1초씩 쉬면서 백그라운드 타이머가 쉬지 않고 돌게 만듭니다.
+else:
     time.sleep(1)
     st.rerun()
