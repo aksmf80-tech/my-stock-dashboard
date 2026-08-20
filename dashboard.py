@@ -139,10 +139,10 @@ else:
 # 형님이 지정해주신 상단 100% 가로 와이드 네이버 카페 배너 레이아웃 상시 락 고정
 st.markdown(
     "<div style='margin-bottom:8px; text-align:center;'>\n"
-    "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>\n"
+    "  <a href='https://cafe.naver.com/signalhub' target='_blank' style='text-decoration:none;'>\n"
     "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:16px; \n"
     "    border:none; padding:12px 24px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); width:100%; font-family:sans-serif;'>\n"
-    "      🏛️ 시그널공장 네이버 카페 바로가기 (클릭 시 카페로 이동)\n"
+    "      🏛️ 시그널공장 네이버 카페 바로가기\n"
     "    </button>\n"
     "  </a>\n"
     "</div>", 
