@@ -319,12 +319,12 @@ with right_layout:
                 )
     else: st.text("하락 종목이 없습니다.")
 
-if "last_refresh" not in st.session_state:
-    st.session_state.last_refresh = time.time()
-if time.time() - st.session_state.last_refresh > 60:
-    st.session_state.last_refresh = time.time()
-    st.cache_data.clear()
-    st.rerun()
-else:
-    time.sleep(1)
-    st.rerun()
+    if "last_refresh" not in st.session_state:
+        st.session_state.last_refresh = time.time()
+    if time.time() - st.session_state.last_refresh > 60:
+        st.session_state.last_refresh = time.time()
+        st.cache_data.clear()
+        st.rerun()
+    else:
+        time.sleep(1)
+        st.rerun()
