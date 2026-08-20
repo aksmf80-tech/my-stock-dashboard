@@ -82,12 +82,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 데이터 연동
+# 3. 수파베이스 클라우드 직통 연동 세팅
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# 5초 초단기 버퍼 캐시 데이터 로더
 @st.cache_data(ttl=5)
 def load_market_data():
     try:
@@ -120,10 +121,12 @@ def load_market_data():
         
     return base_df, status_df
 
+# 데이터 동기화 가동
 raw_df, status_df = load_market_data()
-update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+
 # =================================================================
-# 4. 최상단 가로 1줄 4열 마스터 보드 배치
+# 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
 title_col, time_col = st.columns(2)
 with title_col:
@@ -133,6 +136,7 @@ with time_col:
 
 master_4_cols = st.columns(4)
 
+# [1~2번째 칸] 코스피 & 코스닥 지수 매핑
 for idx, idx_name in enumerate(["코스피", "코스닥"]):
     idx_rate = 0.0
     idx_price = 0
@@ -140,15 +144,16 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
         target_idx_row = raw_df[raw_df['name'] == idx_name]
         if not target_idx_row.empty:
             idx_rate = float(target_idx_row['rate'].iloc[0])
-            idx_price = float(target_idx_row['price'].iloc[0])
+            idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
             
     with master_4_cols[idx]:
-        price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" else f"{int(idx_price):,}"
+        price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
         if idx_rate >= 0:
-            st.markdown(f"<div class='master-box-up'><span class='master-name'>📈 {idx_name}</span><span class='master-rate-up'>{price_str}pt (+{idx_rate}%)</span></div>", unsafe_allow_html=True)
+            st.markdown(f"  <div class='master-box-up'>\n    <span class='master-name'>📈 {idx_name}</span>\n    <span class='master-rate-up'>{price_str}pt (+{idx_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='master-box-down'><span class='master-name'>📉 {idx_name}</span><span class='master-rate-down'>{price_str}pt ({idx_rate}%)</span></div>", unsafe_allow_html=True)
+            st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>📉 {idx_name}</span>\n    <span class='master-rate-down'>{price_str}pt ({idx_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
 
+# [3~4번째 칸] 삼성전자 & SK하이닉스 대장주 매핑
 for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     m_rate = 0.0
     m_price = 0
@@ -160,9 +165,9 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             
     with master_4_cols[idx + 2]:
         if m_rate >= 0:
-            st.markdown(f"<div class='master-box-up'><span class='master-name'>🏛️ {m_name}</span><span class='master-rate-up'>{m_price:,}원 (+{m_rate}%)</span></div>", unsafe_allow_html=True)
+            st.markdown(f"  <div class='master-box-up'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-up'>{m_price:,}원 (+{m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='master-box-down'><span class='master-name'>🏛️ {m_name}</span><span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span></div>", unsafe_allow_html=True)
+            st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
 
 st.markdown("---")
 # =================================================================
@@ -171,7 +176,7 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "미분류"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
 
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
@@ -180,7 +185,7 @@ with left_layout:
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
         
-        # 💡 [순정 복구 완료] ValueError 충돌을 일으키던 모든 찌꺼기 옵션을 제거한 안전 규격입니다.
+        # 💡 [순정 정밀 복원] ValueError 충돌을 일으키던 복잡한 고정 옵션을 빼버린 완벽한 정석 규격입니다.
         fig = px.treemap(
             top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
             color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
@@ -192,10 +197,12 @@ with left_layout:
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                p_target = p_list
+                # 💡 [오타 최종 해결] 에러 유발점이었던 인덱스 추출부 [0]을 정확하게 채워 연동 기능을 완벽히 살렸습니다!
+                p_target = p_list[0]
                 chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
+
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -209,15 +216,15 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
-    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
+    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
     st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
     if up_stocks:
         up_cols = st.columns(2)
         for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:12]):
             with up_cols[u_idx % 2]:
-                st.markdown(f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
+                st.markdown(f"  <div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
     else:
         st.text("상승 종목이 없습니다.")
 
@@ -228,12 +235,12 @@ with right_layout:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:12]):
             with down_cols[d_idx % 2]:
-                st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
+                st.markdown(f"  <div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
     else:
         st.text("하락 종목이 없습니다.")
 
 # =================================================================
-# 6. 60초 주기 자동 리프레시 타이머 (들여쓰기 0칸 완전 차단 독립형)
+# 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
 # =================================================================
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
