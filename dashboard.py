@@ -129,23 +129,22 @@ update_time = status_df['업데이트시간'].iloc if not status_df.empty and '�
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
-# 💡 [형님 지시 완벽 반영] 주식 테마 대시보드 글자를 지우고, 그 자리에 동기화 시간과 카페 버튼을 정렬 배치합니다!
-time_col, button_col = st.columns([3.0, 7.0])
-with time_col:
-    st.markdown(f"<p style='text-align:left; margin:0; padding-top:14px; color:#64748B; font-size:13px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
-with button_col:
-    # 💡 최상단 헤더 자리를 꽉 채우는 네이버 고유 색상의 대형 와이드 카페 워프 배너 버튼 배치!
-    st.markdown(
-        "<div style='padding-top:4px; text-align:right;'>\n"
-        "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>\n"
-        "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:15px; \n"
-        "    border:none; padding:10px 24px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); width:100%; transition: 0.3s;'>\n"
-        "      🏛️ 시그널공장 네이버 카페 바로가기 (클릭 시 카페로 이동)\n"
-        "    </button>\n"
-        "  </a>\n"
-        "</div>", 
-        unsafe_allow_html=True
-    )
+# 💡 [형님 지시 100% 무결점 복원] 삐뚤어지게 만들던 수평 분할 코드를 파괴했습니다.
+# 초록 배너가 맨 위 첫 줄 화면 가로 전체(100%)를 꽉 채우는 웅장한 레이아웃으로 빌드 완료!
+st.markdown(
+    "<div style='margin-bottom:8px; text-align:center;'>\n"
+    "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>\n"
+    "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:16px; \n"
+    "    border:none; padding:12px 24px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); width:100%; font-family:sans-serif;'>\n"
+    "      🏛️ 시그널공장 네이버 카페 바로가기 (클릭 시 카페로 이동)\n"
+    "    </button>\n"
+    "  </a>\n"
+    "</div>", 
+    unsafe_allow_html=True
+)
+
+# 💡 랙 유발을 차단하기 위해 실시간 타임스탬프 문구는 배너 바로 밑 오른쪽 구석으로 정갈하게 배치합니다.
+st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 master_4_cols = st.columns(4)
 
@@ -167,13 +166,12 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
             st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>📉 {idx_name}</span>\n    <span class='master-rate-down'>{price_str}pt ({idx_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
 
 # [3~4번째 칸] 삼성전자 & SK하이닉스 대장주 매핑
-for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
+for idx, m_name in enumerate(["["삼성전자", "SK하이닉스"]"]):
     m_rate = 0.0
     m_price = 0
     if not raw_df.empty and 'name' in raw_df.columns:
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
-            # 💡 iloc 인덱싱 뒤에 [0]을 정확히 명시해 뭉치 크래시를 원천 진압 완료했습니다!
             m_rate = float(target_row['rate'].iloc[0])
             m_price = int(target_row['price'].iloc[0])
             
@@ -184,7 +182,6 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
 
 st.markdown("---")
-
 
 # =================================================================
 # 5. 하단 레이아웃: 왼쪽 실시간 트리맵 히트맵 / 오른쪽 선택 테마 상세 소속 종목 분할 배치
