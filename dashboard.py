@@ -225,7 +225,6 @@ left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     
-    # 💡 [핵심 들여쓰기 교정] with 문 내부 귀속을 위한 스페이스바 4칸 여백 완전 보정 적용
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
         
@@ -235,18 +234,19 @@ with left_layout:
             color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
         )
         
-        # 구버전 Plotly 엔진에서도 문법 충돌 없이 무조건 호환되는 안정성 100% 텍스트 서식
+        # 🔒 [화면 커짐 원천 방어 락 공식 옵션]
+        # maxdepth=1을 주어 더 이상 하위 테마로 확대(Zoom-in)되는 통로를 물리적으로 끊어버립니다.
         fig.update_traces(
             texttemplate="<b>%{label}</b>", 
             textfont=dict(size=16, color="white"), 
-            textposition="middle center"
+            textposition="middle center",
+            maxdepth=1
         )
         
-        # 🔒 아무리 광클해도 차트가 대형으로 커지지 않게 제자리에 박아버리는 고정 락 옵션 주입
+        # 🔒 에러를 유발하던 treemapmode를 완벽히 제거하고 안전한 크기 및 클릭 락 옵션만 부여
         fig.update_layout(
             margin=dict(t=2, b=2, l=2, r=2), 
             height=520,
-            treemapmode="squarify",
             clickmode="select",
             hovermode=False
         )
@@ -262,6 +262,7 @@ with left_layout:
                     chosen_lbl = chosen_lbl[0]
                 if chosen_lbl: 
                     st.session_state.selected_theme_click = str(chosen_lbl).strip()
+
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
