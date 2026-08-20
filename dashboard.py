@@ -99,8 +99,8 @@ st.markdown("""
 # 3. 수파베이스 클라우드 직통 연동 세팅
 # =================================================================
 # 💡 [필수 변경] 형님의 실제 수파베이스 주소와 아논 키값을 정확히 적어주세요!
-SUPABASE_URL = "https://jmosejzytfrccngxhdwh.supabase.co"
-SUPABASE_KEY = "your-anon-key-here"
+SUPABASE_URL = st.secrets["supabase"]["url"]
+SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # 5초 초단기 버퍼 캐시 데이터 로더
