@@ -185,7 +185,6 @@ with left_layout:
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
         
-        # 💡 [순정 정밀 복원] ValueError 충돌을 일으키던 복잡한 고정 옵션을 빼버린 완벽한 정석 규격입니다.
         fig = px.treemap(
             top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
             color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
@@ -197,7 +196,7 @@ with left_layout:
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                # 💡 [오타 최종 해결] 에러 유발점이었던 인덱스 추출부 [0]을 정확하게 채워 연동 기능을 완벽히 살렸습니다!
+                # 💡 [진짜 최종 원인 교정] 리스트 통보따리에서 첫 번째 데이터 알맹이를 쏙 추출하는 [0] 마크 완전 장착!
                 p_target = p_list[0]
                 chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
                 if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
