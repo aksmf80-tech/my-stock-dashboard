@@ -255,15 +255,3 @@ with right_layout:
     else:
         st.text("하락 종목이 없습니다.")
 
-## =================================================================
-# 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
-# =================================================================
-# 💡 [무한 루프 지옥 탈출] 브라우저를 마비시키던 0.1초 강제 재부팅(st.rerun) 구문을 원천 폐쇄했습니다!
-if "last_refresh" not in st.session_state:
-    st.session_state.last_refresh = time.time()
-
-# 정확히 60초가 지났을 때만 단 한 번 캐시를 비우고 수파베이스 DB를 새로 긁어옵니다.
-if time.time() - st.session_state.last_refresh > 60:
-    st.session_state.last_refresh = time.time()
-    st.cache_data.clear()
-    st.rerun()
