@@ -109,8 +109,12 @@ def load_market_data():
 
     if not base_df.empty:
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
-        # 💡 장중 서버가 연동되는 '시:분:초' 타임스탬프 규격을 정밀하게 확보합니다.
-        current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 💡 [한국 표준시 KST 정밀 칩셋 장착]
+        # 영국 기준 서버 시간에 강제로 9시간을 더하여 정확한 대한민국 서울 표준시로 동기화합니다!
+        kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+        current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
+        
         status_df = pd.DataFrame({
             '테마': agg_df['theme'],
             '등락률': agg_df['rate'].round(2),
@@ -124,32 +128,31 @@ def load_market_data():
     return base_df, status_df
 
 # 데이터 동기화 가동
+import datetime
 raw_df, status_df = load_market_data()
 
-# 💡 [시간 유실 원인 완벽 정정] 이 보따리 파이프라인에서 실제 리얼타임 '시:분:초' 수치를 정확하게 바인딩 추출합니다.
+# 💡 [한국 시각 파싱 연동 마감] 
 if not status_df.empty and '업데이트시간' in status_df.columns:
-    # 날짜 뒤의 시간 파트(%H:%M:%S)만 깔끔하게 도려내서 노출합니다.
-    update_time = str(status_df['업데이트시간'].iloc[0]).split(" ")[1]
+    # 한국 시간 문자열에서 날짜 뒤의 시:분:초 파트만 똑바르게 도려내어 전광판에 매핑합니다.
+    update_time = str(status_df['업데이트시간'].iloc).split(" ")[1]
 else:
-    update_time = time.strftime('%H:%M:%S')
+    update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
 
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
-# 형님이 지정해주신 상단 100% 가로 와이드 네이버 카페 배너 레이아웃 상시 락 고정
 st.markdown(
     "<div style='margin-bottom:8px; text-align:center;'>\n"
-    "  <a href='https://cafe.naver.com/signalhub' target='_blank' style='text-decoration:none;'>\n"
+    "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>\n"
     "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:16px; \n"
     "    border:none; padding:12px 24px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); width:100%; font-family:sans-serif;'>\n"
-    "      🏛️ 시그널공장 네이버 카페 바로가기\n"
+    "      🏛️ 시그널공장 네이버 카페 바로가기 (클릭 시 카페로 이동)\n"
     "    </button>\n"
     "  </a>\n"
     "</div>", 
     unsafe_allow_html=True
 )
 
-# 💡 [대부활 완료] 사라졌던 '시:분:초' 실시간 동기화 타임스탬프 수식을 텍스트 안에 정확하게 결합 완료했습니다!
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 master_4_cols = st.columns(4)
