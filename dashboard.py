@@ -196,11 +196,22 @@ with left_layout:
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                # 💡 [핵심 교정 완료] 대괄호 영번 [0]을 정확하게 붙여 알맹이를 정상 파싱하도록 조치했습니다!
+                # 💡 [원인 파괴 완료] 리스트 규격으로 들어오는 데이터를 인덱스로 정확히 깨부숴 텍스트를 추출합니다!
                 p_target = p_list[0]
-                chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
-                if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
+                
+                # Plotly selection 포인트 구조에 맞춰 라벨 단어 직접 추출 보정
+                if isinstance(p_target, dict):
+                    chosen_lbl = p_target.get("label", p_target.get("customdata", [""])[0])
+                elif isinstance(p_target, list) or isinstance(p_target, tuple):
+                    chosen_lbl = p_target[0] if len(p_target) > 0 else ""
+                else:
+                    chosen_lbl = ""
+                    
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: 
+                    chosen_lbl = chosen_lbl[0]
+                    
+                if chosen_lbl: 
+                    st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
@@ -250,4 +261,3 @@ if time.time() - st.session_state.last_refresh > 60:
 else:
     time.sleep(1)
     st.rerun()
-
