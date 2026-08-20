@@ -189,33 +189,20 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
 
 st.markdown("---")
 
-
 # =================================================================
 # 5. 하단 레이아웃: 왼쪽 실시간 트리맵 히트맵 / 오른쪽 선택 테마 상세 소속 종목 분할 배치
 # =================================================================
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "미분류"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
 
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
 with left_layout:
-    title_sub_col, button_sub_col = st.columns([4.5, 5.5])
-    with title_sub_col:
-        st.markdown("### 🗺️ 실시간 테마 히트맵")
-    with button_sub_col:
-        st.markdown(
-            "<div style='padding-top:4px; text-align:left;'>"
-            "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>"
-            "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:13px; "
-            "    border:none; padding:8px 16px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2);'>"
-            "      🏛️ 시그널공장 카페 바로가기"
-            "    </button>"
-            "  </a>"
-            "</div>", 
-            unsafe_allow_html=True
-        )
+    # 💡 [찌꺼기 버튼 폭파 청소 완료] 흉물스러운 작은 카페 바로가기 컬럼 분할 코드를 완벽하게 철거했습니다!
+    # 오직 순정 상태의 정갈한 히트맵 제목 타이틀 단독 레이아웃만 상시 배치합니다.
+    st.markdown("### 🗺️ 실시간 테마 히트맵")
 
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
@@ -230,9 +217,9 @@ with left_layout:
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                p_target = p_list
-                chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl
+                p_target = p_list[0]
+                chosen_lbl = p_target.get("label", p_target.get("customdata", [""]))
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
 with right_layout:
@@ -248,8 +235,8 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
-    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
+    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
     st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
     if up_stocks:
@@ -280,11 +267,8 @@ now = datetime.datetime.now()
 current_weekday = now.weekday()
 current_hour = now.hour
 
-# 🔒 평일(월~금) 개장 직전인 아침 8시부터 장외 정리 시간 오후 4시 전까지만 타이머 엔진을 가동합니다.
-# 장외 시간 및 야간, 주말에는 자동 F5 전원을 완전히 내리고 평온하게 고정 보관합니다.
 if current_weekday < 5 and (8 <= current_hour < 16):
     try:
-        # 💡 [누락 부품 긴급 수포 주입] 자동 F5를 실행하는 핵심 플러그인 모듈을 정확하게 호출 장착했습니다!
         from streamlit_autorefresh import st_autorefresh
         st_autorefresh(interval=60000, key="market_data_refresh")
         st.cache_data.clear()
