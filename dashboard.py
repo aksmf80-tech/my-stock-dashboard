@@ -196,12 +196,27 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "미분류"
 
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
 with left_layout:
-    st.markdown("### 🗺️ 실시간 테마 히트맵")
+    title_sub_col, button_sub_col = st.columns([4.5, 5.5])
+    with title_sub_col:
+        st.markdown("### 🗺️ 실시간 테마 히트맵")
+    with button_sub_col:
+        st.markdown(
+            "<div style='padding-top:4px; text-align:left;'>"
+            "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>"
+            "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:13px; "
+            "    border:none; padding:8px 16px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2);'>"
+            "      🏛️ 시그널공장 카페 바로가기"
+            "    </button>"
+            "  </a>"
+            "</div>", 
+            unsafe_allow_html=True
+        )
+
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
         fig = px.treemap(
@@ -209,18 +224,15 @@ with left_layout:
             color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
         )
         fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
-        
-        # 💡 형님이 가장 보기 편하다고 감탄하셨던 황금 비율 620 높이 고정 규격입니다.
         fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=620)
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                # 💡 [순정 인덱싱 장착] 에러를 완벽히 빗겨나가며 우측 종목판을 필터링해주는 원본 수식입니다.
-                p_target = p_list[0]
+                p_target = p_list
                 chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
 with right_layout:
@@ -236,8 +248,8 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
-    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
+    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
     
     st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
     if up_stocks:
@@ -260,18 +272,21 @@ with right_layout:
         st.text("하락 종목이 없습니다.")
 
 # =================================================================
-# 6. [무인 자동화 완료] 60초 주기 무한 백그라운드 새로고침 루틴 가동
+# 6. 🔒 [HTS급 제어] 평일 장중에만 60초 주기 자동 새로고침 작동
 # =================================================================
-# 💡 가만히 있으면 멈추는 파이썬 시계 수식을 파괴하고, 스트림릿 공식 자동 리프레시 칩셋을 장착했습니다.
-try:
-    from streamlit_autorefresh import st_autorefresh
-    
-    # 60,000 밀리초(정확히 60초) 마다 형님이 가만히 계셔도 화면이 알아서 척척 새로고침을 쏩니다.
-    # 평소에는 자전거/수영 아이콘이 딱 멈춰 있다가, 60초가 되는 그 순간에만 0.5초 잠깐 켜지며 수파베이스를 동기화합니다!
-    st_autorefresh(interval=60000, key="market_data_refresh")
-    
-    # 리프레시 될 때마다 누적되는 구형 주가 잔상 캐시를 깨끗하게 청소해 줍니다.
-    st.cache_data.clear()
-except Exception:
-    # 안전 방어선 백업
-    pass
+import datetime
+
+now = datetime.datetime.now()
+current_weekday = now.weekday()
+current_hour = now.hour
+
+# 🔒 평일(월~금) 개장 직전인 아침 8시부터 장외 정리 시간 오후 4시 전까지만 타이머 엔진을 가동합니다.
+# 장외 시간 및 야간, 주말에는 자동 F5 전원을 완전히 내리고 평온하게 고정 보관합니다.
+if current_weekday < 5 and (8 <= current_hour < 16):
+    try:
+        # 💡 [누락 부품 긴급 수포 주입] 자동 F5를 실행하는 핵심 플러그인 모듈을 정확하게 호출 장착했습니다!
+        from streamlit_autorefresh import st_autorefresh
+        st_autorefresh(interval=60000, key="market_data_refresh")
+        st.cache_data.clear()
+    except Exception:
+        pass
