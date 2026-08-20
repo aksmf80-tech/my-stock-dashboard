@@ -252,12 +252,15 @@ with right_layout:
 # =================================================================
 # 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
 # =================================================================
+# 💡 [과부하 방지 정밀 튜닝] 1초마다 무조건 껐다 켜던 무한 랙 유발 구문을 파괴했습니다.
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
+
+# 정확히 60초가 지났을 때만 단 한 번 '새로고침'을 수행하여 수파베이스 DB를 긁어옵니다.
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
     st.rerun()
 else:
-    time.sleep(1)
-    st.rerun()
+    # 💡 1초마다 st.rerun()을 때리던 자리에 대기 정지 명령(time.sleep)만 남겨두어 브라우저를 쉬게 만듭니다.
+    time.sleep(2)
