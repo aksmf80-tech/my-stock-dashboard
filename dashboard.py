@@ -253,7 +253,7 @@ left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
-            if not top_25_themes.empty:
+        if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
         fig = px.treemap(
             top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
