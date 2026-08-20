@@ -105,26 +105,47 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # 5초 초단기 버퍼 캐시 데이터 로더
 @st.cache_data(ttl=5)
+# =================================================================
+# 3. 수파베이스 클라우드 직통 연동 세팅 (108번 라인 부근 교체)
+# =================================================================
+# 5초 초단기 버퍼 캐시 데이터 로더
+@st.cache_data(ttl=5)
 def load_market_data():
     try:
-        # iwinv 서버가 실시간 동기화하는 가격(stock_prices) 조인 쿼리 실행
-        response = supabase.table("stock_skeleton").select(
-            "theme_name, stock_name, stock_code, stock_prices(current_price, change_rate)"
-        ).execute()
+        # 💡 [교체 핵심] 존재하지 않는 stock_prices 조인을 빼고 stock_skeleton 테이블만 단일 조회합니다.
+        response = supabase.table("stock_skeleton").select("*").execute()
         
         rows = []
         for item in response.data:
-            p_info = item.get("stock_prices") if item.get("stock_prices") else {}
+            # 원장 테이블의 실제 컬럼명 구조와 1:1 완벽 맵핑
             rows.append({
                 'theme': str(item.get('theme_name', '미분류')).strip(),
                 'name': str(item.get('stock_name', '알수없음')).strip(),
                 'code': str(item.get('stock_code', '005930')).strip(),
-                'rate': float(p_info.get('change_rate', 0.0)),
-                'price': int(p_info.get('current_price', 0))
+                # ⚠️ 한투 컬럼명이 flct_rate가 아니라 수파베이스 원장의 fluctuation 입니다!
+                'rate': float(item.get('fluctuation', 0.0)),
+                'price': int(item.get('current_price', 0))
             })
         base_df = pd.DataFrame(rows)
-    except Exception:
+    except Exception as e:
+        st.error(f"❌ 데이터 파싱 중 에러 발생: {e}")
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
+
+    # 테마별 평균 등락률 산출 및 정렬 구조화 (기존 로직 유지)
+    if not base_df.empty:
+        agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
+        current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
+        status_df = pd.DataFrame({
+            '테마': agg_df['theme'],
+            '등락률': agg_df['rate'].round(2),
+            '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
+            '업데이트시간': [current_time_str] * len(agg_df)
+        })
+        status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
+    else:
+        status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
+        
+    return base_df, status_df
 
     # 테마별 평균 등락률 산출 및 정렬 구조화
     if not base_df.empty:
