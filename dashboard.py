@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit st
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -6,7 +6,7 @@ import time
 from supabase import create_client, Client
 
 # =================================================================
-# 1. 스트림릿 페이지 레이아웃 및 컴팩트 뼈대 세팅
+# 1. 페이지 레이아웃 세팅
 # =================================================================
 st.set_page_config(
     page_title="실시간 주식 테마 대시보드",
@@ -15,7 +15,7 @@ st.set_page_config(
 )
 
 # =================================================================
-# 2. HTS 스타일 컴팩트 CSS 세팅
+# 2. HTS 스타일 컴팩트 CSS 세팅 (순정 원본)
 # =================================================================
 st.markdown("""
     <style>
@@ -64,9 +64,8 @@ st.markdown("""
         padding: 8px 14px !important;
         margin-bottom: 4px !important;
         display: flex !important;
-        flex-direction: row !important;
         justify-content: space-between !important;
-        align-items: center !important;
+        align-items: center;
     }
     .master-box-down {
         border-left: 6px solid #3B82F6 !important;
@@ -74,9 +73,8 @@ st.markdown("""
         padding: 8px 14px !important;
         margin-bottom: 4px !important;
         display: flex !important;
-        flex-direction: row !important;
         justify-content: space-between !important;
-        align-items: center !important;
+        align-items: center;
     }
     .master-name { color: #FFFFFF !important; font-weight: 800 !important; font-size: 14px !important; }
     .master-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 14px !important; }
@@ -84,13 +82,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연동 세팅
+# 3. 수파베이스 클라우드 데이터 연동
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 5초 초단기 버퍼 캐시 데이터 로더
 @st.cache_data(ttl=5)
 def load_market_data():
     try:
@@ -123,29 +120,15 @@ def load_market_data():
         
     return base_df, status_df
 
-# 데이터 동기화 가동
 raw_df, status_df = load_market_data()
 update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
 
 # =================================================================
-# 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 배치
+# 4. 최상단 가로 1줄 4열 마스터 보드 배치
 # =================================================================
-title_col, link_col, time_col = st.columns([3.5, 3.5, 3.0])
+title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
-with link_col:
-    # 💡 [교정 오완료] 네이버 고유 색상을 정확히 지킨 입체형 카페 바로가기 링크 버튼
-    st.markdown(
-        "<div style='padding-top:4px; text-align:center;'>\n"
-        "  <a href='https://cafe.naver.com/signalhub' target='_blank' style='text-decoration:none;'>\n"
-        "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:14px; \n"
-        "    border:none; padding:10px 20px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); width:100%;'>\n"
-        "      🏛️ 시그널공장 카페 바로가기\n"
-        "    </button>\n"
-        "  </a>\n"
-        "</div>", 
-        unsafe_allow_html=True
-    )
 with time_col:
     st.markdown(f"<p style='text-align:right; margin:0; padding-top:14px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
@@ -158,19 +141,18 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
         target_idx_row = raw_df[raw_df['name'] == idx_name]
         if not target_idx_row.empty:
             idx_rate = float(target_idx_row['rate'].iloc[0])
-            idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
+            idx_price = float(target_idx_row['price'].iloc[0])
             
     with master_4_cols[idx]:
-        price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
+        price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" else f"{int(idx_price):,}"
         if idx_rate >= 0:
-            st.markdown(f"  <div class='master-box-up'>\n    <span class='master-name'>📈 {idx_name}</span>\n    <span class='master-rate-up'>{price_str}pt (+{idx_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
+            st.markdown(f"<div class='master-box-up'><span class='master-name'>📈 {idx_name}</span><span class='master-rate-up'>{price_str}pt (+{idx_rate}%)</span></div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>📉 {idx_name}</span>\n    <span class='master-rate-down'>{price_str}pt ({idx_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
+            st.markdown(f"<div class='master-box-down'><span class='master-name'>📉 {idx_name}</span><span class='master-rate-down'>{price_str}pt ({idx_rate}%)</div>", unsafe_allow_html=True)
 
 for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     m_rate = 0.0
     m_price = 0
-    # 💡 [완벽 교정] 에러의 원인이었던 변수 오타 Barb를 깨끗하게 청소하고 완벽한 인덱스 파싱 수식으로 교체했습니다!
     if not raw_df.empty and 'name' in raw_df.columns:
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
@@ -179,9 +161,9 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             
     with master_4_cols[idx + 2]:
         if m_rate >= 0:
-            st.markdown(f"  <div class='master-box-up'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-up'>{m_price:,}원 (+{m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
+            st.markdown(f"<div class='master-box-up'><span class='master-name'>🏛️ {m_name}</span><span class='master-rate-up'>{m_price:,}원 (+{m_rate}%)</span></div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
+            st.markdown(f"<div class='master-box-down'><span class='master-name'>🏛️ {m_name}</span><span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span></div>", unsafe_allow_html=True)
 
 st.markdown("---")
 # =================================================================
@@ -198,20 +180,22 @@ with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
-        
         fig = px.treemap(
             top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
             color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
         )
         fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
+        
+        # 💡 형님이 가장 보기 편하다고 감탄하셨던 황금 비율 620 높이 고정 규격입니다.
         fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=620)
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
+                # 💡 [순정 인덱싱 장착] 에러를 완벽히 빗겨나가며 우측 종목판을 필터링해주는 원본 수식입니다.
                 p_target = p_list[0]
-                chosen_lbl = p_target.get("label", p_target.get("customdata", [""]))
+                chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
                 if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
@@ -236,7 +220,7 @@ with right_layout:
         up_cols = st.columns(2)
         for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:14]):
             with up_cols[u_idx % 2]:
-                st.markdown(f"  <div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
     else:
         st.text("상승 종목이 없습니다.")
 
@@ -247,17 +231,19 @@ with right_layout:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:14]):
             with down_cols[d_idx % 2]:
-                st.markdown(f"  <div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
     else:
         st.text("하락 종목이 없습니다.")
 
 # =================================================================
-# 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
+# 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동 (순정형)
 # =================================================================
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
-
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
+    st.rerun()
+else:
+    time.sleep(1)
     st.rerun()
