@@ -186,47 +186,72 @@ for i in range(min(5, len(status_df))):
 st.markdown("---")
 
 # =================================================================
-# 4. 시장 주도 마스터 보드 (1층: 양대 지수 전광판 + 2층: 투톱 대장주 전광판)
+# 4. 시장 주도 마스터 보드 (초슬림 가로 1줄 4열 전광판 통합 배치)
 # =================================================================
 st.markdown("### 🏛️ 시장 주도 마스터 보드", unsafe_allow_html=True)
 
-# -------------------------------------------------------------
-# [NEW] 🏛️ 마스터 보드 1층: 코스피 & 코스닥 양대 지수 상시 노출 전광판
-# -------------------------------------------------------------
-market_index_cols = st.columns(2)
+# 💡 st.columns(4)를 사용해 가로로 딱 4개의 칸을 생성하여 한 줄로 나란히 배치합니다.
+master_4_cols = st.columns(4)
 
+# [1~2번째 칸] 코스피 & 코스닥 지수 매핑
 for idx, idx_name in enumerate(["코스피", "코스닥"]):
     idx_rate = 0.0
     idx_price = 0
     if not raw_df.empty and 'name' in raw_df.columns:
-        # 수파베이스 전체 데이터에서 지수 명칭 추출
         target_idx_row = raw_df[raw_df['name'] == idx_name]
         if not target_idx_row.empty:
             idx_rate = float(target_idx_row['rate'].iloc[0])
             idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
             
-    with market_index_cols[idx]:
+    with master_4_cols[idx]: # 0번 칸(코스피), 1번 칸(코스닥) 진입
+        price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
         if idx_rate >= 0:
-            # 코스닥 지수의 경우 소수점이 나올 수 있으므로 처리 분기
-            price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
             st.markdown(
-                f"  <div class='master-box-up' style='background-color: #0F172A !important; border-left: 8px solid #EF4444 !important; padding: 16px 22px !important;'>\n"
-                f"    <span class='master-name' style='font-size: 20px !important;'>📈 {idx_name} 지수</span>\n"
-                f"    <span class='master-rate-up' style='font-size: 22px !important;'>{price_str}pt (+{idx_rate}%)</span>\n"
+                f"  <div class='master-box-up'>\n"
+                f"    <span class='master-name'>📈 {idx_name}</span>\n"
+                f"    <span class='master-rate-up'>{price_str}pt (+{idx_rate}%)</span>\n"
                 f"  </div>\n", 
                 unsafe_allow_html=True
             )
         else:
-            price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
             st.markdown(
-                f"  <div class='master-box-down' style='background-color: #0F172A !important; border-left: 8px solid #3B82F6 !important; padding: 16px 22px !important;'>\n"
-                f"    <span class='master-name' style='font-size: 20px !important;'>📉 {idx_name} 지수</span>\n"
-                f"    <span class='master-rate-down' style='font-size: 22px !important;'>{price_str}pt ({idx_rate}%)</span>\n"
+                f"  <div class='master-box-down'>\n"
+                f"    <span class='master-name'>📉 {idx_name}</span>\n"
+                f"    <span class='master-rate-down'>{price_str}pt ({idx_rate}%)</span>\n"
                 f"  </div>\n", 
                 unsafe_allow_html=True
             )
 
-st.markdown("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
+# [3~4번째 칸] 삼성전자 & SK하이닉스 대장주 매핑
+for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
+    m_rate = 0.0
+    m_price = 0
+    if not raw_df.empty and 'name' in raw_df.columns:
+        target_row = raw_df[raw_df['name'] == m_name]
+        if not target_row.empty:
+            m_rate = float(target_row['rate'].iloc[0])
+            m_price = int(target_row['price'].iloc[0])
+            
+    with master_4_cols[idx + 2]: # 2번 칸(삼성전자), 3번 칸(SK하이닉스) 진입
+        if m_rate >= 0:
+            st.markdown(
+                f"  <div class='master-box-up'>\n"
+                f"    <span class='master-name'>🏛️ {m_name}</span>\n"
+                f"    <span class='master-rate-up'>{m_price:,}원 (+{m_rate}%)</span>\n"
+                f"  </div>\n", 
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"  <div class='master-box-down'>\n"
+                f"    <span class='master-name'>🏛️ {m_name}</span>\n"
+                f"    <span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span>\n"
+                f"  </div>\n", 
+                unsafe_allow_html=True
+            )
+
+st.markdown("---")
+
 
 # -------------------------------------------------------------
 # 🏛️ 마스터 보드 2층: 삼성전자 & SK하이닉스 대장주 전광판 (기존 기능 유지)
