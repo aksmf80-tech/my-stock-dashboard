@@ -167,30 +167,17 @@ def load_market_data():
 raw_df, status_df = load_market_data()
 update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
 # =================================================================
-# 4. 상단 헤더 및 5대 대장 주도 테마 스코어보드 출력
+# 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
-title_col, time_col = st.columns(2)
+# 타이틀 헤더와 실시간 동기화 타임스탬프 레이아웃
+title_col, time_col = st.columns([7, 3])
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
-    st.markdown(f"<p style='text-align:right; margin:0; padding-top:6px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:right; margin:0; padding-top:14px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
-theme_cols = st.columns(5)
-for i in range(min(5, len(status_df))):
-    t_name = status_df['테마'].iloc[i]
-    t_rate = status_df['등락률'].iloc[i]
-    with theme_cols[i]:
-        if t_rate >= 0: st.metric(label=f"🔺 {t_name}", value=f"+{t_rate}%")
-        else: st.metric(label=f"🔻 {t_name}", value=f"{t_rate}%")
-
-st.markdown("---")
-
-# =================================================================
-# 4. 시장 주도 마스터 보드 (초슬림 가로 1줄 4열 전광판 통합 배치)
-# =================================================================
-st.markdown("### 🏛️ 시장 주도 마스터 보드", unsafe_allow_html=True)
-
-# 💡 st.columns(4)를 사용해 가로로 딱 4개의 칸을 생성하여 한 줄로 나란히 배치합니다.
+# 💡 [공간 확보 핵심] 기존의 테마 5개 메트릭 블록(theme_cols 반복문 코드)을 완벽히 제거했습니다!
+# 삭제 후 4열 마스터 보드를 즉시 윗줄로 당겨서 배치합니다.
 master_4_cols = st.columns(4)
 
 # [1~2번째 칸] 코스피 & 코스닥 지수 매핑
@@ -203,7 +190,7 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
             idx_rate = float(target_idx_row['rate'].iloc[0])
             idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
             
-    with master_4_cols[idx]: # 0번 칸(코스피), 1번 칸(코스닥) 진입
+    with master_4_cols[idx]:
         price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
         if idx_rate >= 0:
             st.markdown(
@@ -232,7 +219,7 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             m_rate = float(target_row['rate'].iloc[0])
             m_price = int(target_row['price'].iloc[0])
             
-    with master_4_cols[idx + 2]: # 2번 칸(삼성전자), 3번 칸(SK하이닉스) 진입
+    with master_4_cols[idx + 2]:
         if m_rate >= 0:
             st.markdown(
                 f"  <div class='master-box-up'>\n"
