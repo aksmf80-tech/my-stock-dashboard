@@ -260,14 +260,18 @@ with right_layout:
         st.text("하락 종목이 없습니다.")
 
 # =================================================================
-# 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
+# 6. [무인 자동화 완료] 60초 주기 무한 백그라운드 새로고침 루틴 가동
 # =================================================================
-# 💡 [무한 뺑뺑이 완전 진압] 1초마다 무한 재부팅을 때리던 악성 else 구문을 통째로 파괴했습니다!
-if "last_refresh" not in st.session_state:
-    st.session_state.last_refresh = time.time()
-
-# 오직 내부 타이머 시계가 '정확히 60초'를 넘겼을 때만 딱 한 번 영리하게 캐시를 비우고 새로고침을 쏩니다.
-if time.time() - st.session_state.last_refresh > 60:
-    st.session_state.last_refresh = time.time()
+# 💡 가만히 있으면 멈추는 파이썬 시계 수식을 파괴하고, 스트림릿 공식 자동 리프레시 칩셋을 장착했습니다.
+try:
+    from streamlit_autorefresh import st_autorefresh
+    
+    # 60,000 밀리초(정확히 60초) 마다 형님이 가만히 계셔도 화면이 알아서 척척 새로고침을 쏩니다.
+    # 평소에는 자전거/수영 아이콘이 딱 멈춰 있다가, 60초가 되는 그 순간에만 0.5초 잠깐 켜지며 수파베이스를 동기화합니다!
+    st_autorefresh(interval=60000, key="market_data_refresh")
+    
+    # 리프레시 될 때마다 누적되는 구형 주가 잔상 캐시를 깨끗하게 청소해 줍니다.
     st.cache_data.clear()
-    st.rerun()
+except Exception:
+    # 안전 방어선 백업
+    pass
