@@ -1,4 +1,4 @@
-import streamlit st
+import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -81,6 +81,7 @@ st.markdown("""
     .master-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 14px !important; }
     </style>
 """, unsafe_allow_html=True)
+
 # =================================================================
 # 3. 수파베이스 클라우드 데이터 연동
 # =================================================================
