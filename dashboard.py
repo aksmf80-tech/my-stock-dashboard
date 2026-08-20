@@ -237,14 +237,14 @@ with right_layout:
         st.text("하락 종목이 없습니다.")
 
 # =================================================================
-# 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동 (순정형)
+# 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
 # =================================================================
+# 💡 [무한 뺑뺑이 완전 진압] 1초마다 무한 재부팅을 때리던 악성 else 구문을 통째로 파괴했습니다!
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
+
+# 오직 내부 타이머 시계가 '정확히 60초'를 넘겼을 때만 딱 한 번 영리하게 캐시를 비우고 새로고침을 쏩니다.
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
-    st.rerun()
-else:
-    time.sleep(1)
     st.rerun()
