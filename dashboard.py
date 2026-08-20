@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
+import plotly.express as px
 import time
 from supabase import create_client, Client
 
@@ -9,13 +9,13 @@ from supabase import create_client, Client
 # 1. 스트림릿 페이지 레이아웃 및 컴팩트 뼈대 세팅
 # =================================================================
 st.set_page_config(
-    page_title="실시간 핀업 스타일 주식 테마 대시보드",
+    page_title="실시간 주식 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 # =================================================================
-# 2. 형님의 초경량 컴팩트 그리드 + 대장주 대형 가로형 1줄 전광판 통합 CSS
+# 2. HTS 스타일 컴팩트 CSS 세팅
 # =================================================================
 st.markdown("""
     <style>
@@ -31,9 +31,6 @@ st.markdown("""
         font-weight: 800 !important;
         margin-bottom: 1.8rem !important;
     }
-    
-    [data-testid="stMetricLabel"] { font-size: 16px !important; font-weight: 700 !important; color: #94A3B8 !important; }
-    [data-testid="stMetricValue"] { font-size: 28px !important; font-weight: 900 !important; color: #FFFFFF !important; }
     
     .stock-box-up {
         border-left: 6px solid #EF4444 !important;
@@ -61,21 +58,14 @@ st.markdown("""
     .stock-name-down { color: #FFF !important; font-weight: 700 !important; font-size: 14px !important; }
     .stock-rate-down { color: #60A5FA !important; font-weight: 800 !important; font-size: 14px !important; }
     
-    g.treemaptext text {
-        text-anchor: middle !important;
-        dominant-baseline: central !important;
-    }
-
-    /* 시장 주도 마스터 보드 초슬림 가로형 컴팩트화 */
     .master-box-up {
         border-left: 6px solid #EF4444 !important;
         background-color: #1E293B !important;
         padding: 8px 14px !important;
         margin-bottom: 4px !important;
         display: flex !important;
-        flex-direction: row !important;
         justify-content: space-between !important;
-        align-items: center !important;
+        align-items: center;
     }
     .master-box-down {
         border-left: 6px solid #3B82F6 !important;
@@ -83,9 +73,8 @@ st.markdown("""
         padding: 8px 14px !important;
         margin-bottom: 4px !important;
         display: flex !important;
-        flex-direction: row !important;
         justify-content: space-between !important;
-        align-items: center !important;
+        align-items: center;
     }
     .master-name { color: #FFFFFF !important; font-weight: 800 !important; font-size: 14px !important; }
     .master-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 14px !important; }
@@ -93,22 +82,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연동 세팅
+# 3. 수파베이스 클라우드 데이터 연동
 # =================================================================
-# 💡 스트림릿 Secrets 금고에서 주소와 아논 키값을 안전하게 불러옵니다.
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 5초 초단기 버퍼 캐시 데이터 로더
 @st.cache_data(ttl=5)
 def load_market_data():
     try:
-        # 아이윈v 서버가 적재하는 stock_skeleton 테이블 원장 전체 동기화 조회
         response = supabase.table("stock_skeleton").select("*").execute()
         rows = []
         for item in response.data:
-            # 원장 테이블의 실제 컬럼명 구조인 fluctuation과 1:1 완벽 맵핑
             rows.append({
                 'theme': str(item.get('theme_name', '미분류')).strip(),
                 'name': str(item.get('stock_name', '알수없음')).strip(),
@@ -120,7 +105,6 @@ def load_market_data():
     except Exception as e:
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
-    # 테마별 평균 등락률 산출 및 정렬 구조화
     if not base_df.empty:
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -136,11 +120,10 @@ def load_market_data():
         
     return base_df, status_df
 
-# 데이터 동기화 가동
 raw_df, status_df = load_market_data()
 update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
 # =================================================================
-# 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
+# 4. 최상단 가로 1줄 4열 마스터 보드 배치
 # =================================================================
 title_col, time_col = st.columns(2)
 with title_col:
@@ -150,7 +133,6 @@ with time_col:
 
 master_4_cols = st.columns(4)
 
-# [1~2번째 칸] 코스피 & 코스닥 지수 상시 노출 매핑
 for idx, idx_name in enumerate(["코스피", "코스닥"]):
     idx_rate = 0.0
     idx_price = 0
@@ -158,28 +140,15 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
         target_idx_row = raw_df[raw_df['name'] == idx_name]
         if not target_idx_row.empty:
             idx_rate = float(target_idx_row['rate'].iloc[0])
-            idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
+            idx_price = float(target_idx_row['price'].iloc[0])
             
     with master_4_cols[idx]:
-        price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
+        price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" else f"{int(idx_price):,}"
         if idx_rate >= 0:
-            st.markdown(
-                f"  <div class='master-box-up'>\n"
-                f"    <span class='master-name'>📈 {idx_name}</span>\n"
-                f"    <span class='master-rate-up'>{price_str}pt (+{idx_rate}%)</span>\n"
-                f"  </div>\n", 
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div class='master-box-up'><span class='master-name'>📈 {idx_name}</span><span class='master-rate-up'>{price_str}pt (+{idx_rate}%)</span></div>", unsafe_allow_html=True)
         else:
-            st.markdown(
-                f"  <div class='master-box-down'>\n"
-                f"    <span class='master-name'>📉 {idx_name}</span>\n"
-                f"    <span class='master-rate-down'>{price_str}pt ({idx_rate}%)</span>\n"
-                f"  </div>\n", 
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div class='master-box-down'><span class='master-name'>📉 {idx_name}</span><span class='master-rate-down'>{price_str}pt ({idx_rate}%)</span></div>", unsafe_allow_html=True)
 
-# [3~4번째 칸] 삼성전자 & SK하이닉스 대장주 상시 노출 매핑
 for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     m_rate = 0.0
     m_price = 0
@@ -191,21 +160,9 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             
     with master_4_cols[idx + 2]:
         if m_rate >= 0:
-            st.markdown(
-                f"  <div class='master-box-up'>\n"
-                f"    <span class='master-name'>🏛️ {m_name}</span>\n"
-                f"    <span class='master-rate-up'>{m_price:,}원 (+{m_rate}%)</span>\n"
-                f"  </div>\n", 
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div class='master-box-up'><span class='master-name'>🏛️ {m_name}</span><span class='master-rate-up'>{m_price:,}원 (+{m_rate}%)</span></div>", unsafe_allow_html=True)
         else:
-            st.markdown(
-                f"  <div class='master-box-down'>\n"
-                f"    <span class='master-name'>🏛️ {m_name}</span>\n"
-                f"    <span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span>\n"
-                f"  </div>\n", 
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div class='master-box-down'><span class='master-name'>🏛️ {m_name}</span><span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span></div>", unsafe_allow_html=True)
 
 st.markdown("---")
 # =================================================================
@@ -214,51 +171,31 @@ st.markdown("---")
 top_25_themes = status_df.head(25).copy()
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "미분류"
 
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
-    
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
         
-        # 💡 [핀업 스타일 완벽 락] 최상위 모듈 제어로 돋보기 확대 기능을 물리적으로 원천 무력화 처리
-        fig = go.Figure(go.Treemap(
-            labels=top_25_themes['테마'],
-            parents=[""] * len(top_25_themes),
-            values=top_25_themes['화면크기_가중치'],
-            marker=dict(
-                colors=top_25_themes['등락률'],
-                colorscale='RdBu_r',
-                cmid=0,
-                showscale=True
-            ),
-            texttemplate="<b>%{label}</b>",
-            textposition="inside",
-            textfont=dict(size=16, color="white"),
-            tiling=dict(packing="squarify"),
-            hoverinfo="none"
-        ))
-        
-        # 🔒 아무리 누르고 연타해도 절대 사각형 박스가 대형으로 확대되지 않게 고정하는 철통 락 레이아웃
-        fig.update_layout(
-            margin=dict(t=2, b=2, l=2, r=2), 
-            height=520,
-            clickmode="select",
-            dragmode=False,
-            hovermode=False
+        # 💡 [순정 복구 완료] ValueError 충돌을 일으키던 모든 찌꺼기 옵션을 제거한 안전 규격입니다.
+        fig = px.treemap(
+            top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
+            color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
         )
+        fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
+        fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=520)
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                p_target = p_list[0]
-                chosen_lbl = p_target.get("label", "")
-                if chosen_lbl: 
-                    st.session_state.selected_theme_click = str(chosen_lbl).strip()
+                p_target = p_list
+                chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl
+                if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -272,21 +209,15 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
-    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
+    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
     
     st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
     if up_stocks:
         up_cols = st.columns(2)
         for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:12]):
             with up_cols[u_idx % 2]:
-                st.markdown(
-                    f"  <div class='stock-box-up'>\n"
-                    f"    <span class='stock-name-up'>🔺 {s_name} ({s_code})</span>\n"
-                    f"    <span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span>\n"
-                    f"  </div>\n", 
-                    unsafe_allow_html=True
-                )
+                st.markdown(f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
     else:
         st.text("상승 종목이 없습니다.")
 
@@ -297,22 +228,15 @@ with right_layout:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:12]):
             with down_cols[d_idx % 2]:
-                st.markdown(
-                    f"  <div class='stock-box-down'>\n"
-                    f"    <span class='stock-name-down'>🔹 {s_name} ({s_code})</span>\n"
-                    f"    <span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span>\n"
-                    f"  </div>\n", 
-                    unsafe_allow_html=True
-                )
+                st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
     else:
         st.text("하락 종목이 없습니다.")
 
 # =================================================================
-# 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
+# 6. 60초 주기 자동 리프레시 타이머 (들여쓰기 0칸 완전 차단 독립형)
 # =================================================================
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
-
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
