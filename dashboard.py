@@ -83,12 +83,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 3. 수파베이스 클라우드 데이터 연동
+# 3. 수파베이스 클라우드 직통 연동 세팅
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# 5초 초단기 버퍼 캐시 데이터 로더
 @st.cache_data(ttl=5)
 def load_market_data():
     try:
@@ -121,11 +122,12 @@ def load_market_data():
         
     return base_df, status_df
 
+# 데이터 동기화 가동
 raw_df, status_df = load_market_data()
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
 
 # =================================================================
-# 4. 최상단 가로 1줄 4열 마스터 보드 배치
+# 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
 title_col, time_col = st.columns(2)
 with title_col:
@@ -133,40 +135,57 @@ with title_col:
 with time_col:
     st.markdown(f"<p style='text-align:right; margin:0; padding-top:14px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
+# 💡 [형님 지시 반영 명당자리] 메인 타이틀 바로 아랫줄(지수 보드 윗줄)에 독자적인 대형 배너 형태로 배치!
+# 충돌 유발 요소를 완벽히 회피하여 먹통 랙 현상을 200% 원천 차단합니다.
+st.markdown(
+    "<div style='margin-bottom:14px; text-align:center;'>\n"
+    "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>\n"
+    "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:14px; \n"
+    "    border:none; padding:10px 20px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); width:100%;'>\n"
+    "      🏛️ 시그널공장 네이버 카페 바로가기\n"
+    "    </button>\n"
+    "  </a>\n"
+    "</div>", 
+    unsafe_allow_html=True
+)
+
 master_4_cols = st.columns(4)
 
+# [1~2번째 칸] 코스피 & 코스닥 지수 매핑
 for idx, idx_name in enumerate(["코스피", "코스닥"]):
     idx_rate = 0.0
     idx_price = 0
     if not raw_df.empty and 'name' in raw_df.columns:
         target_idx_row = raw_df[raw_df['name'] == idx_name]
         if not target_idx_row.empty:
-            idx_rate = float(target_idx_row['rate'].iloc[0])
-            idx_price = float(target_idx_row['price'].iloc[0])
+            idx_rate = float(target_idx_row['rate'].iloc)
+            idx_price = int(target_idx_row['price'].iloc) if idx_name == "코스피" else float(target_idx_row['price'].iloc)
             
     with master_4_cols[idx]:
-        price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" else f"{int(idx_price):,}"
+        price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
         if idx_rate >= 0:
-            st.markdown(f"<div class='master-box-up'><span class='master-name'>📈 {idx_name}</span><span class='master-rate-up'>{price_str}pt (+{idx_rate}%)</span></div>", unsafe_allow_html=True)
+            st.markdown(f"  <div class='master-box-up'>\n    <span class='master-name'>📈 {idx_name}</span>\n    <span class='master-rate-up'>{price_str}pt (+{idx_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='master-box-down'><span class='master-name'>📉 {idx_name}</span><span class='master-rate-down'>{price_str}pt ({idx_rate}%)</div>", unsafe_allow_html=True)
+            st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>📉 {idx_name}</span>\n    <span class='master-rate-down'>{price_str}pt ({idx_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
 
+# [3~4번째 칸] 삼성전자 & SK하이닉스 대장주 매핑
 for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     m_rate = 0.0
     m_price = 0
     if not raw_df.empty and 'name' in raw_df.columns:
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
-            m_rate = float(target_row['rate'].iloc[0])
-            m_price = int(target_row['price'].iloc[0])
+            m_rate = float(target_row['rate'].iloc)
+            m_price = int(target_row['price'].iloc)
             
     with master_4_cols[idx + 2]:
         if m_rate >= 0:
-            st.markdown(f"<div class='master-box-up'><span class='master-name'>🏛️ {m_name}</span><span class='master-rate-up'>{m_price:,}원 (+{m_rate}%)</span></div>", unsafe_allow_html=True)
+            st.markdown(f"  <div class='master-box-up'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-up'>{m_price:,}원 (+{m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='master-box-down'><span class='master-name'>🏛️ {m_name}</span><span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span></div>", unsafe_allow_html=True)
+            st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
 
 st.markdown("---")
+
 # =================================================================
 # 5. 하단 레이아웃: 왼쪽 실시간 트리맵 히트맵 / 오른쪽 선택 테마 상세 소속 종목 분할 배치
 # =================================================================
