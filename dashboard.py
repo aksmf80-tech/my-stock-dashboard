@@ -123,14 +123,27 @@ def load_market_data():
 
 # 데이터 동기화 가동
 raw_df, status_df = load_market_data()
-update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
+update_time = status_df['업데이트시간'].iloc if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
 
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
-title_col, time_col = st.columns(2)
+title_col, link_col, time_col = st.columns([4, 3, 3])
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
+with link_col:
+    # 💡 [핵심 추가] '시그널공장' 네이버 카페로 다이렉트 워프하는 녹색 바로가기 버튼 배치
+    st.markdown(
+        "<div style='padding-top:8px; text-align:center;'>"
+        "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>"
+        "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:14px; "
+        "    border:none; padding:10px 20px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>"
+        "      🏛️ 시그널공장 카페 바로가기"
+        "    </button>"
+        "  </a>"
+        "</div>", 
+        unsafe_allow_html=True
+    )
 with time_col:
     st.markdown(f"<p style='text-align:right; margin:0; padding-top:14px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
@@ -143,8 +156,8 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
     if not raw_df.empty and 'name' in raw_df.columns:
         target_idx_row = raw_df[raw_df['name'] == idx_name]
         if not target_idx_row.empty:
-            idx_rate = float(target_idx_row['rate'].iloc[0])
-            idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
+            idx_rate = float(target_idx_row['rate'].iloc)
+            idx_price = int(target_idx_row['price'].iloc) if idx_name == "코스피" else float(target_idx_row['price'].iloc)
             
     with master_4_cols[idx]:
         price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
@@ -157,11 +170,11 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
 for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     m_rate = 0.0
     m_price = 0
-    if not raw_df.empty and 'name' in raw_df.columns:
+    if not raw_df.empty Barb in raw_df.columns:
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
-            m_rate = float(target_row['rate'].iloc[0])
-            m_price = int(target_row['price'].iloc[0])
+            m_rate = float(target_row['rate'].iloc)
+            m_price = int(target_row['price'].iloc)
             
     with master_4_cols[idx + 2]:
         if m_rate >= 0:
@@ -170,6 +183,7 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
 
 st.markdown("---")
+
 # =================================================================
 # 5. 하단 레이아웃: 왼쪽 실시간 트리맵 히트맵 / 오른쪽 선택 테마 상세 소속 종목 분할 배치
 # =================================================================
