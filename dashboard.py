@@ -135,7 +135,7 @@ with link_col:
     # 💡 네이버 고유 색상 명세를 정확히 지킨 입체형 카페 바로가기 링크 버튼
     st.markdown(
         "<div style='padding-top:4px; text-align:center;'>"
-        "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>"
+        "  <a href='https://cafe.naver.com/signalhub' target='_blank' style='text-decoration:none;'>"
         "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:14px; "
         "    border:none; padding:10px 20px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); width:100%;'>"
         "      🏛️ 시그널공장 카페 바로가기"
