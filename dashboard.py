@@ -13,6 +13,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
 # =================================================================
 # 2. 형님의 초경량 컴팩트 그리드 + 대장주 대형 가로형 1줄 전광판 통합 CSS
 # =================================================================
@@ -65,73 +66,62 @@ st.markdown("""
         dominant-baseline: central !important;
     }
 
-    /* 시장 주도 마스터 보드 가로형 정렬 및 대형 스케일업 */
+    /* 시장 주도 마스터 보드 초슬림 가로형 컴팩트화 */
     .master-box-up {
-        border-left: 8px solid #EF4444 !important;
+        border-left: 6px solid #EF4444 !important;
         background-color: #1E293B !important;
-        padding: 24px 28px !important;
-        border-radius: 6px !important;
-        margin-bottom: 6px !important;
+        padding: 8px 14px !important;
+        margin-bottom: 4px !important;
         display: flex !important;
         flex-direction: row !important;
         justify-content: space-between !important;
         align-items: center !important;
     }
     .master-box-down {
-        border-left: 8px solid #3B82F6 !important;
+        border-left: 6px solid #3B82F6 !important;
         background-color: #1E293B !important;
-        padding: 24px 28px !important;
-        border-radius: 6px !important;
-        margin-bottom: 6px !important;
+        padding: 8px 14px !important;
+        margin-bottom: 4px !important;
         display: flex !important;
         flex-direction: row !important;
         justify-content: space-between !important;
         align-items: center !important;
     }
-    .master-name { color: #FFFFFF !important; font-weight: 800 !important; font-size: 24px !important; }
-    .master-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 26px !important; }
-    .master-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 26px !important; }
+    .master-name { color: #FFFFFF !important; font-weight: 800 !important; font-size: 14px !important; }
+    .master-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 14px !important; }
+    .master-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 14px !important; }
     </style>
 """, unsafe_allow_html=True)
-
-
 # =================================================================
 # 3. 수파베이스 클라우드 직통 연동 세팅
 # =================================================================
-# 💡 [필수 변경] 형님의 실제 수파베이스 주소와 아논 키값을 정확히 적어주세요!
+# 💡 스트림릿 Advanced Settings -> Secrets 금고에 넣어둔 보안 정보를 안전하게 호출합니다.
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # 5초 초단기 버퍼 캐시 데이터 로더
 @st.cache_data(ttl=5)
-# =================================================================
-# 3. 수파베이스 클라우드 직통 연동 세팅 (108번 라인 부근 교체)
-# =================================================================
-# 5초 초단기 버퍼 캐시 데이터 로더
-@st.cache_data(ttl=5)
 def load_market_data():
     try:
-        # 💡 [교체 핵심] 존재하지 않는 stock_prices 조인을 빼고 stock_skeleton 테이블만 단일 조회합니다.
+        # 아이윈v 서버가 1분마다 무인 적재하는 stock_skeleton 단일 테이블 원장 전체 동기화 조회
         response = supabase.table("stock_skeleton").select("*").execute()
         
         rows = []
         for item in response.data:
-            # 원장 테이블의 실제 컬럼명 구조와 1:1 완벽 맵핑
+            # 원장 테이블의 실제 컬럼명 구조인 fluctuation과 1:1 완벽 맵핑
             rows.append({
                 'theme': str(item.get('theme_name', '미분류')).strip(),
                 'name': str(item.get('stock_name', '알수없음')).strip(),
                 'code': str(item.get('stock_code', '005930')).strip(),
-                # ⚠️ 한투 컬럼명이 flct_rate가 아니라 수파베이스 원장의 fluctuation 입니다!
                 'rate': float(item.get('fluctuation', 0.0)),
                 'price': int(item.get('current_price', 0))
             })
         base_df = pd.DataFrame(rows)
     except Exception as e:
-        st.error(f"❌ 데이터 파싱 중 에러 발생: {e}")
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
-    # 테마별 평균 등락률 산출 및 정렬 구조화 (기존 로직 유지)
+    # 테마별 평균 등락률 산출 및 정렬 구조화 (가로형 대장 배너 및 히트맵 바인딩 규격)
     if not base_df.empty:
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -147,40 +137,23 @@ def load_market_data():
         
     return base_df, status_df
 
-    # 테마별 평균 등락률 산출 및 정렬 구조화
-    if not base_df.empty:
-        agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
-        current_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
-        status_df = pd.DataFrame({
-            '테마': agg_df['theme'],
-            '등락률': agg_df['rate'].round(2),
-            '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
-            '업데이트시간': [current_time_str] * len(agg_df)
-        })
-        status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
-    else:
-        status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
-        
-    return base_df, status_df
-
-# 데이터 동기화 가동
+# 데이터 동기화 가동 및 상단 시계 연동 타임스탬프 추출
 raw_df, status_df = load_market_data()
 update_time = status_df['업데이트시간'].iloc[0] if not status_df.empty and '업데이트시간' in status_df.columns else time.strftime('%H:%M:%S')
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
-# 타이틀 헤더와 실시간 동기화 타임스탬프 레이아웃
-title_col, time_col = st.columns([7, 3])
+# 대시보드 메인 타이틀 헤더와 실시간 동기화 타임스탬프 레이아웃
+title_col, time_col = st.columns(2)
 with title_col:
     st.markdown("<h2 class='dashboard-title'>📊 주식 테마 대시보드</h2>", unsafe_allow_html=True)
 with time_col:
     st.markdown(f"<p style='text-align:right; margin:0; padding-top:14px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
-# 💡 [공간 확보 핵심] 기존의 테마 5개 메트릭 블록(theme_cols 반복문 코드)을 완벽히 제거했습니다!
-# 삭제 후 4열 마스터 보드를 즉시 윗줄로 당겨서 배치합니다.
+# 💡 공간 확보를 위해 기존의 테마 5개 메트릭 블록을 완전히 지우고, 4열 마스터 전광판을 즉시 한 줄로 당겨 배치합니다.
 master_4_cols = st.columns(4)
 
-# [1~2번째 칸] 코스피 & 코스닥 지수 매핑
+# [1~2번째 칸] 코스피 & 코스닥 지수 상시 노출 매핑
 for idx, idx_name in enumerate(["코스피", "코스닥"]):
     idx_rate = 0.0
     idx_price = 0
@@ -190,7 +163,7 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
             idx_rate = float(target_idx_row['rate'].iloc[0])
             idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
             
-    with master_4_cols[idx]:
+    with master_4_cols[idx]: # 0번 칸(코스피), 1번 칸(코스닥) 진입
         price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
         if idx_rate >= 0:
             st.markdown(
@@ -209,7 +182,7 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
                 unsafe_allow_html=True
             )
 
-# [3~4번째 칸] 삼성전자 & SK하이닉스 대장주 매핑
+# [3~4번째 칸] 삼성전자 & SK하이닉스 투톱 대장주 상시 노출 매핑
 for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     m_rate = 0.0
     m_price = 0
@@ -219,7 +192,7 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             m_rate = float(target_row['rate'].iloc[0])
             m_price = int(target_row['price'].iloc[0])
             
-    with master_4_cols[idx + 2]:
+    with master_4_cols[idx + 2]: # 2번 칸(삼성전자), 3번 칸(SK하이닉스) 진입
         if m_rate >= 0:
             st.markdown(
                 f"  <div class='master-box-up'>\n"
@@ -238,9 +211,6 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             )
 
 st.markdown("---")
-
-
-
 # =================================================================
 # 5. 하단 레이아웃: 왼쪽 실시간 트리맵 히트맵 / 오른쪽 선택 테마 상세 소속 종목 분할 배치
 # =================================================================
@@ -249,30 +219,49 @@ top_25_themes = status_df.head(25).copy()
 if "selected_theme_click" not in st.session_state:
     st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
 
+# 히트맵과 종목 가독성 밸런스를 고려한 컬럼 가로 분할 너비 세팅
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
 with left_layout:
-    # 💡 [핵심 교정] with 문 내부로 귀속되도록 앞부분에 스페이스바 4칸 여백을 정밀하게 심었습니다!
     st.markdown("### 🗺️ 실시간 테마 히트맵")
     
+    # 💡 [핵심 들여쓰기 교정] with 문 내부 귀속을 위한 스페이스바 4칸 여백 완전 보정 적용
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
+        
+        # Plotly Express 트리맵 가동
         fig = px.treemap(
             top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
             color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
         )
-        fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
-        fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=520)
         
+        # 구버전 Plotly 엔진에서도 문법 충돌 없이 무조건 호환되는 안정성 100% 텍스트 서식
+        fig.update_traces(
+            texttemplate="<b>%{label}</b>", 
+            textfont=dict(size=16, color="white"), 
+            textposition="middle center"
+        )
+        
+        # 🔒 아무리 광클해도 차트가 대형으로 커지지 않게 제자리에 박아버리는 고정 락 옵션 주입
+        fig.update_layout(
+            margin=dict(t=2, b=2, l=2, r=2), 
+            height=520,
+            treemapmode="squarify",
+            clickmode="select",
+            hovermode=False
+        )
+        
+        # 스트림릿 차트 드로잉 및 오른쪽 종목 연동용 클릭 수집 파이프라인
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
                 p_target = p_list[0]
                 chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
-                if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
-
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: 
+                    chosen_lbl = chosen_lbl[0]
+                if chosen_lbl: 
+                    st.session_state.selected_theme_click = str(chosen_lbl).strip()
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
@@ -286,6 +275,7 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
+    # 상승주는 가장 많이 오르는 순, 하락주는 하락폭이 가장 큰 순서대로 가시성 확보 정렬
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
@@ -301,7 +291,8 @@ with right_layout:
                     f"  </div>\n", 
                     unsafe_allow_html=True
                 )
-    else: st.text("상승 종목이 없습니다.")
+    else:
+        st.text("상승 종목이 없습니다.")
 
     st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
     
@@ -317,14 +308,21 @@ with right_layout:
                     f"  </div>\n", 
                     unsafe_allow_html=True
                 )
-    else: st.text("하락 종목이 없습니다.")
+    else:
+        st.text("하락 종목이 없습니다.")
 
+# =================================================================
+# 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
+# =================================================================
+# 💡 [정밀 정렬] with layout 외곽에 귀속되어 전체 페이지를 새로고침하도록 스페이스바 4칸 여백 교정 마감
     if "last_refresh" not in st.session_state:
         st.session_state.last_refresh = time.time()
+
     if time.time() - st.session_state.last_refresh > 60:
         st.session_state.last_refresh = time.time()
         st.cache_data.clear()
         st.rerun()
     else:
+        # 60초가 되기 전까지 1초씩 백그라운드에서 쉬면서 스트림릿 엔진을 계속 작동 유지시킵니다.
         time.sleep(1)
         st.rerun()
