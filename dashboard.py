@@ -253,23 +253,23 @@ left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
 with left_layout:
     st.markdown("### 🗺️ 실시간 테마 히트맵")
-   if not top_25_themes.empty:
-    top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
-    fig = px.treemap(
-        top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
-        color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
-    )
-    fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
-    fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=520)
-    
-    chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
-    if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
-        p_list = chart_res["selection"]["points"]
-        if p_list and len(p_list) > 0:
-            p_target = p_list[0]
-            chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
-            if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
-            if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
+      if not top_25_themes.empty:
+        top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
+        fig = px.treemap(
+            top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
+            color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
+        )
+        fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
+        fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=520)
+        
+        chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
+        if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
+            p_list = chart_res["selection"]["points"]
+            if p_list and len(p_list) > 0:
+                p_target = p_list[0]
+                chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
+                if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
