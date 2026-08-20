@@ -258,13 +258,16 @@ with right_layout:
 # =================================================================
 # 6. 대시보드 60초 주기 무한 롤링 백그라운드 새로고침 루틴 가동
 # =================================================================
+# 💡 [무한 로딩 지옥 탈출 교정] 무한 로딩을 유발하던 time.sleep 단독 격리 구문을 완벽히 파괴했습니다.
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 
+# 정확히 60초가 지났을 때만 캐시를 비우고 수파베이스 DB를 새로 긁어옵니다.
 if time.time() - st.session_state.last_refresh > 60:
     st.session_state.last_refresh = time.time()
     st.cache_data.clear()
     st.rerun()
 else:
-    # 💡 브라우저 무한 백화현상 및 로딩 뱅글이를 완벽히 차단 정지시켜주는 타이머 브레이크 옵션
-    time.sleep(2)
+    # 💡 스트림릿이 멈추지 않고 계속 살아 움직이도록 아주 미세한 0.1초 잽(st.rerun)을 줘서 무한 로딩을 원천 차단합니다!
+    time.sleep(0.1)
+    st.rerun()
