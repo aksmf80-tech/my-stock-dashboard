@@ -110,8 +110,7 @@ def load_market_data():
     if not base_df.empty:
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         
-        # 💡 [한국 표준시 KST 정밀 칩셋 장착]
-        # 영국 기준 서버 시간에 강제로 9시간을 더하여 정확한 대한민국 서울 표준시로 동기화합니다!
+        # 💡 [한국 표준시 KST 정밀 주입] 9시간 시차를 정확히 가산합니다.
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
         
@@ -131,16 +130,18 @@ def load_market_data():
 import datetime
 raw_df, status_df = load_market_data()
 
-# 💡 [한국 시각 파싱 연동 마감] 
+# 💡 [외계어 완전 진압 소스코드] 리스트 뭉치가 아닌, 정석 문자열로 '시:분:초'만 칼같이 도려냅니다!
 if not status_df.empty and '업데이트시간' in status_df.columns:
-    # 한국 시간 문자열에서 날짜 뒤의 시:분:초 파트만 똑바르게 도려내어 전광판에 매핑합니다.
-    update_time = str(status_df['업데이트시간'].iloc).split(" ")[1]
+    full_time_str = str(status_df['업데이트시간'].iloc).strip()
+    # '2026-08-21 00:04:35' 구조에서 뒤의 8글자 시간 파트만 자석처럼 쏙 파싱합니다.
+    update_time = full_time_str[-8:] if len(full_time_str) >= 8 else time.strftime('%H:%M:%S')
 else:
     update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
 
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
+# 형님이 지정해주신 상단 100% 가로 와이드 네이버 카페 배너 레이아웃 상시 락 고정
 st.markdown(
     "<div style='margin-bottom:8px; text-align:center;'>\n"
     "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>\n"
@@ -164,8 +165,8 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
     if not raw_df.empty and 'name' in raw_df.columns:
         target_idx_row = raw_df[raw_df['name'] == idx_name]
         if not target_idx_row.empty:
-            idx_rate = float(target_idx_row['rate'].iloc[0])
-            idx_price = int(target_idx_row['price'].iloc[0]) if idx_name == "코스피" else float(target_idx_row['price'].iloc[0])
+            idx_rate = float(target_idx_row['rate'].iloc)
+            idx_price = int(target_idx_row['price'].iloc) if idx_name == "코스피" else float(target_idx_row['price'].iloc)
             
     with master_4_cols[idx]:
         price_str = f"{idx_price:,.2f}" if idx_name == "코스닥" and isinstance(idx_price, float) else f"{int(idx_price):,}"
@@ -181,8 +182,8 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     if not raw_df.empty and 'name' in raw_df.columns:
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
-            m_rate = float(target_row['rate'].iloc[0])
-            m_price = int(target_row['price'].iloc[0])
+            m_rate = float(target_row['rate'].iloc)
+            m_price = int(target_row['price'].iloc)
             
     with master_4_cols[idx + 2]:
         if m_rate >= 0:
@@ -191,6 +192,7 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
 
 st.markdown("---")
+
 
 # =================================================================
 # 5. 하단 레이아웃: 왼쪽 실시간 트리맵 히트맵 / 오른쪽 선택 테마 상세 소속 종목 분할 배치
