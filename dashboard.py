@@ -196,7 +196,7 @@ with left_layout:
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                # 💡 [진짜 최종 원인 교정] 리스트 통보따리에서 첫 번째 데이터 알맹이를 쏙 추출하는 [0] 마크 완전 장착!
+                # 💡 [핵심 교정 완료] 대괄호 영번 [0]을 정확하게 붙여 알맹이를 정상 파싱하도록 조치했습니다!
                 p_target = p_list[0]
                 chosen_lbl = p_target.get("label", p_target.get("customdata", ""))
                 if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
@@ -250,3 +250,4 @@ if time.time() - st.session_state.last_refresh > 60:
 else:
     time.sleep(1)
     st.rerun()
+
