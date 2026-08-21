@@ -87,9 +87,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인
+# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (대형주 해제 버전)
 # =================================================================
-# 🚨 [보안 방어막 및 가스관 연동]: st.secrets 연동으로 보안 경고를 원천 삭제합니다.
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -116,12 +115,15 @@ def load_market_data():
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        # 🚨 [형님 특명 가두리 폭파 완공]: 대장주 필터링 전의 '100% 원본 순정 백업본(base_df)'은 절대 훼손하지 않습니다!
+        # 🚨 [형님 특명 - 가두리 전면 철거 완공]: '대형주마스터'를 여기서 절대 지우지 않습니다!
+        # 대한민국 2,200마리 고기 원본을 그대로 통투과시켜야 삼전/하이닉스 시세가 뚫고 나옵니다.
         filtered_df = base_df[~base_df['theme'].isin(['미분류', '빈방_대기', '준비중_테마', 'SKELETON_BASE', ''])]
         
         if not filtered_df.empty:
-            # 좌측 히트맵 통계판에서는 '대형주마스터' 블록만 필터링하여 격자 노이즈를 청소합니다.
+            # 💡 [히트맵 분리 장치]: 좌측 히트맵 그리드에서만 '대형주마스터' 블록을 안 보이게 숨겨서 전광판을 컴팩트하게 만들고,
+            # 대장주 시세 조회용 원본 데이터셋에는 완벽하게 생존시켜 둡니다!
             heatmap_target_df = filtered_df[filtered_df['theme'] != '대형주마스터']
+            
             if not heatmap_target_df.empty:
                 agg_df = heatmap_target_df.groupby('theme')['rate'].mean().reset_index()
             else:
@@ -145,10 +147,10 @@ def load_market_data():
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
-    # 🚨 [중요 - 변수 밀림 전면 차단]: 5번 배너가 대장주를 온전히 찾아내도록 원본(base_df)과 요약본(status_df)을 안전하게 배출합니다.
-    return base_df, status_df
+    # 🚨 [중요]: 삼성전자와 SK하이닉스가 100% 살아 숨쉬는 filtered_df를 첫 번째 인자로 정직하게 밀어줍니다!
+    return filtered_df, status_df
 
-# 변수 매핑 2개 정확하게 연결 마감
+# 변수 매핑 연동 최종 완공
 raw_df, status_df = load_market_data()
 
 kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
