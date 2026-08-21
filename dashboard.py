@@ -172,31 +172,32 @@ for idx, (m_name, m_code) in enumerate(m_targets):
     is_data_loaded = False
 
     try:
-        # [버그 타파]: 필터링되지 않은 raw_df 원본 데이터에서 종목 코드를 직접 저격하여 호출합니다.
+        # 🚨 [버그 파괴]: 필터링으로 인해 도려내지지 않은 순정 raw_df 원본에서 시세 패킷을 직통 추출합니다.
         if not raw_df.empty:
             target_rows = raw_df[raw_df['code'] == m_code]
             if not target_rows.empty:
                 latest_row = target_rows.iloc[-1]
                 
-                # 데이터 추출 안정화 마감
+                # 데이터 레이어 안전 형변환 매핑
                 p_live = int(latest_row['price'])
                 r_live = float(latest_row['rate'])
                 
-                # 수파베이스 내부 시세가 수신되면 스탠바이를 즉시 해제합니다.
-                m_price = p_live
-                m_rate = r_live
-                is_data_loaded = True
+                if p_live > 0:
+                    m_price = p_live
+                    m_rate = r_live
+                    is_data_loaded = True
     except:
         pass
 
     with master_2_cols[idx]:
-        if is_data_loaded and m_price > 0:
+        if is_data_loaded:
             price_display = f"{m_price:,}원"
+            sign_str = "+" if m_rate > 0 else ""
             if m_rate >= 0:
                 st.markdown(f"""
                     <div class='master-box-custom-up'>
                         <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#EF4444; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} (+{m_rate:.2f}%)</span>
+                        <span style='color:#EF4444; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
                     </div>
                 """, unsafe_allow_html=True)
             else:
@@ -207,7 +208,7 @@ for idx, (m_name, m_code) in enumerate(m_targets):
                     </div>
                 """, unsafe_allow_html=True)
         else:
-            # 💡 [월요일 장전 스탠바이]: 수집기가 동작하기 전이거나 장 시작 전에는 무결점 회색 테두리로 정직하게 대기합니다.
+            # 주말 대기 포맷이거나 장 시작 전 데이터 주입 전에는 깔끔하게 대기 모드로 진입합니다.
             st.markdown(f"""
                 <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
                     <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
@@ -221,11 +222,11 @@ st.markdown("---")
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
 # =================================================================
 
-# 세션 상태 사전 선제 초기화
+# 세션 상태 사전 안전 초기화
 if "selected_theme_click" not in st.session_state:
     st.session_state.selected_theme_click = ""
 
-# 초기 진입 시 당일 등락률 1위 테마 리더보드에 자동 선점 주입
+# 💡 [프리로딩 기법]: 클릭 전 공백 방지를 위해 당일 등락률 대장 1등 테마 자동 선점
 if not st.session_state.selected_theme_click and not status_df.empty:
     st.session_state.selected_theme_click = str(status_df['테마'].iloc[0]).strip()
 
@@ -236,16 +237,17 @@ with left_layout:
 
     if not status_df.empty:
         try:
-            # 🚨 [핀업 신호등 컬러 셋업]: 0% 보합은 어두운 검정배경, 상승은 강렬한 레드, 하락은 블루 매핑
+            # 🚨 [핀업 신호등 커스텀 컬러 스케일 적용]:
+            # 하락은 파란색 크로마 -> 보합 0%는 어두운 암전 배경색 -> 상승은 불타는 핀업 레드로 영점 세팅 완료!
             hts_color_scale = [
-                [0.0, "#1E3A8A"],   # 하락 극대값 (진한 파랑)
+                [0.0, "#1E3A8A"],   # 급락 파란색
                 [0.3, "#3B82F6"],   # 하락
-                [0.5, "#151D2A"],   # 0% 보합 영점 (HTS 어두운 배경색)
+                [0.5, "#151D2A"],   # 0% 보합 (HTS 전광판용 어두운 암전 회색)
                 [0.7, "#F87171"],   # 상승
-                [1.0, "#EF4444"]    # 상승 극대값 (진한 빨강)
+                [1.0, "#EF4444"]    # 대장 급등주 빨간색
             ]
             
-            # 상하방 스케일 대칭 영점 조절
+            # 상하방 컬러 스펙트럼 대칭 정밀 밸런싱
             max_rate = float(status_df['등락률'].max())
             min_rate = float(status_df['등락률'].min())
             bound = max(abs(max_rate), abs(min_rate), 1.0)
@@ -254,7 +256,7 @@ with left_layout:
                 status_df, 
                 path=['테마'], 
                 values='화면크기_가중치', 
-                color='등락률',             # 💡 등락률 필드 기준으로 블록 색상 강제 매핑!
+                color='등락률',             # 💡 등락률 필드 기준으로 핏빛/푸른빛 다이내믹 그라데이션 가동
                 color_continuous_scale=hts_color_scale, 
                 range_color=[-bound, bound], 
                 custom_data=['테마']
@@ -269,13 +271,13 @@ with left_layout:
             fig.update_layout(
                 margin=dict(t=5, b=5, l=5, r=5), 
                 height=620,
-                coloraxis_showscale=False, # 화면 흐리는 사이드 색상 바 깔끔하게 제거
+                coloraxis_showscale=False, # 화면 지저분하게 가리는 우측 컬러 바 제거
                 template="plotly_dark"
             )
             
             chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
             
-            # 🎯 [클릭 파싱 정밀 타격]: 다른 테마 블록 클릭 시 0.1초 만에 데이터 전면 교체
+            # 🎯 [클릭 파싱 정밀 타격 디코딩]: 차원 꼬임으로 인한 이벤트 씹힘을 완전히 부수고 0초 반응 매핑 완료
             if chart_res and "selection" in chart_res:
                 points_list = chart_res["selection"].get("points", [])
                 if points_list and len(points_list) > 0:
@@ -289,7 +291,7 @@ with left_layout:
                         
                         if chosen_lbl and str(chosen_lbl).strip() != st.session_state.selected_theme_click:
                             st.session_state.selected_theme_click = str(chosen_lbl).strip()
-                            st.rerun() # 세션 교체 후 화면 즉시 리프레시
+                            st.rerun() # 클릭 감지 즉시 리런 패킷 사격
                             
         except Exception as chart_err:
             st.error(f"📊 히트맵 컬러 엔진 연동 오류 방어: {chart_err}")
@@ -314,19 +316,19 @@ with right_layout:
                 s_code = str(row.get('code', '005930')).strip()
                 final_stock_list.append((s_name, s_rate, s_price, s_code))
                 
-        # 등락률 기준으로 칼같이 분리 상차
+        # 등락률 제로 베이스 기준 포지션 정밀 분류
         up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
         down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
         
-        # 🔺 상승주 내림차순(대장주 순) / 🔹 하락주 오름차순(하한가 순) 정렬 마감
+        # 🔺 상승주는 내림차순(최고 등락률 대장 순) | 🔹 하락주는 오름차순(최저 등락률 소외주 순) 칼각 소팅
         up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
         down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
         
-        # 💡 [형님 지시 완공 레이아웃]: 뉴스를 도려내고 좌상승 우하락 1대1 호가판 강제 세팅
+        # 💡 [형님 지시 특명 완공 레이아웃]: 뉴스를 흔적도 없이 삭제하고, 상승/하락 2분할 슬라이스 윈도우 대칭 개방!
         sub_col1, sub_col2 = st.columns([5.0, 5.0], gap="medium")
         
         with sub_col1:
-            st.markdown(f"#### 🔺 상승 종목 리스트 ({len(up_stocks)}개)", unsafe_allow_html=True)
+            st.markdown(f"#### 🔺 소속 상승 종목 ({len(up_stocks)}개)", unsafe_allow_html=True)
             with st.container(height=520, border=True):
                 if up_stocks:
                     for s_name, s_rate, s_price, s_code in up_stocks[:50]:
@@ -338,10 +340,10 @@ with right_layout:
                             unsafe_allow_html=True
                         )
                 else:
-                    st.write("<p style='color:#64748B; padding:10px;'>당일 상승 종목이 없습니다.</p>", unsafe_allow_html=True)
+                    st.write("<p style='color:#64748B; padding:10px;'>당일 해당 테마에 상승 종목이 없습니다.</p>", unsafe_allow_html=True)
                     
         with sub_col2:
-            st.markdown(f"#### 🔹 하락 종목 리스트 ({len(down_stocks)}개)", unsafe_allow_html=True)
+            st.markdown(f"#### 🔹 소속 하락 종목 ({len(down_stocks)}개)", unsafe_allow_html=True)
             with st.container(height=520, border=True):
                 if down_stocks:
                     for s_name, s_rate, s_price, s_code in down_stocks[:50]:
@@ -353,10 +355,10 @@ with right_layout:
                             unsafe_allow_html=True
                         )
                 else:
-                    st.write("<p style='color:#64748B; padding:10px;'>당일 하락 종목이 없습니다.</p>", unsafe_allow_html=True)
+                    st.write("<p style='color:#64748B; padding:10px;'>당일 해당 테마에 하락 종목이 없습니다.</p>", unsafe_allow_html=True)
     else:
         st.markdown("### 🗂️ 소속 종목 리더보드")
-        st.info("🔄 데이터 패킷 수신 중...")
+        st.info("🔄 데이터 패킷 수신 대기 중...")
 
 # =================================================================
 # 7. 오토 리프레시 엔진 구동
@@ -366,4 +368,3 @@ try:
     st_autorefresh(interval=15000, key="market_data_refresh_engine_24h")
 except:
     pass
-
