@@ -83,59 +83,47 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연동 세팅
+# 3. 수파베이스 클라우드 직통 연동 세팅 (NaN% 버그 완전 격파용)
 # =================================================================
-SUPABASE_URL = st.secrets["supabase"]["url"]
-SUPABASE_KEY = st.secrets["supabase"]["key"]
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-# 5초 초단기 버퍼 캐시 데이터 로더
 @st.cache_data(ttl=5)
 def load_market_data():
     try:
-        # 수파베이스에 성공적으로 적재한 'kiwoom_themes' 테이블을 조준 호출합니다.
+        # 수파베이스에 적재 완료된 'kiwoom_themes' 테이블 저격 호출
         response = supabase.table("kiwoom_themes").select("*").execute()
         rows = []
         for item in response.data:
+            # 💡 [핵심 교정]: 구형 테이블 규격을 버리고 실제 DB 컬럼들과 1대1 매핑 인터페이스 연결!
             rows.append({
                 'theme': str(item.get('theme_name', '미분류')).strip(),
                 'name': str(item.get('stock_name', '알수없음')).strip(),
                 'code': str(item.get('stock_code', '005930')).strip(),
-                'rate': float(item.get('theme_flu_rt', 0.0)),
-                'price': 0  # 초기 마스터 뼈대 단가 0원 세팅 폴백
+                'rate': float(item.get('theme_flu_rt', 0.0)),  # 🚨 여기에 theme_flu_rt 가 정밀 바인딩되어야 NaN%가 박살납니다!
+                'price': int(item.get('current_price', 0))     # 수증된 실전 현재가 컬럼 매핑
             })
         base_df = pd.DataFrame(rows)
     except Exception as e:
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
+    # 💡 [즉석 테마 뭉치기 및 정렬 엔진 리팩토링]
     if not base_df.empty:
+        # 선별 및 기여도 가중치 산정을 위해 테마별 평균 등락률 산출
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         
-        # 해외 스트림릿 배포 가상 서버 시차 극복용 +9시간 보정 레이아웃
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
         
         status_df = pd.DataFrame({
             '테마': agg_df['theme'],
             '등락률': agg_df['rate'].round(2),
-            '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
+            '화면크기_가중치': np.linspace(35, 10, len(agg_df)), # Plotly 크기 바인딩용
             '업데이트시간': [current_time_str] * len(agg_df)
         })
+        # 🚨 [형님 명세 가동]: 등락률 필드를 기준으로 높은 놈이 무조건 대가리로 오게 소팅 고정!
         status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
     return base_df, status_df
-
-# 데이터 동기화 가동
-raw_df, status_df = load_market_data()
-
-# 현재 한국 표준시 시:분:초 도려내기 
-if not status_df.empty and '업데이트시간' in status_df.columns:
-    full_time_str = str(status_df['업데이트시간'].iloc[0]).strip()
-    update_time = full_time_str[-8:] if len(full_time_str) >= 8 else time.strftime('%H:%M:%S')
-else:
-    update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
 
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
