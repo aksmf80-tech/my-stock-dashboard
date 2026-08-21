@@ -102,9 +102,10 @@ def load_market_data():
         for item in response.data:
             r_val = item.get('theme_flu_rt')
             p_val = item.get('current_price')
+            t_name = str(item.get('theme_name', '미분류')).strip()
             
             rows.append({
-                'theme': str(item.get('theme_name', '미분류')).strip(),
+                'theme': t_name,
                 'name': str(item.get('stock_name', '알수없음')).strip(),
                 'code': str(item.get('stock_code', '005930')).strip(),
                 'rate': float(r_val) if r_val is not None else 0.0,
@@ -115,8 +116,9 @@ def load_market_data():
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        # 대형주마스터 및 빈방 대기 찌꺼기가 히트맵 화면을 침범하지 못하도록 전격 차단 필터 가동
-        filtered_df = base_df[~base_df['theme'].isin(['대형주마스터', '미분류', '빈방_대기', '준비중_테마'])]
+        # 💡 [형님 폴더 기법 구현]: 3,000방에 주식 코드별로 1대1 분산 저장된 1,500마리 고기 원본들을 
+        # 화면 출력 바로 전단계에서 가상 테마 폴더명('theme') 기준으로 자석처럼 한 그릇에 대합체 병합 연산 처리합니다!
+        filtered_df = base_df[~base_df['theme'].isin(['대형주마스터', '미분류', '빈방_대기', '준비중_테마', ''])]
         if not filtered_df.empty:
             agg_df = filtered_df.groupby('theme')['rate'].mean().reset_index()
             
@@ -162,25 +164,24 @@ st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#
 # 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (100% 순정 투과형)
 # =================================================================
 master_2_cols = st.columns(2)
-m_names = ["삼성전자", "SK하이닉스"]
+m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
 
-for idx, m_name in enumerate(m_names):
-    # 💡 [형님 오더 100% 구현]: 가짜 상수를 강제로 묶어두던 족쇄 코드를 영구 파괴 철거했습니다!
-    # 오직 수파베이스 내부의 진짜 가격 데이터만 투과 호출하며, 수집 전 빈 뼈대 방 상태일 때는 정직하게 0원으로 대기합니다.
+for idx, (m_name, m_code) in enumerate(m_targets):
+    # 💡 가짜 가격 땜질 족쇄를 완전히 도려내고, 오직 수파베이스 내부의 3000방 순정 덮어쓰기 
+    # 원본 시세만 100% 직통 투과 호출합니다! 수집기 주입 사격 전에는 정직하게 0원으로 안전 대기합니다.
     m_price = 0  
     m_rate = 0.0
     is_data_loaded = False
 
     try:
         if not raw_df.empty:
-            # 300방 벌크 양식장 내부에 입주 완료된 삼전/하닉 레코드를 실시간 역추적합니다.
-            target_rows = raw_df[raw_df['name'] == m_name]
+            # 고유 학번 코드를 기준으로 덮어쓰기 완료된 대장주 리얼 타임 행 저격 가로채기
+            target_rows = raw_df[raw_df['code'] == m_code]
             if not target_rows.empty:
                 latest_row = target_rows.tail(1)
                 p_live = int(latest_row['price'].iloc) if hasattr(latest_row['price'], 'iloc') else int(latest_row['price'])
                 r_live = float(latest_row['rate'].iloc) if hasattr(latest_row['rate'], 'iloc') else float(latest_row['rate'])
                 
-                # 월요일 장중에 리눅스 수집기가 찐 현재가를 밀어 넣으면 0초 만에 바로 스위칭 동기화!
                 if p_live > 0:
                     m_price = p_live
                     m_rate = r_live
@@ -189,9 +190,9 @@ for idx, m_name in enumerate(m_names):
         pass
 
     with master_2_cols[idx]:
-        # 🚨 [월요일 진짜 가격 100% 라이브 동기화 통로]:
-        # 장중에 리눅스 수집기가 수파베이스로 쏴 올릴 진짜 실시간 현재가와 등락률을 그대로 밀고 나와 화면에 리프레시 반영합니다!
-        # 지금처럼 주말 청정 포맷 상태일 때는 '대기중 (0원)' 상태로 가장 담백하고 무결점하게 대기 스탠바이 합니다.
+        # 🚨 [월요일 진짜 가격 100% 실시간 동기화 관문]:
+        # 월요일 아침 8시 40분 장전 동기화 수집기가 찐 패킷을 쏘아 올리면 즉시 현재가와 하이라이트가 자동 교체 리프레시 반영되고,
+        # 주말 대기 포맷 상태일 때는 '대기중 (0원)' 상태로 가장 담백하고 무결점하게 대기 스탠바이 합니다.
         if is_data_loaded:
             price_display = f"{m_price:,}원"
             if m_rate >= 0:
@@ -258,7 +259,7 @@ with left_layout:
                 if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
     else:
-        st.info("📊 월요일 아침 8시 40분, 키움증권 실시간 라이브 테마 데이터 개통 대기 중입니다.")
+        st.info("📊 수파베이스 양식장 통덤프 패킷을 수신 대기 중입니다. 터미널에서 주입 사격을 실행해 주세요!")
 
 with right_layout:
     if not status_df.empty:
@@ -267,6 +268,8 @@ with right_layout:
         
         final_stock_list = []
         if not raw_df.empty:
+            # 💡 [폴더 대뭉침 완공]: 수파베이스 바닥에 종목코드별로 1대1 분산 안착된 1,500마리 생선 원본들을 
+            # 형님이 선택한 테마 폴더명으로 칼같이 그룹핑 취합하여 우측 리스트에 몽땅 다 쏟아부어 표출합니다!
             theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
             for _, row in theme_detail_df.iterrows():
                 s_price = int(row.get('price', 0)) if pd.notna(row.get('price')) else 0
@@ -279,6 +282,7 @@ with right_layout:
         down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
         
         st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
+        # [형님 특명 고정]: 세로 폭 짤림 방지 및 모니터 전체 고정을 위한 높이 320px 호가 슬라이스 위젯 배치 완료!
         with st.container(height=320, border=False):
             if up_stocks:
                 up_cols = st.columns(2)
@@ -291,6 +295,7 @@ with right_layout:
         st.markdown("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
         
         st.markdown("#### 🔹 하락 종목", unsafe_allow_html=True)
+        # [형님 특명 고정]: 세로 폭 짤림 방지 및 모니터 전체 고정을 위한 높이 320px 호가 슬라이스 위젯 배치 완료!
         with st.container(height=320, border=False):
             if down_stocks:
                 down_cols = st.columns(2)
@@ -301,7 +306,7 @@ with right_layout:
                 st.text("하락 종목이 없습니다.")
     else:
         st.markdown("### 🗂️ 소속 종목 리더보드")
-        st.info("🔄 월요일 주도 테마 선정 즉시 실시간 호가 슬라이스 창이 전면 활성화됩니다.")
+        st.info("🔄 주도 테마 선정 즉시 실시간 HTS 호가 슬라이스 창이 전면 활성화됩니다.")
 
 try:
     from streamlit_autorefresh import st_autorefresh
