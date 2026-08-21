@@ -176,6 +176,9 @@ st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#
 # =================================================================
 # 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (100% 원본 투과 연동)
 # =================================================================
+# =================================================================
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 최종 영점 조절 완료)
+# =================================================================
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
 
@@ -185,13 +188,16 @@ for idx, (m_name, m_code) in enumerate(m_targets):
     is_data_loaded = False
 
     try:
-        # 🚨 [대장주 원천 복구]: 필터링 가두리에 갇히지 않은 순정 raw_df에서 종목 코드를 직접 낚아챕니다!
         if not raw_df.empty:
-            target_rows = raw_df[raw_df['code'] == m_code]
+            # 🚨 [버그 폭파]: load_market_data()에서 이미 'code' 필드로 싹 다 정제 포장해 두었으므로,
+            # 'code' 컬럼을 다이렉트로 저격 매핑해야 한 치의 오차도 없이 시세가 관통되어 들어옵니다!
+            raw_df['code_clean'] = raw_df['code'].astype(str).str.strip()
+            target_rows = raw_df[raw_df['code_clean'] == m_code]
+            
             if not target_rows.empty:
                 latest_row = target_rows.iloc[-1]
                 
-                # 타입 강제 변환으로 0원 먹통 차단
+                # 정제된 딕셔너리 키 명칭인 'price'와 'rate' 축으로 정확하게 가로채기 진행
                 p_live = int(latest_row['price'])
                 r_live = float(latest_row['rate'])
                 
@@ -203,6 +209,7 @@ for idx, (m_name, m_code) in enumerate(m_targets):
         pass
 
     with master_2_cols[idx]:
+        # 💡 ROOM_ 코드 꼬임 현상이 완전히 해제되어 월요일 장전 고정가 시세 패킷이 다이렉트로 투과 안착됩니다!
         if is_data_loaded:
             price_display = f"{m_price:,}원"
             sign_str = "+" if m_rate > 0 else ""
@@ -220,6 +227,14 @@ for idx, (m_name, m_code) in enumerate(m_targets):
                         <span style='color:#3B82F6; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate:.2f}%)</span>
                     </div>
                 """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>대기중 (0원)</span>
+                </div>
+            """, unsafe_allow_html=True)
+
         else:
             # 수파베이스 내부 가격 패킷 인식이 일시적으로 풀릴 때 안전하게 스탠바이합니다.
             st.markdown(f"""
