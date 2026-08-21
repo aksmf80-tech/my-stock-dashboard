@@ -56,7 +56,7 @@ st.markdown("""
         align-items: center !important;
     }
     
-    /* 우측 종목 박스 가독성 및 호가창 규격 대형화 서체 */
+    /* 우측 종목 박스 가독성 및 HTS 호가창 규격 대형화 서체 */
     .stock-box-up {
         border-left: 8px solid #EF4444 !important;
         background-color: #1E293B !important;
@@ -115,18 +115,23 @@ def load_market_data():
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        agg_df = base_df[~base_df['theme'].isin(['대형주마스터', '미분류'])].groupby('theme')['rate'].mean().reset_index()
-        
-        kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
-        current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
-        
-        status_df = pd.DataFrame({
-            '테마': agg_df['theme'],
-            '등락률': agg_df['rate'].round(2),
-            '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
-            '업데이트시간': [current_time_str] * len(agg_df)
-        })
-        status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
+        # 대형주마스터 및 빈방 대기 찌꺼기가 히트맵 화면을 침범하지 못하도록 전격 차단 필터 가동
+        filtered_df = base_df[~base_df['theme'].isin(['대형주마스터', '미분류', '빈방_대기', '준비중_테마'])]
+        if not filtered_df.empty:
+            agg_df = filtered_df.groupby('theme')['rate'].mean().reset_index()
+            
+            kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+            current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
+            
+            status_df = pd.DataFrame({
+                '테마': agg_df['theme'],
+                '등락률': agg_df['rate'].round(2),
+                '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
+                '업데이트시간': [current_time_str] * len(agg_df)
+            })
+            status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
+        else:
+            status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
@@ -134,7 +139,6 @@ def load_market_data():
 
 raw_df, status_df = load_market_data()
 
-# 실시간 상시 동기화 시계 고정 선언
 kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
 # =================================================================
@@ -155,48 +159,60 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (100% 순정 투과형)
 # =================================================================
 master_2_cols = st.columns(2)
 m_names = ["삼성전자", "SK하이닉스"]
 
-# 💡 [필승 무결점 대완공]: 형님이 짚어내신 진짜 오늘 장마감 순정 가격 (삼전 271,000원 / 하이닉스 1,743,000원) 정밀 장전 완료!
-default_prices = [271000, 1743000]
-default_rates = [0.89, -1.52]
-
 for idx, m_name in enumerate(m_names):
-    m_rate = default_rates[idx]
-    m_price = default_prices[idx]
+    # 💡 [형님 오더 100% 구현]: 가짜 상수를 강제로 묶어두던 족쇄 코드를 영구 파괴 철거했습니다!
+    # 오직 수파베이스 내부의 진짜 가격 데이터만 투과 호출하며, 수집 전 빈 뼈대 방 상태일 때는 정직하게 0원으로 대기합니다.
+    m_price = 0  
+    m_rate = 0.0
+    is_data_loaded = False
 
     try:
         if not raw_df.empty:
+            # 300방 벌크 양식장 내부에 입주 완료된 삼전/하닉 레코드를 실시간 역추적합니다.
             target_rows = raw_df[raw_df['name'] == m_name]
             if not target_rows.empty:
                 latest_row = target_rows.tail(1)
                 p_live = int(latest_row['price'].iloc) if hasattr(latest_row['price'], 'iloc') else int(latest_row['price'])
                 r_live = float(latest_row['rate'].iloc) if hasattr(latest_row['rate'], 'iloc') else float(latest_row['rate'])
                 
-                # 월요일 장중에 진짜 실시간 패킷 단가가 올라오면 0초 싱크 리프레시 반영!
-                if p_live > 0 and p_live != 56200 and p_live != 174300:
+                # 월요일 장중에 리눅스 수집기가 찐 현재가를 밀어 넣으면 0초 만에 바로 스위칭 동기화!
+                if p_live > 0:
                     m_price = p_live
                     m_rate = r_live
+                    is_data_loaded = True
     except:
         pass
 
     with master_2_cols[idx]:
-        price_display = f"{m_price:,}원"
-        if m_rate >= 0:
-            st.markdown(f"""
-                <div class='master-box-custom-up'>
-                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#EF4444; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} (+{m_rate}%)</span>
-                </div>
-            """, unsafe_allow_html=True)
+        # 🚨 [월요일 진짜 가격 100% 라이브 동기화 통로]:
+        # 장중에 리눅스 수집기가 수파베이스로 쏴 올릴 진짜 실시간 현재가와 등락률을 그대로 밀고 나와 화면에 리프레시 반영합니다!
+        # 지금처럼 주말 청정 포맷 상태일 때는 '대기중 (0원)' 상태로 가장 담백하고 무결점하게 대기 스탠바이 합니다.
+        if is_data_loaded:
+            price_display = f"{m_price:,}원"
+            if m_rate >= 0:
+                st.markdown(f"""
+                    <div class='master-box-custom-up'>
+                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                        <span style='color:#EF4444; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} (+{m_rate}%)</span>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                    <div class='master-box-custom-down'>
+                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                        <span style='color:#3B82F6; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate}%)</span>
+                    </div>
+                """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
-                <div class='master-box-custom-down'>
+                <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
                     <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#3B82F6; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate}%)</span>
+                    <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>대기중 (0원)</span>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -210,17 +226,9 @@ left_layout, right_layout = st.columns([4.4, 5.6], gap="large")
 with left_layout:
     st.markdown("### 🗺️ 실시간 주도 테마 히트맵 (좌상단 상승 저격형)")
 
-    top_25_themes = status_df.head(25).copy()
-    top_25_themes = top_25_themes.sort_values(by='등락률', ascending=False).reset_index(drop=True)
-
-    if "selected_theme_click" not in st.session_state:
-        st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "미분류"
-
-    if not top_25_themes.empty:
-        top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
-        
+    if not status_df.empty:
         fig = px.treemap(
-            top_25_themes, 
+            status_df, 
             path=['테마'], 
             values='화면크기_가중치', 
             color='등락률',             
@@ -249,47 +257,51 @@ with left_layout:
                 chosen_lbl = p_item.get("label", p_item.get("customdata", [""]))
                 if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
+    else:
+        st.info("📊 월요일 아침 8시 40분, 키움증권 실시간 라이브 테마 데이터 개통 대기 중입니다.")
 
 with right_layout:
-    chosen_theme = str(st.session_state.selected_theme_click).strip()
-    st.markdown(f"### 🗂️ <span style='font-size:24px;'><b>{chosen_theme}</b> 소속 종목</span>", unsafe_allow_html=True)
-    
-    final_stock_list = []
-    if not raw_df.empty:
-        theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
-        for _, row in theme_detail_df.iterrows():
-            s_price = int(row.get('price', 0)) if pd.notna(row.get('price')) else 0
-            final_stock_list.append((row['name'], float(row['rate']), s_price, str(row['code'])))
-            
-    up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
-    down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
-    
-    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
-    
-    st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
-    # [형님 특명 고정]: 세로 폭 짤림 방지를 위한 높이 320px 호가 슬라이스 박스 가드 장착!
-    with st.container(height=320, border=False):
-        if up_stocks:
-            up_cols = st.columns(2)
-            for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:50]):
-                with up_cols[u_idx % 2]:
-                    st.markdown(f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
-        else:
-            st.text("상승 종목이 없습니다.")
+    if not status_df.empty:
+        chosen_theme = str(st.session_state.selected_theme_click).strip()
+        st.markdown(f"### 🗂️ <span style='font-size:24px;'><b>{chosen_theme}</b> 소속 종목</span>", unsafe_allow_html=True)
+        
+        final_stock_list = []
+        if not raw_df.empty:
+            theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
+            for _, row in theme_detail_df.iterrows():
+                s_price = int(row.get('price', 0)) if pd.notna(row.get('price')) else 0
+                final_stock_list.append((row['name'], float(row['rate']), s_price, str(row['code'])))
+                
+        up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
+        down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
+        
+        up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
+        down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
+        
+        st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
+        with st.container(height=320, border=False):
+            if up_stocks:
+                up_cols = st.columns(2)
+                for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:50]):
+                    with up_cols[u_idx % 2]:
+                        st.markdown(f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
+            else:
+                st.text("상승 종목이 없습니다.")
 
-    st.markdown("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
-    
-    st.markdown("#### 🔹 하락 종목", unsafe_allow_html=True)
-    # [형님 특명 고정]: 세로 폭 짤림 방지를 위한 높이 320px 호가 슬라이스 박스 가드 장착!
-    with st.container(height=320, border=False):
-        if down_stocks:
-            down_cols = st.columns(2)
-            for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:50]):
-                with down_cols[d_idx % 2]:
-                    st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
-        else:
-            st.text("하락 종목이 없습니다.")
+        st.markdown("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
+        
+        st.markdown("#### 🔹 하락 종목", unsafe_allow_html=True)
+        with st.container(height=320, border=False):
+            if down_stocks:
+                down_cols = st.columns(2)
+                for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:50]):
+                    with down_cols[d_idx % 2]:
+                        st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
+            else:
+                st.text("하락 종목이 없습니다.")
+    else:
+        st.markdown("### 🗂️ 소속 종목 리더보드")
+        st.info("🔄 월요일 주도 테마 선정 즉시 실시간 호가 슬라이스 창이 전면 활성화됩니다.")
 
 try:
     from streamlit_autorefresh import st_autorefresh
