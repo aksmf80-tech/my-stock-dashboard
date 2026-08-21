@@ -87,7 +87,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (대형주 해제 버전)
+# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (무필터 순정 버전)
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
@@ -110,52 +110,35 @@ def load_market_data():
                 'rate': float(r_val) if r_val is not None else 0.0,
                 'price': int(p_val) if p_val is not None else 0
             })
+        # 🚨 [형님 특명 - 철통 보안 해제]: 그 어떤 테마명도 가리지 않고 DB 원본 그대로 백업 빌드!
         base_df = pd.DataFrame(rows)
     except Exception as e:
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        # 🚨 [형님 특명 - 가두리 전면 철거 완공]: '대형주마스터'를 여기서 절대 지우지 않습니다!
-        # 대한민국 2,200마리 고기 원본을 그대로 통투과시켜야 삼전/하이닉스 시세가 뚫고 나옵니다.
-        filtered_df = base_df[~base_df['theme'].isin(['미분류', '빈방_대기', '준비중_테마', 'SKELETON_BASE', ''])]
+        # 좌측 히트맵용 그룹 통계 데이터셋 가공
+        agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
+        kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+        current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
         
-        if not filtered_df.empty:
-            # 💡 [히트맵 분리 장치]: 좌측 히트맵 그리드에서만 '대형주마스터' 블록을 안 보이게 숨겨서 전광판을 컴팩트하게 만들고,
-            # 대장주 시세 조회용 원본 데이터셋에는 완벽하게 생존시켜 둡니다!
-            heatmap_target_df = filtered_df[filtered_df['theme'] != '대형주마스터']
-            
-            if not heatmap_target_df.empty:
-                agg_df = heatmap_target_df.groupby('theme')['rate'].mean().reset_index()
-            else:
-                agg_df = pd.DataFrame(columns=['theme', 'rate'])
-            
-            kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
-            current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
-            
-            if not agg_df.empty:
-                status_df = pd.DataFrame({
-                    '테마': agg_df['theme'],
-                    '등락률': agg_df['rate'].round(2),
-                    '업데이트시간': [current_time_str] * len(agg_df)
-                })
-                status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
-                status_df['화면크기_가중치'] = np.linspace(35, 10, len(status_df)) if len(status_df) > 0 else []
-            else:
-                status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
-        else:
-            status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
+        status_df = pd.DataFrame({
+            '테마': agg_df['theme'],
+            '등락률': agg_df['rate'].round(2),
+            '업데이트시간': [current_time_str] * len(agg_df)
+        })
+        status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
+        status_df['화면크기_가중치'] = np.linspace(35, 10, len(status_df)) if len(status_df) > 0 else []
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
-    # 🚨 [중요]: 삼성전자와 SK하이닉스가 100% 살아 숨쉬는 filtered_df를 첫 번째 인자로 정직하게 밀어줍니다!
-    return filtered_df, status_df
+    # 🚨 가리는 필터링 절대 없이 2,200마리 원본 전체(base_df)를 1번 인자로 다이렉트 출격시킵니다!
+    return base_df, status_df
 
-# 변수 매핑 연동 최종 완공
+# 변수 매핑 무결점 싱크 연결 완료
 raw_df, status_df = load_market_data()
 
 kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
-
 # =================================================================
 # 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
 # =================================================================
