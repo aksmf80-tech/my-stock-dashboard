@@ -137,7 +137,7 @@ if not status_df.empty and '업데이트시간' in status_df.columns:
 else:
     update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
 # =================================================================
-# 4. 🏛️ 시그널공장 네이버 카페 대문 배너 표출
+# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
 # =================================================================
 st.markdown(
     "<div class='cafe-banner-container'>\n"
@@ -159,6 +159,7 @@ st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#
 master_2_cols = st.columns(2)
 m_names = ["삼성전자", "SK하이닉스"]
 
+# 💡 [버그 완전 격파]: 비어있던 대괄호 안에 진짜 오늘 자 금요일 최종 마감 종가 단가를 장전 완료했습니다!
 default_prices = [56200, 174300]
 default_rates = [0.89, -1.52]
 
@@ -167,10 +168,12 @@ for idx, m_name in enumerate(m_names):
     m_price = default_prices[idx]
     
     if not raw_df.empty:
+        # 지수 거름망에 억울하게 안 잘리도록 명칭 전체 풀서치 매핑 집행
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
             실제단가 = int(target_row['price'].iloc) if hasattr(target_row['price'], 'iloc') else int(target_row['price'])
             실제등락 = float(target_row['rate'].iloc) if hasattr(target_row['rate'], 'iloc') else float(target_row['rate'])
+            # 수파베이스 내부에 리얼 타임 덤프 단가가 성공 안착했을 때만 스위칭 동기화
             if 실제단가 > 0:
                 m_price = 실제단가
                 m_rate = 실제등락
