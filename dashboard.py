@@ -7,7 +7,7 @@ import datetime
 from supabase import create_client, Client
 
 # =================================================================
-# 1. 페이지 레이아웃 세팅 
+# 1. 페이지 레이아웃 세팅 (상단 시스템 여백 전면 개방)
 # =================================================================
 st.set_page_config(
     page_title="실시간 주도주 테마 전광판",
@@ -16,53 +16,76 @@ st.set_page_config(
 )
 
 # =================================================================
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 상단 카페 버튼 씹힘 절대 가드 보정)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 카페 배너 & 종목 짤림 절대 방어막)
 # =================================================================
 st.markdown("""
     <style>
-    /* 💡 [긴급 수선]: 천장에 씹힌 배너를 구조하기 위해 padding-top을 5.5rem으로 대폭 늘려 숨통을 틉니다! */
-    .block-container { padding-top: 5.5rem !important; padding-bottom: 0.5rem !important; }
-    [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
-    hr { margin: 0.5rem 0 !important; }
+    /* 💡 [천장 차단막 완전 철거]: 스트림릿 고유 상단 투명 헤더의 억압을 완벽하게 부수고 밀어 올립니다! */
+    [data-testid="stHeader"] { background: transparent !important; height: 0rem !important; display: none !important; }
     
-    /* 네이버 카페 배너 박스 전용 절대 디펜스 CSS 규격 */
+    /* 전체 화면 가두리 패딩을 위쪽으로 넉넉하게 6.5rem 확장하여 배너가 절대 안 잘리게 방어합니다. */
+    .block-container { padding-top: 6.5rem !important; padding-bottom: 0.5rem !important; }
+    [data-testid="stVerticalBlock"] { gap: 0.6rem !important; }
+    hr { margin: 0.6rem 0 !important; }
+    
+    /* 네이버 카페 배너 박스 절대 좌표 고정 (글씨 안 깨지게 높이 여유 보정) */
     .cafe-banner-container {
-        margin-top: -3.5rem !important;
-        margin-bottom: 1.5rem !important;
+        margin-top: -5.0rem !important;
+        margin-bottom: 1.8rem !important;
         text-align: center !important;
         width: 100% !important;
     }
     
-    .stock-box-up {
-        border-left: 6px solid #EF4444 !important;
+    /* 대왕 글씨 전광판 테두리 및 정렬 최적화 */
+    .master-box-custom-up {
         background-color: #1E293B !important;
-        padding: 8px 12px !important;
-        border-radius: 4px !important;
-        margin-bottom: 6px !important;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        border-left: 8px solid #EF4444 !important;
+        padding: 16px 22px !important;
+        border-radius: 6px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
     }
-    .stock-name-up { color: #FFF !important; font-weight: 700 !important; font-size: 14px !important; }
-    .stock-rate-up { color: #F87171 !important; font-weight: 800 !important; font-size: 14px !important; }
+    .master-box-custom-down {
+        background-color: #1E293B !important;
+        border-left: 8px solid #3B82F6 !important;
+        padding: 16px 22px !important;
+        border-radius: 6px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+    }
     
-    .stock-box-down {
-        border-left: 6px solid #3B82F6 !important;
+    /* 우측 종목 박스 가독성 및 짤림 가드 마진 축소 */
+    .stock-box-up {
+        border-left: 5px solid #EF4444 !important;
         background-color: #1E293B !important;
-        padding: 8px 12px !important;
+        padding: 6px 10px !important;
         border-radius: 4px !important;
-        margin-bottom: 6px !important;
+        margin-bottom: 5px !important;
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
-    .stock-name-down { color: #FFF !important; font-weight: 700 !important; font-size: 14px !important; }
-    .stock-rate-down { color: #60A5FA !important; font-weight: 800 !important; font-size: 14px !important; }
+    .stock-box-down {
+        border-left: 5px solid #3B82F6 !important;
+        background-color: #1E293B !important;
+        padding: 6px 10px !important;
+        border-radius: 4px !important;
+        margin-bottom: 5px !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .stock-name-up { color: #FFF !important; font-weight: 700 !important; font-size: 13px !important; }
+    .stock-rate-up { color: #F87171 !important; font-weight: 800 !important; font-size: 13px !important; }
+    .stock-name-down { color: #FFF !important; font-weight: 700 !important; font-size: 13px !important; }
+    .stock-rate-down { color: #60A5FA !important; font-weight: 800 !important; font-size: 13px !important; }
     </style>
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연동 세팅
+# 3. 수파베이스 클라우드 직통 연결 인증
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
@@ -111,14 +134,13 @@ if not status_df.empty and '업데이트시간' in status_df.columns:
 else:
     update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
 # =================================================================
-# 4. 🏛️ [카페 배너 부활] 및 [HTS 규격 대왕 글씨] 대장주 보드 상시 배치
+# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
 # =================================================================
-# 💡 [여백 디펜스 가드 위젯]: 천장 공간을 확보하여 네이버 카페 글씨와 아이콘이 100% 온전히 표출됩니다!
 st.markdown(
     "<div class='cafe-banner-container'>\n"
     "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>\n"
     "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:18px; \n"
-    "    border:none; padding:14px 24px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width:100%; font-family:sans-serif;'>\n"
+    "    border:none; padding:15px 24px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width:100%; font-family:sans-serif;'>\n"
     "      🏛️ 시그널공장 네이버 카페 바로가기\n"
     "    </button>\n"
     "  </a>\n"
@@ -128,11 +150,12 @@ st.markdown(
 
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
-# 가로 2분할 칸 개설 및 대왕 폰트 매핑
+# =================================================================
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치
+# =================================================================
 master_2_cols = st.columns(2)
 m_names = ["삼성전자", "SK하이닉스"]
 
-# 오늘 자 최종 마감 팩트 데이터 베이스라인 락 고정
 default_prices = [56200, 174300]
 default_rates = [0.89, -1.52]
 
@@ -151,38 +174,37 @@ for idx, m_name in enumerate(m_names):
 
     with master_2_cols[idx]:
         price_display = f"{m_price:,}원"
-        
         if m_rate >= 0:
             st.markdown(f"""
-                <div style='background-color:#1E293B; border-left:8px solid #EF4444; padding:15px 20px; border-radius:6px; display:flex; justify-content:between; align-items:center;'>
+                <div class='master-box-custom-up'>
                     <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
                     <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} (+{m_rate}%)</span>
                 </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
-                <div style='background-color:#1E293B; border-left:8px solid #3B82F6; padding:15px 20px; border-radius:6px; display:flex; justify-content:between; align-items:center;'>
+                <div class='master-box-custom-down'>
                     <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
                     <span style='color:#60A5FA; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate}%)</span>
                 </div>
             """, unsafe_allow_html=True)
 
-st.markdown("<div style='padding-top:15px;'></div>", unsafe_allow_html=True)
 st.markdown("---")
 
 # =================================================================
-# 5. 하단 레이아웃: 실시간 트리맵 히트맵 / 상세 종목 전개 부
+# 6. 하단 레이아웃 (🚨 황금 비율 분할 및 데이터 짤림 완전 방쇄)
 # =================================================================
-top_25_themes = status_df.head(25).copy()
-top_25_themes = top_25_themes.sort_values(by='등락률', ascending=False).reset_index(drop=True)
-
-if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "미분류"
-
-left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
+# 우측 소속 종목이 오른쪽 낭떠러지로 잘려나가지 않도록 가로 배율 폭을 4.5 대 5.5 구조로 완전 최적화 조정합니다!
+left_layout, right_layout = st.columns([4.5, 5.5], gap="large")
 
 with left_layout:
     st.markdown("### 🗺️ 실시간 주도 테마 히트맵 (좌상단 상승 저격형)")
+
+    top_25_themes = status_df.head(25).copy()
+    top_25_themes = top_25_themes.sort_values(by='등락률', ascending=False).reset_index(drop=True)
+
+    if "selected_theme_click" not in st.session_state:
+        st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
 
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
@@ -199,7 +221,7 @@ with left_layout:
         
         fig.update_traces(
             texttemplate="<b>%{label}</b><br>%{color:.2f}%", 
-            textfont=dict(size=15, color="white"), 
+            textfont=dict(size=14, color="white"), 
             textposition="middle center"
         )
         
@@ -213,9 +235,9 @@ with left_layout:
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                p_item = p_list
+                p_item = p_list[0]
                 chosen_lbl = p_item.get("label", p_item.get("customdata", [""]))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
 with right_layout:
@@ -232,8 +254,9 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
-    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
+    # 등락률 순 최우선 자동 소팅 정렬
+    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
     st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
     if up_stocks:
