@@ -16,7 +16,7 @@ st.set_page_config(
 )
 
 # =================================================================
-# 2. HTS 스타일 컴팩트 CSS 세팅 (순정 원본)
+# 2. HTS 스타일 컴팩트 CSS 세팅
 # =================================================================
 st.markdown("""
     <style>
@@ -83,31 +83,35 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연동 세팅 (진짜 주가/등락률 매핑 복구판)
+# 3. 수파베이스 클라우드 직통 연동 세팅
 # =================================================================
+SUPABASE_URL = st.secrets["supabase"]["url"]
+SUPABASE_KEY = st.secrets["supabase"]["key"]
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# 5초 초단기 버퍼 캐시 데이터 로더
 @st.cache_data(ttl=5)
 def load_market_data():
     try:
-        # 수파베이스에 적재 완료된 'kiwoom_themes' 테이블 저격 호출
         response = supabase.table("kiwoom_themes").select("*").execute()
         rows = []
         for item in response.data:
-            # 💡 [필승 매핑]: 수집기가 쏜 'theme_flu_rt'와 'current_price'를 화면단에 한 치의 오차도 없이 연결합니다!
+            # 💡 [정밀 매핑]: theme_flu_rt 와 current_price 를 가져와 NaN% 와 가짜 주가를 박살냅니다!
             rows.append({
                 'theme': str(item.get('theme_name', '미분류')).strip(),
                 'name': str(item.get('stock_name', '알수없음')).strip(),
                 'code': str(item.get('stock_code', '005930')).strip(),
-                'rate': float(item.get('theme_flu_rt', 0.0)),  # 🚨 theme_flu_rt가 정확히 연동되어야 NaN%가 사라집니다!
-                'price': int(item.get('current_price', 0))     # 🚨 current_price가 정확히 연동되어야 진짜 단가가 뜹니다!
+                'rate': float(item.get('theme_flu_rt', 0.0)),
+                'price': int(item.get('current_price', 0))
             })
         base_df = pd.DataFrame(rows)
     except Exception as e:
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        # 테마별 평균 등락률 산출 정렬 엔진
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         
+        # 해외 배포 가상 서버 시차 보정용 KST 표준시 동기화 (+9시간)
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
         
@@ -117,19 +121,30 @@ def load_market_data():
             '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
             '업데이트시간': [current_time_str] * len(agg_df)
         })
-        # 상승률 대가리 순서대로 정렬 고정
+        # 상승률 높은 테마 최상단 소팅 규칙
         status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
     return base_df, status_df
 
+# 데이터 동기화 가동
+raw_df, status_df = load_market_data()
+
+# 💡 [NameError 변수 락 완벽 고정]: 
+# 에러가 터졌던 마크다운 축보다 무조건 윗선에서 변수를 완벽하게 선언 완료합니다!
+if not status_df.empty and '업데이트시간' in status_df.columns:
+    full_time_str = str(status_df['업데이트시간'].iloc[0]).strip()
+    update_time = full_time_str[-8:] if len(full_time_str) >= 8 else time.strftime('%H:%M:%S')
+else:
+    update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
+
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
 st.markdown(
     "<div style='margin-bottom:8px; text-align:center;'>\n"
-    "  <a href='https://cafe.naver.com/signalhub' target='_blank' style='text-decoration:none;'>\n"
+    "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>\n"
     "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:16px; \n"
     "    border:none; padding:12px 24px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); width:100%; font-family:sans-serif;'>\n"
     "      🏛️ 시그널공장 네이버 카페 바로가기\n"
@@ -197,7 +212,7 @@ if "selected_theme_click" not in st.session_state:
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
 with left_layout:
-    st.markdown("### 🗺️ 실시간 주도 테마 히트맵 ")
+    st.markdown("### 🗺️ 실시간 주도 테마 히트맵 (좌상단 상승 저격형)")
 
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
