@@ -7,7 +7,7 @@ import datetime
 from supabase import create_client, Client
 
 # =================================================================
-# 1. 페이지 레이아웃 세팅 (상단 시스템 여백 전면 개방)
+# 1. 페이지 레이아웃 세팅 
 # =================================================================
 st.set_page_config(
     page_title="실시간 주도주 테마 전광판",
@@ -16,19 +16,16 @@ st.set_page_config(
 )
 
 # =================================================================
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 카페 배너 & 종목 짤림 절대 방어막)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 우측 소속 종목 글씨 대왕 격상판)
 # =================================================================
 st.markdown("""
     <style>
-    /* 💡 [천장 차단막 완전 철거]: 스트림릿 고유 상단 투명 헤더의 억압을 완벽하게 부수고 밀어 올립니다! */
     [data-testid="stHeader"] { background: transparent !important; height: 0rem !important; display: none !important; }
     
-    /* 전체 화면 가두리 패딩을 위쪽으로 넉넉하게 6.5rem 확장하여 배너가 절대 안 잘리게 방어합니다. */
     .block-container { padding-top: 6.5rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.6rem !important; }
     hr { margin: 0.6rem 0 !important; }
     
-    /* 네이버 카페 배너 박스 절대 좌표 고정 (글씨 안 깨지게 높이 여유 보정) */
     .cafe-banner-container {
         margin-top: -5.0rem !important;
         margin-bottom: 1.8rem !important;
@@ -36,7 +33,6 @@ st.markdown("""
         width: 100% !important;
     }
     
-    /* 대왕 글씨 전광판 테두리 및 정렬 최적화 */
     .master-box-custom-up {
         background-color: #1E293B !important;
         border-left: 8px solid #EF4444 !important;
@@ -56,36 +52,43 @@ st.markdown("""
         align-items: center !important;
     }
     
-    /* 우측 종목 박스 가독성 및 짤림 가드 마진 축소 */
+    /* 💡 [형님 특명: 우측 종목 글자 크기 대형 혁명] */
+    /* 개미만 하던 박스를 시원하게 키우고 내부 마진과 가독성을 극한으로 올립니다! */
     .stock-box-up {
-        border-left: 5px solid #EF4444 !important;
+        border-left: 8px solid #EF4444 !important;
         background-color: #1E293B !important;
-        padding: 6px 10px !important;
-        border-radius: 4px !important;
-        margin-bottom: 5px !important;
+        padding: 14px 18px !important;
+        border-radius: 6px !important;
+        margin-bottom: 8px !important;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .stock-box-down {
-        border-left: 5px solid #3B82F6 !important;
+        border-left: 8px solid #3B82F6 !important;
         background-color: #1E293B !important;
-        padding: 6px 10px !important;
-        border-radius: 4px !important;
-        margin-bottom: 5px !important;
+        padding: 14px 18px !important;
+        border-radius: 6px !important;
+        margin-bottom: 8px !important;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .stock-name-up { color: #FFF !important; font-weight: 700 !important; font-size: 13px !important; }
-    .stock-rate-up { color: #F87171 !important; font-weight: 800 !important; font-size: 13px !important; }
-    .stock-name-down { color: #FFF !important; font-weight: 700 !important; font-size: 13px !important; }
-    .stock-rate-down { color: #60A5FA !important; font-weight: 800 !important; font-size: 13px !important; }
+    
+    /* 종목명 글자 크기를 무려 18px 굵은 서체로 빌드! */
+    .stock-name-up { color: #FFF !important; font-weight: 800 !important; font-size: 18px !important; }
+    .stock-name-down { color: #FFF !important; font-weight: 800 !important; font-size: 18px !important; }
+    
+    /* 수치 글자 크기는 19px 강렬한 하이라이트 색상 격상! */
+    .stock-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 19px !important; }
+    .stock-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 19px !important; }
     </style>
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증
+# 3. 수파베이스 클라우드 직통 연동 세팅
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
@@ -134,7 +137,7 @@ if not status_df.empty and '업데이트시간' in status_df.columns:
 else:
     update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
 # =================================================================
-# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
+# 4. 🏛️ 시그널공장 네이버 카페 대문 배너 표출
 # =================================================================
 st.markdown(
     "<div class='cafe-banner-container'>\n"
@@ -192,10 +195,9 @@ for idx, m_name in enumerate(m_names):
 st.markdown("---")
 
 # =================================================================
-# 6. 하단 레이아웃 (🚨 황금 비율 분할 및 데이터 짤림 완전 방쇄)
+# 6. 하단 레이아웃 (가로 폭 짤림 방지 및 대왕 종목 렌더링)
 # =================================================================
-# 우측 소속 종목이 오른쪽 낭떠러지로 잘려나가지 않도록 가로 배율 폭을 4.5 대 5.5 구조로 완전 최적화 조정합니다!
-left_layout, right_layout = st.columns([4.5, 5.5], gap="large")
+left_layout, right_layout = st.columns([4.4, 5.6], gap="large")
 
 with left_layout:
     st.markdown("### 🗺️ 실시간 주도 테마 히트맵 (좌상단 상승 저격형)")
@@ -215,7 +217,7 @@ with left_layout:
             values='화면크기_가중치', 
             color='등락률',             
             color_continuous_scale='RdBu_r', 
-            color_continuous_midpoint=0, 
+            color_continuous_midpoint=0,
             custom_data=['테마']
         )
         
@@ -242,7 +244,7 @@ with left_layout:
 
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
-    st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
+    st.markdown(f"### 🗂️ <span style='font-size:24px;'><b>{chosen_theme}</b> 소속 종목</span>", unsafe_allow_html=True)
     
     final_stock_list = []
     if not raw_df.empty:
@@ -254,7 +256,7 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
-    # 등락률 순 최우선 자동 소팅 정렬
+    # 등락률 순 정배열 탑 정렬 소팅
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
