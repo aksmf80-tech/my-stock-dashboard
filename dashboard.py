@@ -232,7 +232,7 @@ if not st.session_state.selected_theme_click and not status_df.empty:
 left_layout, right_layout = st.columns([4.4, 5.6], gap="large")
 
 with left_layout:
-    st.markdown("### 🗺️ 실시간 주도 테마 히트맵 (좌상단 상승 저격형)")
+    st.markdown("### 🗺️ 실시간 주도 테마 히트맵")
 
     if not status_df.empty:
         try:
