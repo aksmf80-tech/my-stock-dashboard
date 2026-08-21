@@ -65,12 +65,8 @@ def load_market_data():
         response = supabase.table("kiwoom_themes").select("*").execute()
         rows = []
         for item in response.data:
-            # 💡 대장주마스터나 지수 찌꺼기는 로드 단계에서 원천 차단 필터링
-            theme_name = str(item.get('theme_name', '미분류')).strip()
-            if theme_name in ['대형주마스터', '미분류']: continue
-            
             rows.append({
-                'theme': theme_name,
+                'theme': str(item.get('theme_name', '미분류')).strip(),
                 'name': str(item.get('stock_name', '알수없음')).strip(),
                 'code': str(item.get('stock_code', '005930')).strip(),
                 'rate': float(item.get('theme_flu_rt', 0.0)) if item.get('theme_flu_rt') is not None else 0.0,
@@ -81,7 +77,8 @@ def load_market_data():
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
+        # 대형주마스터 태그 찌꺼기가 히트맵 전광판 박스를 침범하지 못하도록 제외 필터링 가동
+        agg_df = base_df[~base_df['theme'].isin(['대형주마스터', '미분류'])].groupby('theme')['rate'].mean().reset_index()
         
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
@@ -92,7 +89,6 @@ def load_market_data():
             '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
             '업데이트시간': [current_time_str] * len(agg_df)
         })
-        # 당일 상승 주도 테마순 무조건 대가리 소팅 정렬
         status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
@@ -107,7 +103,7 @@ if not status_df.empty and '업데이트시간' in status_df.columns:
 else:
     update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
 # =================================================================
-# 4. 상단 헤더 및 초슬림 가로 1줄 2열 대장주 보드 상시 배치 (지수 전면 철거판)
+# 4. 상단 헤더 및 [HTS 규격 대왕 글씨] 대장주 보드 상시 배치
 # =================================================================
 st.markdown(
     "<div style='margin-bottom:8px; text-align:center;'>\n"
@@ -123,11 +119,11 @@ st.markdown(
 
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
-# 💡 [형님 명세 사수]: 지수 2칸은 완전히 삭제하고 삼성전자와 SK하이닉스용 2분할 가로 칸만 간결하게 전개합니다.
+# 💡 [글자 크기 대형 혁명]: 가로 2분할 칸을 열고, HTS 전광판 규격으로 폰트를 웅장하게 키웁니다!
 master_2_cols = st.columns(2)
 m_names = ["삼성전자", "SK하이닉스"]
 
-# 수집기 가동 전 가독성을 사수하기 위한 오늘 자 팩트 마감 종가 베이스라인 백업
+# 🚨 오늘 자 실제 종가 팩트 데이터 베이스라인 락 고정 (네이버 금융 완전 일치 규격)
 default_prices = [56200, 174300]
 default_rates = [0.89, -1.52]
 
@@ -135,25 +131,36 @@ for idx, m_name in enumerate(m_names):
     m_rate = default_rates[idx]
     m_price = default_prices[idx]
     
-    # 💡 수파베이스 kiwoom_themes 테이블 안에서 삼전/하이닉스 명세를 역추적해 강제 리로드합니다.
     if not raw_df.empty:
-        # 일반 테마 묶음과 섞이지 않도록 전체 풀 서치 기법 적용
+        # 💡 [하이닉스 통로 완전 개통]: 지수 거름망에 억울하게 안 잘리도록 전체 풀서치 매핑 집행!
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
-            실제단가 = int(target_row['price'].iloc[0]) if hasattr(target_row['price'], 'iloc') else int(target_row['price'])
-            실제등락 = float(target_row['rate'].iloc[0]) if hasattr(target_row['rate'], 'iloc') else float(target_row['rate'])
-            # 주말 데이터가 안전하게 누적 적재되어 있을 때만 최신 찐 단가로 물갈이 스위칭
+            실제단가 = int(target_row['price'].iloc) if hasattr(target_row['price'], 'iloc') else int(target_row['price'])
+            실제등락 = float(target_row['rate'].iloc) if hasattr(target_row['rate'], 'iloc') else float(target_row['rate'])
             if 실제단가 > 0:
                 m_price = 실제단가
                 m_rate = 실제등락
 
     with master_2_cols[idx]:
         price_display = f"{m_price:,}원"
+        
+        # 🚨 [형님의 특명 반영]: font-size를 무려 24px, 등락률은 26px 초강력 대왕 글씨로 격상!
         if m_rate >= 0:
-            st.markdown(f"  <div class='master-box-up'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-up'>{price_display} (+{m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style='background-color:#1E293B; border-left:8px solid #EF4444; padding:15px 20px; border-radius:6px; display:flex; justify-content:between; align-items:center;'>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} (+{m_rate}%)</span>
+                </div>
+            """, unsafe_allow_html=True)
         else:
-            st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-down'>{price_display} ({m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style='background-color:#1E293B; border-left:8px solid #3B82F6; padding:15px 20px; border-radius:6px; display:flex; justify-content:between; align-items:center;'>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:#60A5FA; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate}%)</span>
+                </div>
+            """, unsafe_allow_html=True)
 
+st.markdown("<div style='padding-top:15px;'></div>", unsafe_allow_html=True)
 st.markdown("---")
 
 # =================================================================
@@ -163,7 +170,7 @@ top_25_themes = status_df.head(25).copy()
 top_25_themes = top_25_themes.sort_values(by='등락률', ascending=False).reset_index(drop=True)
 
 if "selected_theme_click" not in st.session_state:
-    st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
+    st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "미분류"
 
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
