@@ -116,9 +116,9 @@ def load_market_data():
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        # 💡 [형님 폴더 기법 구현]: 3,000방에 주식 코드별로 1대1 분산 저장된 1,500마리 고기 원본들을 
+        # 💡 [형님 폴더 기법 정밀 싱크]: 3,000방에 주식 코드별로 1대1 분산 저장된 1,500마리 고기 원본들을 
         # 화면 출력 바로 전단계에서 가상 테마 폴더명('theme') 기준으로 자석처럼 한 그릇에 대합체 병합 연산 처리합니다!
-        filtered_df = base_df[~base_df['theme'].isin(['대형주마스터', '미분류', '빈방_대기', '준비중_테마', ''])]
+        filtered_df = base_df[~base_df['theme'].isin(['대형주마스터', '미분류', '빈방_대기', '준비중_테마', 'SKELETON_BASE', ''])]
         if not filtered_df.empty:
             agg_df = filtered_df.groupby('theme')['rate'].mean().reset_index()
             
@@ -167,20 +167,19 @@ master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
 
 for idx, (m_name, m_code) in enumerate(m_targets):
-    # 💡 가짜 가격 땜질 족쇄를 완전히 도려내고, 오직 수파베이스 내부의 3000방 순정 덮어쓰기 
-    # 원본 시세만 100% 직통 투과 호출합니다! 수집기 주입 사격 전에는 정직하게 0원으로 안전 대기합니다.
     m_price = 0  
     m_rate = 0.0
     is_data_loaded = False
 
     try:
         if not raw_df.empty:
-            # 고유 학번 코드를 기준으로 덮어쓰기 완료된 대장주 리얼 타임 행 저격 가로채기
+            # 💡 [뻗음 원천 차단]: filtered_df가 아닌 원본 raw_df에서 가져오므로 테마 분류와 상관없이 무조건 뚫고 나옵니다.
             target_rows = raw_df[raw_df['code'] == m_code]
             if not target_rows.empty:
-                latest_row = target_rows.tail(1)
-                p_live = int(latest_row['price'].iloc) if hasattr(latest_row['price'], 'iloc') else int(latest_row['price'])
-                r_live = float(latest_row['rate'].iloc) if hasattr(latest_row['rate'], 'iloc') else float(latest_row['rate'])
+                latest_row = target_rows.iloc[-1] # .iloc 뒤에 대괄호 인덱싱을 적용하여 문법 에러 차단
+                
+                p_live = int(latest_row['price'])
+                r_live = float(latest_row['rate'])
                 
                 if p_live > 0:
                     m_price = p_live
@@ -190,23 +189,20 @@ for idx, (m_name, m_code) in enumerate(m_targets):
         pass
 
     with master_2_cols[idx]:
-        # 🚨 [월요일 진짜 가격 100% 실시간 동기화 관문]:
-        # 월요일 아침 8시 40분 장전 동기화 수집기가 찐 패킷을 쏘아 올리면 즉시 현재가와 하이라이트가 자동 교체 리프레시 반영되고,
-        # 주말 대기 포맷 상태일 때는 '대기중 (0원)' 상태로 가장 담백하고 무결점하게 대기 스탠바이 합니다.
         if is_data_loaded:
             price_display = f"{m_price:,}원"
             if m_rate >= 0:
                 st.markdown(f"""
                     <div class='master-box-custom-up'>
                         <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#EF4444; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} (+{m_rate}%)</span>
+                        <span style='color:#EF4444; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} (+{m_rate:.2f}%)</span>
                     </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                     <div class='master-box-custom-down'>
                         <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#3B82F6; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate}%)</span>
+                        <span style='color:#3B82F6; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate:.2f}%)</span>
                     </div>
                 """, unsafe_allow_html=True)
         else:
@@ -220,12 +216,16 @@ for idx, (m_name, m_code) in enumerate(m_targets):
 st.markdown("---")
 
 # =================================================================
-# 6. 하단 레이아웃 (먹통/크래시 원천 차단 및 구조 안정화 버전)
+# 6. 하단 레이아웃 (당일 1등 테마 자동 선점형 호가 슬라이스)
 # =================================================================
 
-# 세션 상태 선제 안전 초기화
+# 세션 상태 선제 초기화
 if "selected_theme_click" not in st.session_state:
     st.session_state.selected_theme_click = ""
+
+# 💡 [공백 방어막]: 마우스로 클릭하기 전이라도, 당일 전광판 1등 테마를 세션에 강제 주입해 리더보드를 먼저 깨웁니다.
+if not st.session_state.selected_theme_click and not status_df.empty:
+    st.session_state.selected_theme_click = str(status_df['테마'].iloc[0]).strip()
 
 left_layout, right_layout = st.columns([4.4, 5.6], gap="large")
 
@@ -257,16 +257,14 @@ with left_layout:
                 template="plotly_dark"
             )
             
-            # 신형 on_select 연동 및 데이터 수신
             chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
             
-            # 🚨 [안전 파싱 관문]: 딕셔너리 구조를 안전하게 분해하여 먹통(Crash)을 완벽 차단합니다.
+            # 🚨 [신형 클릭 파싱 저격]: points 목록의 0번 딕셔너리를 대괄호으로 정확히 파싱해 먹통을 차단합니다.
             if chart_res and isinstance(chart_res, dict) and "selection" in chart_res:
                 selection_data = chart_res["selection"]
                 if "points" in selection_data and len(selection_data["points"]) > 0:
-                    first_point = selection_data["points"][0]
+                    first_point = selection_data["points"][0] # 대괄호 번호 기입 완료
                     
-                    # 딕셔너리 형태인지 검증 후 안전하게 테마명 추출
                     if isinstance(first_point, dict):
                         chosen_lbl = first_point.get("label", first_point.get("customdata", [""]))
                         if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0:
@@ -275,7 +273,6 @@ with left_layout:
                         if chosen_lbl:
                             st.session_state.selected_theme_click = str(chosen_lbl).strip()
         except Exception as chart_err:
-            # 트리맵 렌더링 중 에러가 발생해도 전체 화면이 먹통되지 않도록 격리 방어
             st.error(f"📊 히트맵 연동 중 일시적 지연이 발생했습니다. (원인: {chart_err})")
     else:
         st.info("📊 수파베이스 양식장 통덤프 패킷을 수신 대기 중입니다. 터미널에서 주입 사격을 실행해 주세요!")
@@ -283,13 +280,12 @@ with left_layout:
 with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     
-    # 테마가 선택되어 있고 데이터가 존재하는 경우에만 가동
     if not status_df.empty and chosen_theme:
         st.markdown(f"### 🗂️ <span style='font-size:24px;'><b>[{chosen_theme}]</b> 소속 종목 리더보드</span>", unsafe_allow_html=True)
         
         final_stock_list = []
         if not raw_df.empty:
-            # 💡 [양방향 공백 트림 방어]: 문자열 비교 시 보이지 않는 공백 오류를 차단하기 위해 양쪽 정제 후 필터링
+            # 보이지 않는 뒤쪽 공백 오차까지 트림 처리하여 병합 연산 구동
             raw_df['theme_clean'] = raw_df['theme'].astype(str).str.strip()
             theme_detail_df = raw_df[raw_df['theme_clean'] == chosen_theme].copy()
             
@@ -304,10 +300,10 @@ with right_layout:
         up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
         down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
         
-        up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
+        up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True) # 1번 인덱스로 정렬축 고정
         down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
         
-        # 상승 종목 리스트 출력 가동
+        # 상승 종목 리스트 표출
         st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
         with st.container(height=260, border=False):
             if up_stocks:
@@ -326,7 +322,7 @@ with right_layout:
 
         st.markdown("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
         
-        # 하락 종목 리스트 출력 가동
+        # 하락 종목 리스트 표출
         st.markdown("#### 🔹 하락 종목", unsafe_allow_html=True)
         with st.container(height=260, border=False):
             if down_stocks:
@@ -344,10 +340,10 @@ with right_layout:
                 st.text("하락 종목이 없습니다.")
     else:
         st.markdown("### 🗂️ 소속 종목 리더보드")
-        st.info("🔄 좌측 히트맵에서 주도 테마 블록을 클릭하시면 실시간 HTS 호가 슬라이스 창이 즉시 활성화됩니다.")
+        st.info("🔄 데이터 수신 즉시 실시간 호가 슬라이스 정렬창이 표출됩니다.")
 
 # =================================================================
-# 7. 오토 리프레시 엔진 구동
+# 7. 오토 리프레시 엔진 구동 (15초 단위)
 # =================================================================
 try:
     from streamlit_autorefresh import st_autorefresh
