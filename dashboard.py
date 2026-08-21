@@ -172,15 +172,15 @@ for idx, (m_name, m_code) in enumerate(m_targets):
     is_data_loaded = False
 
     try:
-        # 🚨 [버그 파괴]: 필터링으로 인해 도려내지지 않은 순정 raw_df 원본에서 시세 패킷을 직통 추출합니다.
+        # 🚨 [시세 원천 복구]: 필터링 전 원본 raw_df에서 대장주 코드를 다이렉트로 저격 가로채기 합니다.
         if not raw_df.empty:
             target_rows = raw_df[raw_df['code'] == m_code]
             if not target_rows.empty:
                 latest_row = target_rows.iloc[-1]
                 
-                # 데이터 레이어 안전 형변환 매핑
-                p_live = int(latest_row['price'])
-                r_live = float(latest_row['rate'])
+                # 강제 형변환으로 문자열 족쇄 완벽 파괴
+                p_live = int(float(latest_row['price'])) if pd.notna(latest_row['price']) else 0
+                r_live = float(latest_row['rate']) if pd.notna(latest_row['rate']) else 0.0
                 
                 if p_live > 0:
                     m_price = p_live
@@ -208,7 +208,6 @@ for idx, (m_name, m_code) in enumerate(m_targets):
                     </div>
                 """, unsafe_allow_html=True)
         else:
-            # 주말 대기 포맷이거나 장 시작 전 데이터 주입 전에는 깔끔하게 대기 모드로 진입합니다.
             st.markdown(f"""
                 <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
                     <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
@@ -219,14 +218,14 @@ for idx, (m_name, m_code) in enumerate(m_targets):
 st.markdown("---")
 
 # =================================================================
-# 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
+# 6. 하단 레이아웃 (등락률 복구 컬러링 히트맵 + [좌상승/우하락] 대칭 전광판)
 # =================================================================
 
-# 세션 상태 사전 안전 초기화
+# 세션 상태 사전 완전 안전망 구축
 if "selected_theme_click" not in st.session_state:
     st.session_state.selected_theme_click = ""
 
-# 💡 [프리로딩 기법]: 클릭 전 공백 방지를 위해 당일 등락률 대장 1등 테마 자동 선점
+# 초기 화면 공백 파괴: 등락률 정렬 1등 대장 테마를 무조건 선점 프리로딩
 if not st.session_state.selected_theme_click and not status_df.empty:
     st.session_state.selected_theme_click = str(status_df['테마'].iloc[0]).strip()
 
@@ -237,31 +236,31 @@ with left_layout:
 
     if not status_df.empty:
         try:
-            # 🚨 [핀업 신호등 커스텀 컬러 스케일 적용]:
-            # 하락은 파란색 크로마 -> 보합 0%는 어두운 암전 배경색 -> 상승은 불타는 핀업 레드로 영점 세팅 완료!
+            # 🎨 [HTS 신호등 컬러엔진 정상화]: 0% 보합은 어두운 검회색, 상승은 진한 빨강, 하락은 블루
             hts_color_scale = [
-                [0.0, "#1E3A8A"],   # 급락 파란색
-                [0.3, "#3B82F6"],   # 하락
-                [0.5, "#151D2A"],   # 0% 보합 (HTS 전광판용 어두운 암전 회색)
-                [0.7, "#F87171"],   # 상승
-                [1.0, "#EF4444"]    # 대장 급등주 빨간색
+                [0.0, "#1E3A8A"],   # 하락 극대값
+                [0.3, "#3B82F6"],   # 일반 하락
+                [0.5, "#151D2A"],   # 0% 보합 영점 (어두운 배경색)
+                [0.7, "#F87171"],   # 일반 상승
+                [1.0, "#EF4444"]    # 주도주 대장 빨간색
             ]
             
-            # 상하방 컬러 스펙트럼 대칭 정밀 밸런싱
-            max_rate = float(status_df['등락률'].max())
-            min_rate = float(status_df['등락률'].min())
+            # 상하방 스케일 좌우 밸런싱 세팅
+            max_rate = float(status_df['등락률'].max()) if pd.notna(status_df['등락률'].max()) else 1.0
+            min_rate = float(status_df['등락률'].min()) if pd.notna(status_df['등락률'].min()) else -1.0
             bound = max(abs(max_rate), abs(min_rate), 1.0)
 
             fig = px.treemap(
                 status_df, 
                 path=['테마'], 
                 values='화면크기_가중치', 
-                color='등락률',             # 💡 등락률 필드 기준으로 핏빛/푸른빛 다이내믹 그라데이션 가동
+                color='등락률',             # 💡 0.00% 족쇄를 완전히 풀고 찐 등락률 데이터 축 연결!
                 color_continuous_scale=hts_color_scale, 
                 range_color=[-bound, bound], 
                 custom_data=['테마']
             )
             
+            # 🚨 [NaN% 저격 도려내기]: 파싱 코드를 깔끔하게 묶어 글자가 허얗게 죽는 현상을 원천 방어합니다.
             fig.update_traces(
                 texttemplate="<b>%{label}</b><br>%{color:.2f}%", 
                 textfont=dict(size=15, color="white"), 
@@ -271,17 +270,17 @@ with left_layout:
             fig.update_layout(
                 margin=dict(t=5, b=5, l=5, r=5), 
                 height=620,
-                coloraxis_showscale=False, # 화면 지저분하게 가리는 우측 컬러 바 제거
+                coloraxis_showscale=False, 
                 template="plotly_dark"
             )
             
             chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
             
-            # 🎯 [클릭 파싱 정밀 타격 디코딩]: 차원 꼬임으로 인한 이벤트 씹힘을 완전히 부수고 0초 반응 매핑 완료
+            # 🎯 [트리맵 클릭 0초 반응 매핑]: 누르면 즉시 세션을 바꾸고 광속 동기화 리런
             if chart_res and "selection" in chart_res:
                 points_list = chart_res["selection"].get("points", [])
                 if points_list and len(points_list) > 0:
-                    first_point = points_list[0]
+                    first_point = points_list[0] # 대괄호 저격 완료
                     
                     if isinstance(first_point, dict):
                         custom_data_val = first_point.get("customdata", [])
@@ -291,7 +290,7 @@ with left_layout:
                         
                         if chosen_lbl and str(chosen_lbl).strip() != st.session_state.selected_theme_click:
                             st.session_state.selected_theme_click = str(chosen_lbl).strip()
-                            st.rerun() # 클릭 감지 즉시 리런 패킷 사격
+                            st.rerun()
                             
         except Exception as chart_err:
             st.error(f"📊 히트맵 컬러 엔진 연동 오류 방어: {chart_err}")
@@ -310,21 +309,21 @@ with right_layout:
             theme_detail_df = raw_df[raw_df['theme_clean'] == chosen_theme].copy()
             
             for _, row in theme_detail_df.iterrows():
-                s_price = int(row.get('price', 0)) if pd.notna(row.get('price')) else 0
+                s_price = int(float(row.get('price', 0))) if pd.notna(row.get('price')) else 0
                 s_name = str(row.get('name', '알수없음')).strip()
                 s_rate = float(row.get('rate', 0.0)) if pd.notna(row.get('rate')) else 0.0
                 s_code = str(row.get('code', '005930')).strip()
                 final_stock_list.append((s_name, s_rate, s_price, s_code))
                 
-        # 등락률 제로 베이스 기준 포지션 정밀 분류
+        # 0.00% 고정 상태를 깨부수고 부호 필터링 정밀 바인딩
         up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
         down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
         
-        # 🔺 상승주는 내림차순(최고 등락률 대장 순) | 🔹 하락주는 오름차순(최저 등락률 소외주 순) 칼각 소팅
+        # 🔺 상승주는 등락률 높은 순 내림차순 / 🔹 하락주는 많이 떨어진 순 오름차순
         up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
         down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
         
-        # 💡 [형님 지시 특명 완공 레이아웃]: 뉴스를 흔적도 없이 삭제하고, 상승/하락 2분할 슬라이스 윈도우 대칭 개방!
+        # 💡 [형님 지시 특명 레이아웃 개편]: 뉴스 전면 파쇄 후 5대5 좌상승 우하락 정렬 완공!
         sub_col1, sub_col2 = st.columns([5.0, 5.0], gap="medium")
         
         with sub_col1:
