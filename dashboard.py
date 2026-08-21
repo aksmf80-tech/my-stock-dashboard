@@ -83,29 +83,32 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연동 세팅 (구형 캐시 강제 철거판)
+# 3. 수파베이스 클라우드 직통 연동 세팅 (정밀 컬럼 인터페이스 완결판)
 # =================================================================
-# 💡 [버그 완전 격파]: 캐시 자물쇠가 옛날 더미 데이터를 기억하는 현상을 방지하기 위해 
-# ttl 주기를 1초로 극단적으로 단축하고, 예외 발생 시 원본 데이터를 강제 리로드하도록 튜닝합니다.
 @st.cache_data(ttl=1)
 def load_market_data():
     try:
-        # 수파베이스 kiwoom_themes 테이블의 날것의 원본 실전 종가 데이터를 직접 당겨옵니다.
+        # 수파베이스에 안착 성공한 'kiwoom_themes' 테이블을 직접 찌릅니다.
         response = supabase.table("kiwoom_themes").select("*").execute()
         rows = []
+        
+        # 💡 [정밀 바인딩 락]: 데이터베이스 원본 필드명과 대시보드 변수명을 오차 범위 0%로 연결합니다.
         for item in response.data:
             rows.append({
                 'theme': str(item.get('theme_name', '미분류')).strip(),
                 'name': str(item.get('stock_name', '알수없음')).strip(),
                 'code': str(item.get('stock_code', '005930')).strip(),
-                'rate': float(item.get('theme_flu_rt', 0.0)),  # 진짜 당일 마감 등락률
-                'price': int(item.get('current_price', 0))     # 🚨 키움 순정 원화 종가 단가 바인딩!
+                'rate': float(item.get('theme_flu_rt', 0.0)) if item.get('theme_flu_rt') is not None else 0.0,
+                'price': int(item.get('current_price', 0)) if item.get('current_price') is not None else 0
             })
         base_df = pd.DataFrame(rows)
     except Exception as e:
+        # 에러 추적용 임시 출력 장치
+        st.sidebar.error(f"DB 로드 실패 원인: {e}")
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
+        # 테마별 등락률 평균 산출 소팅 엔진
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
@@ -117,13 +120,14 @@ def load_market_data():
             '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
             '업데이트시간': [current_time_str] * len(agg_df)
         })
+        # 당일 상승 테마 무조건 대가리 정렬 고정
         status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
     return base_df, status_df
 
-# 💡 [강제 동기화 보정]: 구형 메모리 찌꺼기를 완전히 무시하고 실전 데이터를 즉시 프론트에 주입합니다.
+# 수파베이스 실전 데이터 즉시 전방 주입
 raw_df, status_df = load_market_data()
 
 if not status_df.empty and '업데이트시간' in status_df.columns:
@@ -151,7 +155,7 @@ st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#
 
 master_4_cols = st.columns(4)
 
-# [1~2번째 칸] 코스피 & 코스닥 지수 매핑
+# 💡 [순정 복구 장치]: 수파베이스 내부의 진짜 코스피/코스닥 마감 단가 필드를 바인딩 노출합니다.
 for idx, idx_name in enumerate(["코스피", "코스닥"]):
     idx_rate = 0.0
     idx_price = 0
@@ -172,7 +176,7 @@ for idx, idx_name in enumerate(["코스피", "코스닥"]):
         else:
             st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>📉 {idx_name}</span>\n    <span class='master-rate-down'>{price_str}pt ({idx_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
 
-# [3~4번째 칸] 삼성전자 & SK하이닉스 대장주 매핑
+# 삼성전자 & SK하이닉스 대장주 진짜 실전 마감 가격 매핑
 for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     m_rate = 0.0
     m_price = 0
@@ -192,7 +196,6 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
         else:
             st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
 
-st.markdown("---")
 # =================================================================
 # 5. 하단 레이아웃: 왼쪽 실시간 트리맵 히트맵 / 오른쪽 선택 테마 상세 소속 종목 분할 배치
 # =================================================================
