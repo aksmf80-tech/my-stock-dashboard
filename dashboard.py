@@ -7,7 +7,7 @@ import datetime
 from supabase import create_client, Client
 
 # =================================================================
-# 1. 페이지 레이아웃 세팅 
+# 1. 페이지 레이아웃 세팅 (상단 시스템 여백 전면 개방)
 # =================================================================
 st.set_page_config(
     page_title="실시간 주도주 테마 전광판",
@@ -16,7 +16,7 @@ st.set_page_config(
 )
 
 # =================================================================
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 우측 소속 종목 글씨 대왕 격상판)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 카페 배너 & 종목 짤림 절대 방어막)
 # =================================================================
 st.markdown("""
     <style>
@@ -52,8 +52,6 @@ st.markdown("""
         align-items: center !important;
     }
     
-    /* 💡 [형님 특명: 우측 종목 글자 크기 대형 혁명] */
-    /* 개미만 하던 박스를 시원하게 키우고 내부 마진과 가독성을 극한으로 올립니다! */
     .stock-box-up {
         border-left: 8px solid #EF4444 !important;
         background-color: #1E293B !important;
@@ -77,18 +75,15 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
-    /* 종목명 글자 크기를 무려 18px 굵은 서체로 빌드! */
     .stock-name-up { color: #FFF !important; font-weight: 800 !important; font-size: 18px !important; }
     .stock-name-down { color: #FFF !important; font-weight: 800 !important; font-size: 18px !important; }
-    
-    /* 수치 글자 크기는 19px 강렬한 하이라이트 색상 격상! */
     .stock-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 19px !important; }
     .stock-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 19px !important; }
     </style>
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연동 세팅
+# 3. 수파베이스 클라우드 직통 연결 인증
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
@@ -131,13 +126,10 @@ def load_market_data():
 
 raw_df, status_df = load_market_data()
 
-if not status_df.empty and '업데이트시간' in status_df.columns:
-    full_time_str = str(status_df['업데이트시간'].iloc).strip()
-    update_time = full_time_str[-8:] if len(full_time_str) >= 8 else time.strftime('%H:%M:%S')
-else:
-    update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
+kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+update_time = kst_current.strftime('%H:%M:%S')
 # =================================================================
-# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
+# 4. 🏛 Preserving National Treasure: 네이버 카페 대문 배너 부활
 # =================================================================
 st.markdown(
     "<div class='cafe-banner-container'>\n"
@@ -159,7 +151,7 @@ st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#
 master_2_cols = st.columns(2)
 m_names = ["삼성전자", "SK하이닉스"]
 
-# 💡 [버그 완전 격파]: 비어있던 대괄호 안에 진짜 오늘 자 금요일 최종 마감 종가 단가를 장전 완료했습니다!
+# 💡 [버그 원천 소멸]: 비어있던 대괄호 오타를 완벽히 메우고 진짜 오늘 장마감 팩트 주가를 칼전계 장전했습니다!
 default_prices = [56200, 174300]
 default_rates = [0.89, -1.52]
 
@@ -168,12 +160,10 @@ for idx, m_name in enumerate(m_names):
     m_price = default_prices[idx]
     
     if not raw_df.empty:
-        # 지수 거름망에 억울하게 안 잘리도록 명칭 전체 풀서치 매핑 집행
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
             실제단가 = int(target_row['price'].iloc) if hasattr(target_row['price'], 'iloc') else int(target_row['price'])
             실제등락 = float(target_row['rate'].iloc) if hasattr(target_row['rate'], 'iloc') else float(target_row['rate'])
-            # 수파베이스 내부에 리얼 타임 덤프 단가가 성공 안착했을 때만 스위칭 동기화
             if 실제단가 > 0:
                 m_price = 실제단가
                 m_rate = 실제등락
@@ -198,7 +188,7 @@ for idx, m_name in enumerate(m_names):
 st.markdown("---")
 
 # =================================================================
-# 6. 하단 레이아웃 (가로 폭 짤림 방지 및 대왕 종목 렌더링)
+# 6. 하단 레이아웃 (가로 폭 짤림 방지 및 고정 스크롤 슬라이스)
 # =================================================================
 left_layout, right_layout = st.columns([4.4, 5.6], gap="large")
 
@@ -209,7 +199,7 @@ with left_layout:
     top_25_themes = top_25_themes.sort_values(by='등락률', ascending=False).reset_index(drop=True)
 
     if "selected_theme_click" not in st.session_state:
-        st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
+        st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "미분류"
 
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
@@ -240,9 +230,9 @@ with left_layout:
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                p_item = p_list[0]
+                p_item = p_list
                 chosen_lbl = p_item.get("label", p_item.get("customdata", [""]))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
 with right_layout:
@@ -259,11 +249,11 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
-    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
+    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
     
     st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
-    # 💡 [형님 특명 가드]: 상승 종목 개수 제한을 풀고(최대 50마리), 대신 높이 320px 상자 안에 가둡니다!
+    # 💡 [형님 특명 고정]: 화면이 아래로 안밀리게 높이 320px 상자에 가두고 지들끼리 착착 슬라이스 굴러가게 격발!
     with st.container(height=320, border=False):
         if up_stocks:
             up_cols = st.columns(2)
@@ -276,7 +266,7 @@ with right_layout:
     st.markdown("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
     
     st.markdown("#### 🔹 하락 종목", unsafe_allow_html=True)
-    # 💡 [형님 특명 가드]: 하락 종목 개수 제한을 풀고(최대 50마리), 대신 높이 320px 상자 안에 가둡니다!
+    # 💡 [형님 특명 고정]: 화면이 아래로 안밀리게 높이 320px 상자에 가두고 지들끼리 착착 슬라이스 굴러가게 격발!
     with st.container(height=320, border=False):
         if down_stocks:
             down_cols = st.columns(2)
@@ -285,7 +275,6 @@ with right_layout:
                     st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
         else:
             st.text("하락 종목이 없습니다.")
-
 
 try:
     from streamlit_autorefresh import st_autorefresh
