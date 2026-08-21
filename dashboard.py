@@ -256,29 +256,33 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
-    # 등락률 순 정배열 탑 정렬 소팅
     up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
     down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
     
     st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
-    if up_stocks:
-        up_cols = st.columns(2)
-        for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:14]):
-            with up_cols[u_idx % 2]:
-                st.markdown(f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
-    else:
-        st.text("상승 종목이 없습니다.")
+    # 💡 [형님 특명 가드]: 상승 종목 개수 제한을 풀고(최대 50마리), 대신 높이 320px 상자 안에 가둡니다!
+    with st.container(height=320, border=False):
+        if up_stocks:
+            up_cols = st.columns(2)
+            for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:50]):
+                with up_cols[u_idx % 2]:
+                    st.markdown(f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
+        else:
+            st.text("상승 종목이 없습니다.")
 
-    st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
     
     st.markdown("#### 🔹 하락 종목", unsafe_allow_html=True)
-    if down_stocks:
-        down_cols = st.columns(2)
-        for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:14]):
-            with down_cols[d_idx % 2]:
-                st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
-    else:
-        st.text("하락 종목이 없습니다.")
+    # 💡 [형님 특명 가드]: 하락 종목 개수 제한을 풀고(최대 50마리), 대신 높이 320px 상자 안에 가둡니다!
+    with st.container(height=320, border=False):
+        if down_stocks:
+            down_cols = st.columns(2)
+            for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:50]):
+                with down_cols[d_idx % 2]:
+                    st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
+        else:
+            st.text("하락 종목이 없습니다.")
+
 
 try:
     from streamlit_autorefresh import st_autorefresh
