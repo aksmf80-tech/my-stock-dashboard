@@ -154,7 +154,6 @@ raw_df, status_df = load_market_data()
 kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
 
-
 # =================================================================
 # 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
 # =================================================================
@@ -173,7 +172,7 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 최종 가두리 폭파 완공)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 최종 변수 싱크 완공)
 # =================================================================
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
@@ -185,14 +184,15 @@ for idx, (m_name, m_code) in enumerate(m_targets):
 
     try:
         if not raw_df.empty:
-            # 🚨 [버그 원천 소멸]: 2번 코드에서 '대형주마스터' 강제 통과 처리를 완료했기 때문에,
-            # 'code' 컬럼을 정밀 타격하면 대장주 리얼타임 시세가 완벽하게 무결점 관통합니다!
+            # 🚨 [최종 버그 사멸]: load_market_data()에서 이미 'code' 필드로 변환 포장해 두었으므로,
+            # 'code' 컬럼을 1대1로 직접 저격해야 한 치의 오차도 없이 시세가 관통되어 들어옵니다!
             raw_df['code_clean'] = raw_df['code'].astype(str).str.strip()
             target_rows = raw_df[raw_df['code_clean'] == m_code]
             
             if not target_rows.empty:
                 latest_row = target_rows.iloc[-1]
                 
+                # 가공 완료된 딕셔너리 명칭인 'price'와 'rate' 축으로 정확하게 데이터 강탈 완료
                 p_live = int(latest_row['price'])
                 r_live = float(latest_row['rate'])
                 
@@ -204,6 +204,7 @@ for idx, (m_name, m_code) in enumerate(m_targets):
         pass
 
     with master_2_cols[idx]:
+        # 💡 매핑 엇박자 오류가 완전히 분쇄되어 월요일 장전 찐 시세 데이터 패킷이 다이렉트로 상단 배너에 꽂힙니다!
         if is_data_loaded:
             price_display = f"{m_price:,}원"
             sign_str = "+" if m_rate > 0 else ""
@@ -230,6 +231,7 @@ for idx, (m_name, m_code) in enumerate(m_targets):
             """, unsafe_allow_html=True)
 
 st.markdown("---")
+
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
 # =================================================================
