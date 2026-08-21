@@ -264,18 +264,12 @@ with right_layout:
         st.text("하락 종목이 없습니다.")
 
 # =================================================================
-# 6. 🔒 [HTS급 제어] 평일 장중에만 60초 주기 자동 새로고침 작동
+# 6. 🔒 24시간 상시 자동 새로고침 가동 (조건문 완전 철거)
 # =================================================================
-import datetime
-
-now = datetime.datetime.now()
-current_weekday = now.weekday()
-current_hour = now.hour
-
-if current_weekday < 5 and (8 <= current_hour < 16):
-    try:
-        from streamlit_autorefresh import st_autorefresh
-        st_autorefresh(interval=60000, key="market_data_refresh")
-        st.cache_data.clear()
-    except Exception:
-        pass
+try:
+    from streamlit_autorefresh import st_autorefresh
+    # 💡 서버 시간/요일 체크 없이 24시간 내내 15초(15000ms)마다 무조건 화면을 깨웁니다.
+    # 2번 파트의 @st.cache_data(ttl=5) 설정과 맞물려 상시 최신 수파베이스 데이터를 반영합니다.
+    st_autorefresh(interval=15000, key="market_data_refresh_engine_24h")
+except Exception as e:
+    pass
