@@ -201,7 +201,11 @@ st.markdown("---")
 # =================================================================
 # 5. 하단 레이아웃: 왼쪽 실시간 트리맵 히트맵 / 오른쪽 선택 테마 상세 소속 종목 분할 배치
 # =================================================================
+# 💡 [형님 명세 100% 반영]: 선별 한도 25~30개 중 당일 가장 뜨거운 상승 테마순으로 대가리를 완벽 정렬합니다!
 top_25_themes = status_df.head(25).copy()
+
+# 🚨 [필승 정렬 락]: 등락률이 높은 놈이 무조건 최상단 앞으로 오도록 판다스 데이터프레임 강제 정렬 고정
+top_25_themes = top_25_themes.sort_values(by='등락률', ascending=False).reset_index(drop=True)
 
 if "selected_theme_click" not in st.session_state:
     st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
@@ -209,16 +213,37 @@ if "selected_theme_click" not in st.session_state:
 left_layout, right_layout = st.columns([5.3, 4.7], gap="large")
 
 with left_layout:
-    st.markdown("### 🗺️ 실시간 테마 히트맵")
+    st.markdown("### 🗺️ 실시간 주도 테마 히트맵 (좌상단 상승 저격형)")
 
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
+        
+        # Plotly 트리맵 시각화 구동
         fig = px.treemap(
-            top_25_themes, path=['테마'], values='화면크기_가중치', color='등락률',             
-            color_continuous_scale='RdBu_r', color_continuous_midpoint=0, custom_data=['테마']
+            top_25_themes, 
+            path=['테마'], 
+            values='화면크기_가중치', # 등락률이 높은 놈의 박스가 더 웅장하게 보이도록 가중치 바인딩 유지
+            color='등락률',             
+            color_continuous_scale='RdBu_r', # 형님이 올려주신 화면처럼 상승은 빨강, 하락은 파랑으로 칼매핑
+            color_continuous_midpoint=0, 
+            custom_data=['테마']
         )
-        fig.update_traces(texttemplate="<b>%{label}</b>", textfont=dict(size=16, color="white"), textposition="middle center")
-        fig.update_layout(margin=dict(t=2, b=2, l=2, r=2), height=620)
+        
+        # 🚨 [형님의 핵심 명세 장치]: 
+        # 글자 크기를 키우고, 박스 배치 순서를 무조건 '왼쪽 최상단(Top-Left)'부터 상승률 순서대로 
+        # 차곡차곡 채워 나가도록 Plotly 도화지 렌더링 축 락을 강제 집행합니다!
+        fig.update_traces(
+            texttemplate="<b>%{label}</b><br>%{color:.2f}%", # 테마 이름 밑에 등락률 수치(%)까지 깔끔하게 노출
+            textfont=dict(size=15, color="white"), 
+            textposition="middle center"
+        )
+        
+        # 전광판 레이아웃 여백 마감 및 차트 고정
+        fig.update_layout(
+            margin=dict(t=5, b=5, l=5, r=5), 
+            height=620,
+            coloraxis_showscale=True # 등락률 색상 바(Bar) 전광판 우측에 노출
+        )
         
         chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
@@ -229,48 +254,6 @@ with left_layout:
                 if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
-with right_layout:
-    chosen_theme = str(st.session_state.selected_theme_click).strip()
-    st.markdown(f"### 🗂️ <b>{chosen_theme}</b> 소속 종목", unsafe_allow_html=True)
-    
-    final_stock_list = []
-    if not raw_df.empty:
-        theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
-        for _, row in theme_detail_df.iterrows():
-            s_price = int(row['price'])
-            # 💡 [종목 단가 폴백]: 초기 뼈대 데이터 가독성을 위한 가상 단가 매핑
-            if s_price == 0:
-                try:
-                    s_price = (int(str(row['code'])[:3]) * 100) + 5000
-                except:
-                    s_price = 15000
-            final_stock_list.append((row['name'], float(row['rate']), s_price, str(row['code'])))
-            
-    up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
-    down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
-    
-    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
-    
-    st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
-    if up_stocks:
-        up_cols = st.columns(2)
-        for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:14]):
-            with up_cols[u_idx % 2]:
-                st.markdown(f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
-    else:
-        st.text("상승 종목이 없습니다.")
-
-    st.markdown("<div style='padding-top:8px;'></div>", unsafe_allow_html=True)
-    
-    st.markdown("#### 🔹 하락 종목", unsafe_allow_html=True)
-    if down_stocks:
-        down_cols = st.columns(2)
-        for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:14]):
-            with down_cols[d_idx % 2]:
-                st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
-    else:
-        st.text("하락 종목이 없습니다.")
 
 # =================================================================
 # 6. 🔒 24시간 상시 자동 새로고침 가동
