@@ -299,7 +299,7 @@ with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     
     if not status_df.empty and chosen_theme:
-        st.markdown(f"### 🗂️ <span style='font-size:24px;'><b>[{chosen_theme}]</b> 테마 양방향 포지션 보드</span>", unsafe_allow_html=True)
+        st.markdown(f"### 🗂️ <span style='font-size:24px;'><b>[{chosen_theme}]</b> 테마 포지션 </span>", unsafe_allow_html=True)
         
         final_stock_list = []
         if not raw_df.empty:
