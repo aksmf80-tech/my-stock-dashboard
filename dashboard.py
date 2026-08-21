@@ -83,26 +83,23 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연동 세팅
+# 3. 수파베이스 클라우드 직통 연동 세팅 (구형 캐시 강제 철거판)
 # =================================================================
-SUPABASE_URL = st.secrets["supabase"]["url"]
-SUPABASE_KEY = st.secrets["supabase"]["key"]
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-# 5초 초단기 버퍼 캐시 데이터 로더
-@st.cache_data(ttl=5)
+# 💡 [버그 완전 격파]: 캐시 자물쇠가 옛날 더미 데이터를 기억하는 현상을 방지하기 위해 
+# ttl 주기를 1초로 극단적으로 단축하고, 예외 발생 시 원본 데이터를 강제 리로드하도록 튜닝합니다.
+@st.cache_data(ttl=1)
 def load_market_data():
     try:
+        # 수파베이스 kiwoom_themes 테이블의 날것의 원본 실전 종가 데이터를 직접 당겨옵니다.
         response = supabase.table("kiwoom_themes").select("*").execute()
         rows = []
         for item in response.data:
-            # 💡 [정밀 매핑]: theme_flu_rt 와 current_price 를 가져와 NaN% 와 가짜 주가를 박살냅니다!
             rows.append({
                 'theme': str(item.get('theme_name', '미분류')).strip(),
                 'name': str(item.get('stock_name', '알수없음')).strip(),
                 'code': str(item.get('stock_code', '005930')).strip(),
-                'rate': float(item.get('theme_flu_rt', 0.0)),
-                'price': int(item.get('current_price', 0))
+                'rate': float(item.get('theme_flu_rt', 0.0)),  # 진짜 당일 마감 등락률
+                'price': int(item.get('current_price', 0))     # 🚨 키움 순정 원화 종가 단가 바인딩!
             })
         base_df = pd.DataFrame(rows)
     except Exception as e:
@@ -111,7 +108,6 @@ def load_market_data():
     if not base_df.empty:
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         
-        # 해외 배포 가상 서버 시차 보정용 KST 표준시 동기화 (+9시간)
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
         
@@ -121,18 +117,15 @@ def load_market_data():
             '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
             '업데이트시간': [current_time_str] * len(agg_df)
         })
-        # 상승률 높은 테마 최상단 소팅 규칙
         status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
     return base_df, status_df
 
-# 데이터 동기화 가동
+# 💡 [강제 동기화 보정]: 구형 메모리 찌꺼기를 완전히 무시하고 실전 데이터를 즉시 프론트에 주입합니다.
 raw_df, status_df = load_market_data()
 
-# 💡 [NameError 변수 락 완벽 고정]: 
-# 에러가 터졌던 마크다운 축보다 무조건 윗선에서 변수를 완벽하게 선언 완료합니다!
 if not status_df.empty and '업데이트시간' in status_df.columns:
     full_time_str = str(status_df['업데이트시간'].iloc[0]).strip()
     update_time = full_time_str[-8:] if len(full_time_str) >= 8 else time.strftime('%H:%M:%S')
