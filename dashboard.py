@@ -86,10 +86,11 @@ st.markdown("""
     .stock-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 19px !important; }
     </style>
 """, unsafe_allow_html=True)
-
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증 및 강력한 타입 정제 엔진
+# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인
 # =================================================================
+# 🚨 [보안 방어막 가동]: 형님이 세팅해두신 시크릿 가스관(st.secrets)으로 직통 연결합니다!
+# 소스코드에서 비밀키 글자가 완전히 사라졌기 때문에 경고 팝업이 즉시 소멸합니다.
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -104,64 +105,60 @@ def load_market_data():
             p_val = item.get('current_price')
             t_name = str(item.get('theme_name', '미분류')).strip()
             
-            # 🚨 [문자열/Null 버그 박멸 가동]: 소수점 문자열이나 비어있는 값들을 강제로 완전 무결한 실수가 되도록 깨부숩니다!
-            try:
-                rate_float = float(r_val) if (r_val is not None and str(r_val).strip() != '') else 0.0
-                if np.isnan(rate_float): rate_float = 0.0
-            except:
-                rate_float = 0.0
-                
-            try:
-                price_int = int(float(p_val)) if (p_val is not None and str(p_val).strip() != '') else 0
-            except:
-                price_int = 0
-            
             rows.append({
                 'theme': t_name,
                 'name': str(item.get('stock_name', '알수없음')).strip(),
                 'code': str(item.get('stock_code', '005930')).strip(),
-                'rate': rate_float,
-                'price': price_int
+                'rate': float(r_val) if r_val is not None else 0.0,
+                'price': int(p_val) if p_val is not None else 0
             })
         base_df = pd.DataFrame(rows)
     except Exception as e:
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        # [방어막 적용]: 대장주와 원본 시세가 뒤섞이지 않도록 필터링 전 '순정 원본(base_df)'은 절대 훼손하지 않습니다.
-        filtered_df = base_df[~base_df['theme'].isin(['대형주마스터', '미분류', '빈방_대기', '준비중_테마', 'SKELETON_BASE', ''])]
+        # [가두리 파괴 완공]: '대형주마스터' 가두리를 싹 걷어내어 삼성전자/하이닉스가 raw_df에 무조건 생존합니다!
+        filtered_df = base_df[~base_df['theme'].isin(['미분류', '빈방_대기', '준비중_테마', 'SKELETON_BASE', ''])]
+        
         if not filtered_df.empty:
-            agg_df = filtered_df.groupby('theme')['rate'].mean().reset_index()
+            # 좌측 히트맵 통계판에서는 '대형주마스터' 블록만 필터링하여 격자 노이즈를 청소합니다.
+            heatmap_target_df = filtered_df[filtered_df['theme'] != '대형주마스터']
+            if not heatmap_target_df.empty:
+                agg_df = heatmap_target_df.groupby('theme')['rate'].mean().reset_index()
+            else:
+                agg_df = pd.DataFrame(columns=['theme', 'rate'])
             
             kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
             current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
             
-            # 정렬 완료 스코어 기반으로 가중치 면적 부여
-            status_df = pd.DataFrame({
-                '테마': agg_df['theme'],
-                '등락률': agg_df['rate'].round(2),
-                '업데이트시간': [current_time_str] * len(agg_df)
-            })
-            status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
-            status_df['화면크기_가중치'] = np.linspace(35, 10, len(status_df)) if len(status_df) > 0 else []
+            if not agg_df.empty:
+                status_df = pd.DataFrame({
+                    '테마': agg_df['theme'],
+                    '등락률': agg_df['rate'].round(2),
+                    '업데이트시간': [current_time_str] * len(agg_df)
+                })
+                status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
+                status_df['화면크기_가중치'] = np.linspace(35, 10, len(status_df)) if len(status_df) > 0 else []
+            else:
+                status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         else:
             status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
-    # 🚨 상단 0원 먹통을 완벽히 방어하기 위해 순정 원본 데이터 프레임을 정확히 밀어줍니다!
     return base_df, status_df
 
 raw_df, status_df = load_market_data()
 
 kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
+
 # =================================================================
 # 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
 # =================================================================
 st.markdown(
     "<div class='cafe-banner-container'>\n"
-    "  <a href='https://cafe.naver.com/signalhub' target='_blank' style='text-decoration:none;'>\n"
+    "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>\n"
     "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:18px; \n"
     "    border:none; padding:15px 24px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width:100%; font-family:sans-serif;'>\n"
     "      🏛️ 시그널공장 네이버 카페 바로가기\n"
@@ -174,10 +171,7 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (100% 원본 투과 연동)
-# =================================================================
-# =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 최종 영점 조절 완료)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 최종 가두리 폭파 완공)
 # =================================================================
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
@@ -189,15 +183,14 @@ for idx, (m_name, m_code) in enumerate(m_targets):
 
     try:
         if not raw_df.empty:
-            # 🚨 [버그 폭파]: load_market_data()에서 이미 'code' 필드로 싹 다 정제 포장해 두었으므로,
-            # 'code' 컬럼을 다이렉트로 저격 매핑해야 한 치의 오차도 없이 시세가 관통되어 들어옵니다!
+            # 🚨 [버그 원천 소멸]: 2번 코드에서 '대형주마스터' 강제 통과 처리를 완료했기 때문에,
+            # 'code' 컬럼을 정밀 타격하면 대장주 리얼타임 시세가 완벽하게 무결점 관통합니다!
             raw_df['code_clean'] = raw_df['code'].astype(str).str.strip()
             target_rows = raw_df[raw_df['code_clean'] == m_code]
             
             if not target_rows.empty:
                 latest_row = target_rows.iloc[-1]
                 
-                # 정제된 딕셔너리 키 명칭인 'price'와 'rate' 축으로 정확하게 가로채기 진행
                 p_live = int(latest_row['price'])
                 r_live = float(latest_row['rate'])
                 
@@ -209,7 +202,6 @@ for idx, (m_name, m_code) in enumerate(m_targets):
         pass
 
     with master_2_cols[idx]:
-        # 💡 ROOM_ 코드 꼬임 현상이 완전히 해제되어 월요일 장전 고정가 시세 패킷이 다이렉트로 투과 안착됩니다!
         if is_data_loaded:
             price_display = f"{m_price:,}원"
             sign_str = "+" if m_rate > 0 else ""
@@ -235,16 +227,16 @@ for idx, (m_name, m_code) in enumerate(m_targets):
                 </div>
             """, unsafe_allow_html=True)
 
-
+st.markdown("---")
 # =================================================================
-# 6. 하단 레이아웃 (iloc[0] 대괄호 에러 수정 및 종목 프리로딩 완공 버전)
+# 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
 # =================================================================
 
 # 세션 상태 사전 완전 초기화
 if "selected_theme_click" not in st.session_state:
     st.session_state.selected_theme_click = ""
 
-# 💡 [형님 특명 영점 조절 완료]: .iloc 뒤에 [0] 대괄호를 칼같이 장전하여 주소값 에러를 격파하고 1등 테마를 선점합니다!
+# 초기 화면 공백 파괴: 장 시작 시 등락률 대장 1위 테마 자동 프리로딩
 if not st.session_state.selected_theme_click and not status_df.empty:
     st.session_state.selected_theme_click = str(status_df['테마'].iloc[0]).strip()
 
@@ -255,29 +247,25 @@ with left_layout:
 
     if not status_df.empty:
         try:
-            # 🎨 [핀업 스타일 커스텀 컬러 체인]
+            # 🎨 [HTS 신호등 5단 그라데이션 엔진]: 마이너스는 블루, 0% 보합은 다크, 플러스는 핀업 레드로 고정
             hts_color_scale = [
-                [0.0, "#0044AA"],   # 하락 대장 (새파란색)
-                [0.45, "#1E293B"],  # 미세 하락 (다크 그레이)
-                [0.5, "#0F172A"],   # 정확한 0.00% 보합 영점 (HTS 순정 리얼 블랙)
-                [0.55, "#2D1515"],  # 미세 상승 (짙은 붉은기)
-                [1.0, "#CC0000"]    # 상승 대장 (불타는 핀업 레드)
+                [0.0, "#0044AA"],   # 하락 극대값
+                [0.45, "#1E293B"],  # 미세 하락
+                [0.5, "#0F172A"],   # 🎯 정확한 0.00% 보합 영점 (HTS 순정 리얼 블랙)
+                [0.55, "#2D1515"],  # 미세 상승
+                [1.0, "#CC0000"]    # 당일 주도 테마 강렬한 레드
             ]
             
-            max_rate = float(status_df['등락률'].max()) if pd.notna(status_df['등락률'].max()) else 0.0
-            min_rate = float(status_df['등락률'].min()) if pd.notna(status_df['등락률'].min()) else 0.0
-            
-            # 보합 상태일 때 색상 마비를 차단하는 최소 가두리 스케일 설정
-            bound = max(abs(max_rate), abs(min_rate))
-            if bound < 0.01:
-                bound = 2.0  
-                
+            max_rate = float(status_df['등락률'].max())
+            min_rate = float(status_df['등락률'].min())
+            bound = max(abs(max_rate), abs(min_rate), 1.0)
+
             fig = px.treemap(
                 status_df, 
                 path=['테마'], 
                 values='화면크기_가중치', 
                 color='등락률',             
-                color_continuous_scale=pinup_color_scale if 'pinup_color_scale' in locals() else hts_color_scale, 
+                color_continuous_scale=hts_color_scale, 
                 range_color=[-bound, bound], 
                 custom_data=['테마']
             )
@@ -297,11 +285,11 @@ with left_layout:
             
             chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
             
-            # 🎯 [트리맵 마우스 클릭 파싱 영점 보정]
+            # 🎯 [트리맵 클릭 0초 반응 매핑]: 누르는 족족 우측 리더보드가 칼같이 변합니다.
             if chart_res and isinstance(chart_res, dict) and "selection" in chart_res:
                 points_list = chart_res["selection"].get("points", [])
                 if points_list and len(points_list) > 0:
-                    first_point = points_list[0] # 🚨 대괄호 [0]번 요소 저격 성공
+                    first_point = points_list[0]
                     
                     if isinstance(first_point, dict):
                         custom_data_val = first_point.get("customdata", [])
@@ -322,7 +310,7 @@ with right_layout:
     chosen_theme = str(st.session_state.selected_theme_click).strip()
     
     if not status_df.empty and chosen_theme:
-        st.markdown(f"### 🗂️ <span style='font-size:24px;'><b>[{chosen_theme}]</b> 테마 포지션 </span>", unsafe_allow_html=True)
+        st.markdown(f"### 🗂️ <span style='font-size:24px;'><b>[{chosen_theme}]</b> 테마 양방향 포지션 보드</span>", unsafe_allow_html=True)
         
         final_stock_list = []
         if not raw_df.empty:
@@ -336,15 +324,15 @@ with right_layout:
                 s_code = str(row.get('code', '005930')).strip()
                 final_stock_list.append((s_name, s_rate, s_price, s_code))
                 
-        # 등락률 기준으로 상승/하락 정밀 분리
+        # 등락률 포지션별 안전 해체
         up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
         down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
         
-        # 상승/하락 줄세우기 고정 축 정렬
+        # 🔺 상승주 대장 순 정렬(내림차순) / 🔹 하락주 소외주 순 정렬(오름차순) 축 고정
         up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
         down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
         
-        # 💡 [좌상승/우하락 5대5 칼각 대칭 레이아웃]
+        # 💡 [형님 특명 완공 레이아웃]: 뉴스를 싹 다 걷어내고, 좌상승 우하락 1대1 대칭 듀얼 호가창 가동!
         sub_col1, sub_col2 = st.columns([5.0, 5.0], gap="medium")
         
         with sub_col1:
@@ -380,3 +368,11 @@ with right_layout:
         st.markdown("### 🗂️ 소속 종목 리더보드")
         st.info("🔄 데이터 패킷 수신 대기 중...")
 
+# =================================================================
+# 7. 오토 리프레시 엔진 구동
+# =================================================================
+try:
+    from streamlit_autorefresh import st_autorefresh
+    st_autorefresh(interval=15000, key="market_data_refresh_engine_24h")
+except:
+    pass
