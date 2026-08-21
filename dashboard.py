@@ -235,16 +235,7 @@ for idx, (m_name, m_code) in enumerate(m_targets):
                 </div>
             """, unsafe_allow_html=True)
 
-        else:
-            # 수파베이스 내부 가격 패킷 인식이 일시적으로 풀릴 때 안전하게 스탠바이합니다.
-            st.markdown(f"""
-                <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
-                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>대기중 (0원)</span>
-                </div>
-            """, unsafe_allow_html=True)
 
-st.markdown("---")
 # =================================================================
 # 6. 하단 레이아웃 (iloc[0] 대괄호 에러 수정 및 종목 프리로딩 완공 버전)
 # =================================================================
