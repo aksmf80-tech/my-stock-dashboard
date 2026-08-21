@@ -160,7 +160,7 @@ st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#
 master_2_cols = st.columns(2)
 m_names = ["삼성전자", "SK하이닉스"]
 
-# 💡 [팩트 연동 완공]: 형님이 추적하신 진짜 오늘 최종 마감 팩트 주가(삼전 271,000원 / 하이닉스 1,743,000원) 정밀 대개통 완료!
+# 💡 [필승 무결점 대완공]: 형님이 짚어내신 진짜 오늘 장마감 순정 가격 (삼전 271,000원 / 하이닉스 1,743,000원) 정밀 장전 완료!
 default_prices = [271000, 1743000]
 default_rates = [0.89, -1.52]
 
@@ -173,8 +173,8 @@ for idx, m_name in enumerate(m_names):
             target_rows = raw_df[raw_df['name'] == m_name]
             if not target_rows.empty:
                 latest_row = target_rows.tail(1)
-                p_live = int(latest_row['price'].iloc[0]) if hasattr(latest_row['price'], 'iloc') else int(latest_row['price'])
-                r_live = float(latest_row['rate'].iloc[0]) if hasattr(latest_row['rate'], 'iloc') else float(latest_row['rate'])
+                p_live = int(latest_row['price'].iloc) if hasattr(latest_row['price'], 'iloc') else int(latest_row['price'])
+                r_live = float(latest_row['rate'].iloc) if hasattr(latest_row['rate'], 'iloc') else float(latest_row['rate'])
                 
                 # 월요일 장중에 진짜 실시간 패킷 단가가 올라오면 0초 싱크 리프레시 반영!
                 if p_live > 0 and p_live != 56200 and p_live != 174300:
@@ -214,7 +214,7 @@ with left_layout:
     top_25_themes = top_25_themes.sort_values(by='등락률', ascending=False).reset_index(drop=True)
 
     if "selected_theme_click" not in st.session_state:
-        st.session_state.selected_theme_click = top_25_themes['테마'].iloc[0] if not top_25_themes.empty else "미분류"
+        st.session_state.selected_theme_click = top_25_themes['테마'].iloc if not top_25_themes.empty else "미분류"
 
     if not top_25_themes.empty:
         top_25_themes['등락률'] = top_25_themes['등락률'].fillna(0.0).astype(float)
@@ -245,9 +245,9 @@ with left_layout:
         if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
             p_list = chart_res["selection"]["points"]
             if p_list and len(p_list) > 0:
-                p_item = p_list[0]
+                p_item = p_list
                 chosen_lbl = p_item.get("label", p_item.get("customdata", [""]))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl[0]
+                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl
                 if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
 
 with right_layout:
@@ -264,8 +264,8 @@ with right_layout:
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
     
-    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
+    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
     
     st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
     # [형님 특명 고정]: 세로 폭 짤림 방지를 위한 높이 320px 호가 슬라이스 박스 가드 장착!
