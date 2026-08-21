@@ -93,7 +93,7 @@ SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-@st.cache_data(ttl=1)
+@st.cache_data(ttl=15)
 def load_market_data():
     try:
         response = supabase.table("kiwoom_themes").select("*").execute()
