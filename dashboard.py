@@ -89,8 +89,7 @@ st.markdown("""
 # =================================================================
 # 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인
 # =================================================================
-# 🚨 [보안 방어막 가동]: 형님이 세팅해두신 시크릿 가스관(st.secrets)으로 직통 연결합니다!
-# 소스코드에서 비밀키 글자가 완전히 사라졌기 때문에 경고 팝업이 즉시 소멸합니다.
+# 🚨 [보안 방어막 및 가스관 연동]: st.secrets 연동으로 보안 경고를 원천 삭제합니다.
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -117,7 +116,7 @@ def load_market_data():
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        # [가두리 파괴 완공]: '대형주마스터' 가두리를 싹 걷어내어 삼성전자/하이닉스가 raw_df에 무조건 생존합니다!
+        # 🚨 [형님 특명 가두리 폭파 완공]: 대장주 필터링 전의 '100% 원본 순정 백업본(base_df)'은 절대 훼손하지 않습니다!
         filtered_df = base_df[~base_df['theme'].isin(['미분류', '빈방_대기', '준비중_테마', 'SKELETON_BASE', ''])]
         
         if not filtered_df.empty:
@@ -146,12 +145,15 @@ def load_market_data():
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
+    # 🚨 [중요 - 변수 밀림 전면 차단]: 5번 배너가 대장주를 온전히 찾아내도록 원본(base_df)과 요약본(status_df)을 안전하게 배출합니다.
     return base_df, status_df
 
+# 변수 매핑 2개 정확하게 연결 마감
 raw_df, status_df = load_market_data()
 
 kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
+
 
 # =================================================================
 # 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
