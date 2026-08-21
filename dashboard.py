@@ -231,56 +231,51 @@ for idx, (m_name, m_code) in enumerate(m_targets):
 
 st.markdown("---")
 # =================================================================
-# 6. 하단 레이아웃 (HTS 리얼 블랙 대기 및 장중 실시간 핀업 컬러 발색 완공)
+# 6. 하단 레이아웃 (iloc[0] 대괄호 에러 수정 및 종목 프리로딩 완공 버전)
 # =================================================================
 
 # 세션 상태 사전 완전 초기화
 if "selected_theme_click" not in st.session_state:
     st.session_state.selected_theme_click = ""
 
-# 초기 화면 공백 파괴: 장 시작 시 등락률 대장 1위 테마 자동 프리로딩
+# 💡 [형님 특명 영점 조절 완료]: .iloc 뒤에 [0] 대괄호를 칼같이 장전하여 주소값 에러를 격파하고 1등 테마를 선점합니다!
 if not st.session_state.selected_theme_click and not status_df.empty:
-    st.session_state.selected_theme_click = str(status_df['테마'].iloc).strip()
+    st.session_state.selected_theme_click = str(status_df['테마'].iloc[0]).strip()
 
 left_layout, right_layout = st.columns([4.4, 5.6], gap="large")
 
 with left_layout:
-    st.markdown("### 🗺️ 실시간 주도 테마 히트맵")
+    st.markdown("### 🗺️ 실시간 주도 테마 히트맵 (좌상단 상승 저격형)")
 
     if not status_df.empty:
         try:
-            # 🚨 [핀업 100% 카피 커스텀 신호등 컬러 체인 세팅]
-            # 장마감(0.00% 보합)일 때는 완벽하게 어두운 HTS 순정 블랙(#0F172A)으로 눈을 편안하게 깔아주고,
-            # 장중 변동 시 플러스는 핀업 레드(#CC0000), 마이너스는 블루(#0044AA)로 칼같이 갈라지게 영점을 잡았습니다.
-            pinup_color_scale = [
+            # 🎨 [핀업 스타일 커스텀 컬러 체인]
+            hts_color_scale = [
                 [0.0, "#0044AA"],   # 하락 대장 (새파란색)
                 [0.45, "#1E293B"],  # 미세 하락 (다크 그레이)
-                [0.5, "#0F172A"],   # 🎯 정확한 0.00% 보합 영점 (HTS 순정 리얼 블랙)
+                [0.5, "#0F172A"],   # 정확한 0.00% 보합 영점 (HTS 순정 리얼 블랙)
                 [0.55, "#2D1515"],  # 미세 상승 (짙은 붉은기)
                 [1.0, "#CC0000"]    # 상승 대장 (불타는 핀업 레드)
             ]
             
-            # 현재 전체 테마의 등락률 최대/최소를 분석
             max_rate = float(status_df['등락률'].max()) if pd.notna(status_df['등락률'].max()) else 0.0
             min_rate = float(status_df['등락률'].min()) if pd.notna(status_df['등락률'].min()) else 0.0
             
-            # 💡 [보합 마비 방어막]: 장이 끝나 모든 등락률이 0일 때, Plotly 엔진이 색상을 잃고 청회색으로 변하는 버그를 
-            # 원천 차단하기 위해 임의로 스케일 경계선 범위를 [-2.0%, +2.0%] 대칭으로 강제 고정합니다.
+            # 보합 상태일 때 색상 마비를 차단하는 최소 가두리 스케일 설정
             bound = max(abs(max_rate), abs(min_rate))
             if bound < 0.01:
-                bound = 2.0  # 등락률이 모두 0일 때 강제로 2% 스케일을 부여하여 0.00%가 정확히 '리얼 블랙'에 꽂히게 만듭니다.
+                bound = 2.0  
                 
             fig = px.treemap(
                 status_df, 
                 path=['테마'], 
                 values='화면크기_가중치', 
-                color='등락률',             # 💡 이 축을 타고 핀업 신호등 색상이 역동적으로 움직입니다.
-                color_continuous_scale=pinup_color_scale, 
-                range_color=[-bound, bound], # 0% 보합이 무조건 정중앙 블랙에 물리도록 대칭축 강제 고정
+                color='등락률',             
+                color_continuous_scale=pinup_color_scale if 'pinup_color_scale' in locals() else hts_color_scale, 
+                range_color=[-bound, bound], 
                 custom_data=['테마']
             )
             
-            # 글자가 허얗게 날아가거나 NaN%로 깨지는 현상을 완벽히 차단하고 정밀 소수점 강제 출력
             fig.update_traces(
                 texttemplate="<b>%{label}</b><br>%{color:.2f}%", 
                 textfont=dict(size=15, color="white", family="sans-serif"), 
@@ -290,23 +285,23 @@ with left_layout:
             fig.update_layout(
                 margin=dict(t=5, b=5, l=5, r=5), 
                 height=620,
-                coloraxis_showscale=False, # 화면 흐리는 사이드 색상 컬러 바 완벽 제거
+                coloraxis_showscale=False, 
                 template="plotly_dark"
             )
             
             chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
             
-            # 🎯 [트리맵 클릭 0초 반응 낚시 매핑]: 다른 블록을 누르는 족족 우측 화면이 광속 스위칭됩니다.
-            if chart_res and "selection" in chart_res:
+            # 🎯 [트리맵 마우스 클릭 파싱 영점 보정]
+            if chart_res and isinstance(chart_res, dict) and "selection" in chart_res:
                 points_list = chart_res["selection"].get("points", [])
                 if points_list and len(points_list) > 0:
-                    first_point = points_list
+                    first_point = points_list[0] # 🚨 대괄호 [0]번 요소 저격 성공
                     
                     if isinstance(first_point, dict):
                         custom_data_val = first_point.get("customdata", [])
                         label_val = first_point.get("label", "")
                         
-                        chosen_lbl = custom_data_val if custom_data_val else label_val
+                        chosen_lbl = custom_data_val[0] if (custom_data_val and isinstance(custom_data_val, list)) else label_val
                         
                         if chosen_lbl and str(chosen_lbl).strip() != st.session_state.selected_theme_click:
                             st.session_state.selected_theme_click = str(chosen_lbl).strip()
@@ -335,15 +330,15 @@ with right_layout:
                 s_code = str(row.get('code', '005930')).strip()
                 final_stock_list.append((s_name, s_rate, s_price, s_code))
                 
-        # 등락률 기준으로 상승/하락 정밀 분리 상차
+        # 등락률 기준으로 상승/하락 정밀 분리
         up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
         down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
         
-        # 🔺 상승주는 대장 순 정렬(내림차순) / 🔹 하락주는 소외주 순 정렬(오름차순) 축 고정
-        up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
-        down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
+        # 상승/하락 줄세우기 고정 축 정렬
+        up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
+        down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
         
-        # 💡 [좌상승/우하락 2분할 레이아웃 최종 마감]
+        # 💡 [좌상승/우하락 5대5 칼각 대칭 레이아웃]
         sub_col1, sub_col2 = st.columns([5.0, 5.0], gap="medium")
         
         with sub_col1:
@@ -378,13 +373,4 @@ with right_layout:
     else:
         st.markdown("### 🗂️ 소속 종목 리더보드")
         st.info("🔄 데이터 패킷 수신 대기 중...")
-
-# =================================================================
-# 7. 오토 리프레시 엔진 구동
-# =================================================================
-try:
-    from streamlit_autorefresh import st_autorefresh
-    st_autorefresh(interval=15000, key="market_data_refresh_engine_24h")
-except:
-    pass
 
