@@ -1,4 +1,4 @@
-import streamlit st
+import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -96,7 +96,7 @@ def load_market_data():
         response = supabase.table("kiwoom_themes").select("*").execute()
         rows = []
         for item in response.data:
-            # 💡 [정밀 매핑]: NaN% 방지를 위해 theme_flu_rt 와 current_price 를 안전하게 귀속시킵니다.
+            # 💡 테마방 실시간 주가 등락률과 순정 원화 현재가 컬럼 칼매핑
             rows.append({
                 'theme': str(item.get('theme_name', '미분류')).strip(),
                 'name': str(item.get('stock_name', '알수없음')).strip(),
@@ -111,7 +111,7 @@ def load_market_data():
     if not base_df.empty:
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         
-        # 해외 스트림릿 배포 가상 서버 시차 극복용 +9시간 보정
+        # 해외 배포 가상 서버 시차 보정용 KST 표준시 동기화 (+9시간)
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
         
@@ -121,7 +121,7 @@ def load_market_data():
             '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
             '업데이트시간': [current_time_str] * len(agg_df)
         })
-        # 등락률 대가리 정렬 고정
+        # 상승 테마 대가리 정렬 고정 규칙 적용
         status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
@@ -131,9 +131,9 @@ def load_market_data():
 # 데이터 동기화 가동
 raw_df, status_df = load_market_data()
 
-# 💡 [NameError 변수 락 고정]: 호출 축보다 무조건 한 단계 위에서 완벽 선언하여 에러를 완전 분쇄합니다.
+# 실시간 시세 시각 추출
 if not status_df.empty and '업데이트시간' in status_df.columns:
-    full_time_str = str(status_df['업데이트시간'].iloc[0]).strip()
+    full_time_str = str(status_df['updates_at'] if 'updates_at' in status_df.columns else status_df['업데이트시간'].iloc[0]).strip()
     update_time = full_time_str[-8:] if len(full_time_str) >= 8 else time.strftime('%H:%M:%S')
 else:
     update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
@@ -226,7 +226,7 @@ with left_layout:
             custom_data=['테마']
         )
         
-        # 💡 형님 명세 반영: 글자 및 등락률 수치 표기 옵션 축 고정
+        # 💡 형님 명세 반영: 좌상단 렌더링 축 락 고정 및 등락률 수치 맵 시각화
         fig.update_traces(
             texttemplate="<b>%{label}</b><br>%{color:.2f}%", 
             textfont=dict(size=15, color="white"), 
