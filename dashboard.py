@@ -82,18 +82,22 @@ st.markdown("""
     .master-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 14px !important; }
     </style>
 """, unsafe_allow_html=True)
+
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연동 세팅 (정밀 컬럼 인터페이스 완결판)
+# 3. 🔐 수파베이스 클라우드 직통 연결 인증 고정 (에러 원천 차단부)
 # =================================================================
+SUPABASE_URL = st.secrets["supabase"]["url"]
+SUPABASE_KEY = st.secrets["supabase"]["key"]
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# 1초 초단기 버퍼 캐시 데이터 로더
 @st.cache_data(ttl=1)
 def load_market_data():
     try:
-        # 수파베이스에 안착 성공한 'kiwoom_themes' 테이블을 직접 찌릅니다.
         response = supabase.table("kiwoom_themes").select("*").execute()
         rows = []
-        
-        # 💡 [정밀 바인딩 락]: 데이터베이스 원본 필드명과 대시보드 변수명을 오차 범위 0%로 연결합니다.
         for item in response.data:
+            # 💡 [정밀 매핑]: 수집기가 보낸 실전 종가(current_price)와 등락률(theme_flu_rt)을 정확히 바인딩합니다!
             rows.append({
                 'theme': str(item.get('theme_name', '미분류')).strip(),
                 'name': str(item.get('stock_name', '알수없음')).strip(),
@@ -103,12 +107,9 @@ def load_market_data():
             })
         base_df = pd.DataFrame(rows)
     except Exception as e:
-        # 에러 추적용 임시 출력 장치
-        st.sidebar.error(f"DB 로드 실패 원인: {e}")
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        # 테마별 등락률 평균 산출 소팅 엔진
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
@@ -120,14 +121,14 @@ def load_market_data():
             '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
             '업데이트시간': [current_time_str] * len(agg_df)
         })
-        # 당일 상승 테마 무조건 대가리 정렬 고정
+        # 당일 상승 주도 테마 좌상단 정렬 규칙 적용
         status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
     return base_df, status_df
 
-# 수파베이스 실전 데이터 즉시 전방 주입
+# 데이터 동기화 개통
 raw_df, status_df = load_market_data()
 
 if not status_df.empty and '업데이트시간' in status_df.columns:
@@ -135,7 +136,6 @@ if not status_df.empty and '업데이트시간' in status_df.columns:
     update_time = full_time_str[-8:] if len(full_time_str) >= 8 else time.strftime('%H:%M:%S')
 else:
     update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
-
 # =================================================================
 # 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
 # =================================================================
@@ -155,15 +155,15 @@ st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#
 
 master_4_cols = st.columns(4)
 
-# 💡 [순정 복구 장치]: 수파베이스 내부의 진짜 코스피/코스닥 마감 단가 필드를 바인딩 노출합니다.
+# 💡 [순정 지수 복구]: 수파베이스 내부의 진짜 코스피/코스닥 마감 단가 데이터를 정방향 노출합니다.
 for idx, idx_name in enumerate(["코스피", "코스닥"]):
     idx_rate = 0.0
     idx_price = 0
     if not raw_df.empty and 'name' in raw_df.columns:
         target_idx_row = raw_df[raw_df['name'] == idx_name]
         if not target_idx_row.empty:
-            idx_rate = float(target_idx_row['rate'].iloc[0])
-            idx_price = float(target_idx_row['price'].iloc[0])
+            idx_rate = float(target_idx_row['rate'].iloc[0]) if hasattr(target_idx_row['rate'], 'iloc') else float(target_idx_row['rate'])
+            idx_price = float(target_idx_row['price'].iloc[0]) if hasattr(target_idx_row['price'], 'iloc') else float(target_idx_row['price'])
 
     with master_4_cols[idx]:
         if idx_price == 0:
@@ -183,8 +183,8 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
     if not raw_df.empty and 'name' in raw_df.columns:
         target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
-            m_rate = float(target_row['rate'].iloc[0])
-            m_price = int(target_row['price'].iloc[0])
+            m_rate = float(target_row['rate'].iloc[0]) if hasattr(target_row['rate'], 'iloc') else float(target_row['rate'])
+            m_price = int(target_row['price'].iloc[0]) if hasattr(target_row['price'], 'iloc') else int(target_row['price'])
             
     with master_4_cols[idx + 2]:
         if m_price == 0:
@@ -195,6 +195,8 @@ for idx, m_name in enumerate(["삼성전자", "SK하이닉스"]):
             st.markdown(f"  <div class='master-box-up'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-up'>{m_price:,}원 (+{m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
         else:
             st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-down'>{m_price:,}원 ({m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
+
+st.markdown("---")
 
 # =================================================================
 # 5. 하단 레이아웃: 왼쪽 실시간 트리맵 히트맵 / 오른쪽 선택 테마 상세 소속 종목 분할 배치
