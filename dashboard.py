@@ -220,94 +220,135 @@ for idx, (m_name, m_code) in enumerate(m_targets):
 st.markdown("---")
 
 # =================================================================
-# 6. 하단 레이아웃 (가로 폭 짤림 방지 및 고정 스크롤 슬라이스)
+# 6. 하단 레이아웃 (먹통/크래시 원천 차단 및 구조 안정화 버전)
 # =================================================================
+
+# 세션 상태 선제 안전 초기화
+if "selected_theme_click" not in st.session_state:
+    st.session_state.selected_theme_click = ""
+
 left_layout, right_layout = st.columns([4.4, 5.6], gap="large")
 
 with left_layout:
     st.markdown("### 🗺️ 실시간 주도 테마 히트맵 (좌상단 상승 저격형)")
 
     if not status_df.empty:
-        fig = px.treemap(
-            status_df, 
-            path=['테마'], 
-            values='화면크기_가중치', 
-            color='등락률',             
-            color_continuous_scale='RdBu_r', 
-            color_continuous_midpoint=0,
-            custom_data=['테마']
-        )
-        
-        fig.update_traces(
-            texttemplate="<b>%{label}</b><br>%{color:.2f}%", 
-            textfont=dict(size=14, color="white"), 
-            textposition="middle center"
-        )
-        
-        fig.update_layout(
-            margin=dict(t=5, b=5, l=5, r=5), 
-            height=620,
-            coloraxis_showscale=True
-        )
-        
-        chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
-        if chart_res and "selection" in chart_res and "points" in chart_res["selection"]:
-            p_list = chart_res["selection"]["points"]
-            if p_list and len(p_list) > 0:
-                p_item = p_list
-                chosen_lbl = p_item.get("label", p_item.get("customdata", [""]))
-                if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0: chosen_lbl = chosen_lbl
-                if chosen_lbl: st.session_state.selected_theme_click = str(chosen_lbl).strip()
+        try:
+            fig = px.treemap(
+                status_df, 
+                path=['테마'], 
+                values='화면크기_가중치', 
+                color='등락률',             
+                color_continuous_scale='RdBu_r', 
+                color_continuous_midpoint=0,
+                custom_data=['테마']
+            )
+            
+            fig.update_traces(
+                texttemplate="<b>%{label}</b><br>%{color:.2f}%", 
+                textfont=dict(size=15, color="white"), 
+                textposition="middle center"
+            )
+            
+            fig.update_layout(
+                margin=dict(t=5, b=5, l=5, r=5), 
+                height=620,
+                coloraxis_showscale=True,
+                template="plotly_dark"
+            )
+            
+            # 신형 on_select 연동 및 데이터 수신
+            chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
+            
+            # 🚨 [안전 파싱 관문]: 딕셔너리 구조를 안전하게 분해하여 먹통(Crash)을 완벽 차단합니다.
+            if chart_res and isinstance(chart_res, dict) and "selection" in chart_res:
+                selection_data = chart_res["selection"]
+                if "points" in selection_data and len(selection_data["points"]) > 0:
+                    first_point = selection_data["points"][0]
+                    
+                    # 딕셔너리 형태인지 검증 후 안전하게 테마명 추출
+                    if isinstance(first_point, dict):
+                        chosen_lbl = first_point.get("label", first_point.get("customdata", [""]))
+                        if isinstance(chosen_lbl, list) and len(chosen_lbl) > 0:
+                            chosen_lbl = chosen_lbl[0]
+                        
+                        if chosen_lbl:
+                            st.session_state.selected_theme_click = str(chosen_lbl).strip()
+        except Exception as chart_err:
+            # 트리맵 렌더링 중 에러가 발생해도 전체 화면이 먹통되지 않도록 격리 방어
+            st.error(f"📊 히트맵 연동 중 일시적 지연이 발생했습니다. (원인: {chart_err})")
     else:
         st.info("📊 수파베이스 양식장 통덤프 패킷을 수신 대기 중입니다. 터미널에서 주입 사격을 실행해 주세요!")
 
 with right_layout:
-    if not status_df.empty:
-        chosen_theme = str(st.session_state.selected_theme_click).strip()
-        st.markdown(f"### 🗂️ <span style='font-size:24px;'><b>{chosen_theme}</b> 소속 종목</span>", unsafe_allow_html=True)
+    chosen_theme = str(st.session_state.selected_theme_click).strip()
+    
+    # 테마가 선택되어 있고 데이터가 존재하는 경우에만 가동
+    if not status_df.empty and chosen_theme:
+        st.markdown(f"### 🗂️ <span style='font-size:24px;'><b>[{chosen_theme}]</b> 소속 종목 리더보드</span>", unsafe_allow_html=True)
         
         final_stock_list = []
         if not raw_df.empty:
-            # 💡 [폴더 대뭉침 완공]: 수파베이스 바닥에 종목코드별로 1대1 분산 안착된 1,500마리 생선 원본들을 
-            # 형님이 선택한 테마 폴더명으로 칼같이 그룹핑 취합하여 우측 리스트에 몽땅 다 쏟아부어 표출합니다!
-            theme_detail_df = raw_df[raw_df['theme'] == chosen_theme].copy()
+            # 💡 [양방향 공백 트림 방어]: 문자열 비교 시 보이지 않는 공백 오류를 차단하기 위해 양쪽 정제 후 필터링
+            raw_df['theme_clean'] = raw_df['theme'].astype(str).str.strip()
+            theme_detail_df = raw_df[raw_df['theme_clean'] == chosen_theme].copy()
+            
             for _, row in theme_detail_df.iterrows():
                 s_price = int(row.get('price', 0)) if pd.notna(row.get('price')) else 0
-                final_stock_list.append((row['name'], float(row['rate']), s_price, str(row['code'])))
+                s_name = str(row.get('name', '알수없음')).strip()
+                s_rate = float(row.get('rate', 0.0)) if pd.notna(row.get('rate')) else 0.0
+                s_code = str(row.get('code', '005930')).strip()
+                final_stock_list.append((s_name, s_rate, s_price, s_code))
                 
+        # 🔺 등락률(인덱스 1번) 기준 내림차순 정렬 / 🔹 등락률 기준 오름차순 정렬 교정 완료
         up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
         down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
         
-        up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
-        down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
+        up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
+        down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
         
+        # 상승 종목 리스트 출력 가동
         st.markdown("#### 🔺 상승 종목", unsafe_allow_html=True)
-        # [형님 특명 고정]: 세로 폭 짤림 방지 및 모니터 전체 고정을 위한 높이 320px 호가 슬라이스 위젯 배치 완료!
-        with st.container(height=320, border=False):
+        with st.container(height=260, border=False):
             if up_stocks:
                 up_cols = st.columns(2)
                 for u_idx, (s_name, s_rate, s_price, s_code) in enumerate(up_stocks[:50]):
                     with up_cols[u_idx % 2]:
-                        st.markdown(f"<div class='stock-box-up'><span class='stock-name-up'>🔺 {s_name} ({s_code})</span><span class='stock-rate-up'>{s_price:,}원 (+{s_rate}%)</span></div>", unsafe_allow_html=True)
+                        st.markdown(
+                            f"<div class='stock-box-up'>"
+                            f"  <span class='stock-name-up'>🔺 {s_name} <small style='font-size:11px; color:#94A3B8;'>{s_code}</small></span>"
+                            f"  <span class='stock-rate-up'>{s_price:,}원 (+{s_rate:.2f}%)</span>"
+                            f"</div>", 
+                            unsafe_allow_html=True
+                        )
             else:
                 st.text("상승 종목이 없습니다.")
 
         st.markdown("<div style='padding-top:4px;'></div>", unsafe_allow_html=True)
         
+        # 하락 종목 리스트 출력 가동
         st.markdown("#### 🔹 하락 종목", unsafe_allow_html=True)
-        # [형님 특명 고정]: 세로 폭 짤림 방지 및 모니터 전체 고정을 위한 높이 320px 호가 슬라이스 위젯 배치 완료!
-        with st.container(height=320, border=False):
+        with st.container(height=260, border=False):
             if down_stocks:
                 down_cols = st.columns(2)
                 for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:50]):
                     with down_cols[d_idx % 2]:
-                        st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
+                        st.markdown(
+                            f"<div class='stock-box-down'>"
+                            f"  <span class='stock-name-down'>🔹 {s_name} <small style='font-size:11px; color:#94A3B8;'>{s_code}</small></span>"
+                            f"  <span class='stock-rate-down'>{s_price:,}원 ({s_rate:.2f}%)</span>"
+                            f"</div>", 
+                            unsafe_allow_html=True
+                        )
             else:
                 st.text("하락 종목이 없습니다.")
     else:
         st.markdown("### 🗂️ 소속 종목 리더보드")
-        st.info("🔄 주도 테마 선정 즉시 실시간 HTS 호가 슬라이스 창이 전면 활성화됩니다.")
+        st.info("🔄 좌측 히트맵에서 주도 테마 블록을 클릭하시면 실시간 HTS 호가 슬라이스 창이 즉시 활성화됩니다.")
 
+# =================================================================
+# 7. 오토 리프레시 엔진 구동
+# =================================================================
 try:
     from streamlit_autorefresh import st_autorefresh
     st_autorefresh(interval=15000, key="market_data_refresh_engine_24h")
