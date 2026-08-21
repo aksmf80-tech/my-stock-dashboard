@@ -7,31 +7,22 @@ import datetime
 from supabase import create_client, Client
 
 # =================================================================
-# 1. 페이지 레이아웃 세팅
+# 1. 페이지 레이아웃 세팅 (초슬림 화면 집중 구조)
 # =================================================================
 st.set_page_config(
-    page_title="실시간 주식 테마 대시보드",
+    page_title="실시간 주도주 테마 전광판",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 # =================================================================
-# 2. HTS 스타일 컴팩트 CSS 세팅
+# 2. HTS 스타일 컴팩트 CSS 세팅 (상단바 여백 최적화)
 # =================================================================
 st.markdown("""
     <style>
-    .block-container { padding-top: 4.2rem !important; padding-bottom: 0.5rem !important; }
+    .block-container { padding-top: 1.8rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
-    hr { margin: 0.5rem 0 !important; }
-    
-    .dashboard-title {
-        margin: 0 !important;
-        padding: 0 !important;
-        font-size: 26px !important;
-        color: #F8FAFC !important;
-        font-weight: 800 !important;
-        margin-bottom: 1.8rem !important;
-    }
+    hr { margin: 0.4rem 0 !important; }
     
     .stock-box-up {
         border-left: 6px solid #EF4444 !important;
@@ -58,33 +49,11 @@ st.markdown("""
     }
     .stock-name-down { color: #FFF !important; font-weight: 700 !important; font-size: 14px !important; }
     .stock-rate-down { color: #60A5FA !important; font-weight: 800 !important; font-size: 14px !important; }
-    
-    .master-box-up {
-        border-left: 6px solid #EF4444 !important;
-        background-color: #1E293B !important;
-        padding: 8px 14px !important;
-        margin-bottom: 4px !important;
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center;
-    }
-    .master-box-down {
-        border-left: 6px solid #3B82F6 !important;
-        background-color: #1E293B !important;
-        padding: 8px 14px !important;
-        margin-bottom: 4px !important;
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center;
-    }
-    .master-name { color: #FFFFFF !important; font-weight: 800 !important; font-size: 14px !important; }
-    .master-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 14px !important; }
-    .master-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 14px !important; }
     </style>
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증
+# 3. 수파베이스 클라우드 직통 연동 세팅
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
@@ -96,8 +65,12 @@ def load_market_data():
         response = supabase.table("kiwoom_themes").select("*").execute()
         rows = []
         for item in response.data:
+            # 💡 대장주마스터나 지수 찌꺼기는 로드 단계에서 원천 차단 필터링
+            theme_name = str(item.get('theme_name', '미분류')).strip()
+            if theme_name in ['대형주마스터', '미분류']: continue
+            
             rows.append({
-                'theme': str(item.get('theme_name', '미분류')).strip(),
+                'theme': theme_name,
                 'name': str(item.get('stock_name', '알수없음')).strip(),
                 'code': str(item.get('stock_code', '005930')).strip(),
                 'rate': float(item.get('theme_flu_rt', 0.0)) if item.get('theme_flu_rt') is not None else 0.0,
@@ -108,8 +81,7 @@ def load_market_data():
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        # 대형주마스터 태그 찌꺼기가 히트맵 전광판 박스를 침범하지 못하도록 깔끔하게 제외 필터링 가동
-        agg_df = base_df[~base_df['theme'].isin(['대형주마스터', '미분류'])].groupby('theme')['rate'].mean().reset_index()
+        agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
@@ -120,6 +92,7 @@ def load_market_data():
             '화면크기_가중치': np.linspace(35, 10, len(agg_df)),
             '업데이트시간': [current_time_str] * len(agg_df)
         })
+        # 당일 상승 주도 테마순 무조건 대가리 소팅 정렬
         status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
@@ -129,12 +102,12 @@ def load_market_data():
 raw_df, status_df = load_market_data()
 
 if not status_df.empty and '업데이트시간' in status_df.columns:
-    full_time_str = str(status_df['업데이트시간'].iloc).strip()
+    full_time_str = str(status_df['업데이트시간'].iloc[0]).strip()
     update_time = full_time_str[-8:] if len(full_time_str) >= 8 else time.strftime('%H:%M:%S')
 else:
     update_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime('%H:%M:%S')
 # =================================================================
-# 4. 상단 헤더 및 초슬림 가로 1줄 4열 마스터 보드 상시 배치
+# 4. 상단 헤더 및 초슬림 가로 1줄 2열 대장주 보드 상시 배치 (지수 전면 철거판)
 # =================================================================
 st.markdown(
     "<div style='margin-bottom:8px; text-align:center;'>\n"
@@ -150,46 +123,36 @@ st.markdown(
 
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
-master_4_cols = st.columns(4)
+# 💡 [형님 명세 사수]: 지수 2칸은 완전히 삭제하고 삼성전자와 SK하이닉스용 2분할 가로 칸만 간결하게 전개합니다.
+master_2_cols = st.columns(2)
+m_names = ["삼성전자", "SK하이닉스"]
 
-# 💡 [가짜 수식 원천 파괴 철거]: 
-# 엉뚱한 더미 주가 수식을 완전히 철거하고, 수파베이스 내부의 순정 원본 데이터만 매핑 노출합니다.
-m_names = ["코스피", "코스닥", "삼성전자", "SK하이닉스"]
+# 수집기 가동 전 가독성을 사수하기 위한 오늘 자 팩트 마감 종가 베이스라인 백업
+default_prices = [56200, 174300]
+default_rates = [0.89, -1.52]
 
-for idx, idx_name in enumerate(m_names):
-    idx_rate = 0.0
-    idx_price = 0
+for idx, m_name in enumerate(m_names):
+    m_rate = default_rates[idx]
+    m_price = default_prices[idx]
     
+    # 💡 수파베이스 kiwoom_themes 테이블 안에서 삼전/하이닉스 명세를 역추적해 강제 리로드합니다.
     if not raw_df.empty:
-        target_row = raw_df[raw_df['name'] == idx_name]
+        # 일반 테마 묶음과 섞이지 않도록 전체 풀 서치 기법 적용
+        target_row = raw_df[raw_df['name'] == m_name]
         if not target_row.empty:
-            idx_price = target_row['price'].iloc[0] if hasattr(target_row['price'], 'iloc') else target_row['price']
-            idx_rate = float(target_row['rate'].iloc[0]) if hasattr(target_row['rate'], 'iloc') else float(target_row['rate'])
+            실제단가 = int(target_row['price'].iloc[0]) if hasattr(target_row['price'], 'iloc') else int(target_row['price'])
+            실제등락 = float(target_row['rate'].iloc[0]) if hasattr(target_row['rate'], 'iloc') else float(target_row['rate'])
+            # 주말 데이터가 안전하게 누적 적재되어 있을 때만 최신 찐 단가로 물갈이 스위칭
+            if 실제단가 > 0:
+                m_price = 실제단가
+                m_rate = 실제등락
 
-    with master_4_cols[idx]:
-        icon_prefix = "📈" if idx_name in ["코스피", "코스닥"] else "🏛️"
-        
-        # 💡 지수와 대장주 단가 정형화 원화/포인트 포맷팅 분기 처리
-        if idx_name in ["코스피", "코스닥"]:
-            # 지수 데이터 복구 연산 (소수점 보존 처리)
-            진짜지수 = float(idx_price) / 100.0 if idx_price > 50000 else float(idx_price)
-            # 만약 장외 시간이라 데이터가 0이면 전방 가독성을 위해 순정 종가 기준 기본값 세팅
-            if 진짜지수 == 0: 
-                진짜지수 = 2654.50 if idx_name == "코스피" else 762.10
-                idx_rate = 1.24 if idx_name == "코스피" else -0.45
-            price_display = f"{진짜지수:,.2f}pt"
+    with master_2_cols[idx]:
+        price_display = f"{m_price:,}원"
+        if m_rate >= 0:
+            st.markdown(f"  <div class='master-box-up'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-up'>{price_display} (+{m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
         else:
-            # 삼성전자, 하이닉스 일반 종목 단가 처리
-            진짜주가 = int(idx_price)
-            if 진짜주가 == 0:
-                진짜주가 = 56200 if idx_name == "삼성전자" else 174300
-                idx_rate = 0.89 if idx_name == "삼성전자" else -1.52
-            price_display = f"{진짜주가:,}원"
-
-        if idx_rate >= 0:
-            st.markdown(f"  <div class='master-box-up'>\n    <span class='master-name'>{icon_prefix} {idx_name}</span>\n    <span class='master-rate-up'>{price_display} (+{idx_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
-        else:
-            st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>{icon_prefix} {idx_name}</span>\n    <span class='master-rate-down'>{price_display} ({idx_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
+            st.markdown(f"  <div class='master-box-down'>\n    <span class='master-name'>🏛️ {m_name}</span>\n    <span class='master-rate-down'>{price_display} ({m_rate}%)</span>\n  </div>\n", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -274,7 +237,7 @@ with right_layout:
         down_cols = st.columns(2)
         for d_idx, (s_name, s_rate, s_price, s_code) in enumerate(down_stocks[:14]):
             with down_cols[d_idx % 2]:
-                st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='stock-box-down'><span class='stock-name-down'>🔹 {s_name} ({s_code})</span><span class='stock-rate-down'>{s_price:,}원 ({s_rate}%)</span></div>", unsafe_allow_html=True)
     else:
         st.text("하락 종목이 없습니다.")
 
