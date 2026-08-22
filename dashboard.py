@@ -229,13 +229,13 @@ with col_stock_double:
         else: st.write("<p style='color:#64748B; padding:10px;'>당일 해당 테마에 하락 종목이 없습니다.</p>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------
-# [3구역] 🚨 실시간 익명 웹 채팅방 위젯 (다이렉트 소통 전용 패킷 주소 주입)
+# [3구역] 🚨 실시간 익명 웹 채팅방 위젯 (임베드 전용 콤팩트 뷰어 탑재)
 # -----------------------------------------------------------------
 with col_chat_room:
     st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
     st.markdown("### 💬 실시간 주주 대화방", unsafe_allow_html=True)
     
-    # 🎯 [버그 영점 정밀 치료]: src 도메인을 주소창 전용 링크인 'www3.cbox.ws/box/index.php' 규격으로 정교하게 세팅하여 대화 기능만 강제 다이렉트 출격시킵니다!
+    # 🎯 [핵심 타격 보정]: src 주소를 형님이 처음 주셨던 순정 임베드 규격인 'box/?boxid=...' 형태로 되돌리고 allow 스크립트 특성을 완벽 싱크 결합했습니다.
     st.markdown("""
         <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 8px; height: 626px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
             <iframe 
