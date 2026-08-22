@@ -211,9 +211,11 @@ st.markdown("---")
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
 # =================================================================
 
+# 세션 상태 사전 완전 초기화
 if "selected_theme_click" not in st.session_state:
     st.session_state.selected_theme_click = ""
 
+# 초기 화면 공백 파괴: 장 시작 시 등락률 대장 1위 테마 자동 프리로딩
 if not st.session_state.selected_theme_click and not status_df.empty:
     st.session_state.selected_theme_click = str(status_df['테마'].iloc[0]).strip()
 
@@ -225,11 +227,11 @@ with left_layout:
     if not status_df.empty:
         try:
             hts_color_scale = [
-                [0.0, "#0044AA"],   
-                [0.45, "#1E293B"],  
-                [0.5, "#0F172A"],   
-                [0.55, "#2D1515"],  
-                [1.0, "#CC0000"]    
+                [0.0, "#0044AA"],   # 하락 극대값
+                [0.45, "#1E293B"],  # 미세 하락
+                [0.5, "#0F172A"],   # 🎯 정확한 0.00% 보합 영점 (HTS 순정 리얼 블랙)
+                [0.55, "#2D1515"],  # 미세 상승
+                [1.0, "#CC0000"]    # 당일 주도 테마 강렬한 레드
             ]
             
             max_rate = float(status_df['등락률'].max())
@@ -261,6 +263,7 @@ with left_layout:
             
             chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
             
+            # 🎯 [트리맵 클릭 0초 반응 매핑]: 누르는 족족 우측 리더보드가 칼같이 변합니다.
             if chart_res and isinstance(chart_res, dict) and "selection" in chart_res:
                 points_list = chart_res["selection"].get("points", [])
                 if points_list and len(points_list) > 0:
@@ -300,12 +303,15 @@ with right_layout:
                 s_code = str(row.get('code', '005930')).strip()
                 final_stock_list.append((s_name, s_rate, s_price, s_code))
                 
+        # 등락률 포지션별 안전 해체
         up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
         down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
         
+        # 🔺 상승주 대장 순 정렬(내림차순) / 🔹 하락주 소외주 순 정렬(오름차순) 축 고정
         up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
         down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
         
+        # 💡 [좌상승 우하락 1대1 대칭 듀얼 호가창 가동]
         sub_col1, sub_col2 = st.columns([5.0, 5.0], gap="medium")
         
         with sub_col1:
@@ -337,9 +343,6 @@ with right_layout:
                         )
                 else:
                     st.write("<p style='color:#64748B; padding:10px;'>당일 해당 테마에 하락 종목이 없습니다.</p>", unsafe_allow_html=True)
-else:
-    st.markdown("### 🗂️ 소속 종목 리더보드")
-    st.info("🔄 데이터 패킷 수신 대기 중...")
 
 # =================================================================
 # 7. 오토 리프레시 엔진 구동
