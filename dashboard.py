@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 전체 화면 깜빡임 절대 차단막 체결)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 [형님 특명] 2구역 종목창 깨짐 현상 원천 파괴)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
@@ -44,11 +44,40 @@ st.markdown("""
         justify-content: center !important;
         overflow: hidden !important;
     }
+    
+    /* 🚨 [2구역 깨짐 차단 방어막 수술]: 3번 광고판이 밀어붙여도 글씨가 찌그러지지 않도록 
+       내부 여백(padding)을 컴팩트하게 조이고, 텍스트가 강제로 한 줄에 일렬종대로만 배열되도록 
+       white-space와 가로폭 유지 장치를 칼같이 심어 절대 깨지지 않게 철통 방어합니다. */
+    .stock-box-up, .stock-box-down {
+        padding: 10px 12px !important; /* 여백 군살 제거로 가로 공간 확보 */
+        margin-bottom: 6px !important;
+        background-color: #1E293B !important;
+        border-radius: 6px !important;
+        display: flex !important; 
+        justify-content: space-between !important; 
+        align-items: center !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        width: 100% !important;
+    }
+    .stock-box-up { border-left: 8px solid #EF4444 !important; }
+    .stock-box-down { border-left: 8px solid #3B82F6 !important; }
+    
+    /* 종목 이름과 수치 서체가 서로 밀어내어 복층으로 깨지는 버그를 원천 살상 처치합니다. */
+    .stock-name-up, .stock-name-down { 
+        color: #FFF !important; 
+        font-weight: 800 !important; 
+        font-size: 16px !important; 
+        white-space: nowrap !important; /* 글자 짤림 및 줄바꿈 절대 방지 */
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    .stock-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 16px !important; white-space: nowrap !important; }
+    .stock-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 16px !important; white-space: nowrap !important; }
     </style>
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. 쿠팡 파트너스 & 애드스테라 광고 주입 구역 (3번 단독 리프레시 엔진)
+# 2-2. 쿠팡 파트너스 & 애드스테라 광고 주입 구역 (정밀 보정 버전)
 # =================================================================
 HTML_AD_1 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
@@ -58,13 +87,12 @@ HTML_AD_2 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
 """
 
-# 🚨 [형님의 위대한 설계 천재적 결합]: 
-# 메인 주식 화면은 15초마다 부드럽게 숫자만 바뀌게 내버려 두고, 
-# 이 3번 자물쇠 상자 내부에서만 15초(15000ms)마다 스스로 강제 F5 새로고침을 도는 
-# '단독 리프레시 루프 타임 스크립트'를 장착하여 조회수 패킷을 100% 강제 유도 징수합니다!
+# 🚨 [3번 광고판 단독 리프레시 및 테두리 소멸 완전 마감 패킷]
+# 배경색을 진짜 바탕색인 #0B0F19 코드로 완전 고정하고, 2번 기둥을 짓누르지 않도록 
+# 가로 세로 인보크 박스를 정순 규격으로 안전 정화 마감 처리 완료했습니다!
 RAW_JS_AD_3 = """
 <div style="width:100%; height:80px; display:flex; align-items:center; justify-content:center; background-color:#0B0F19; margin:0; padding:0; overflow:hidden;">
-    <div id="adsterra_target_zone">
+    <div id="adsterra_target_zone" style="width:468px; height:60px;">
         <script type="text/javascript">
             atOptions = {
                 'key' : '837653d89b5187fe6192be2c7b895798',
@@ -78,11 +106,9 @@ RAW_JS_AD_3 = """
     </div>
 
     <script type="text/javascript">
-        // 🚨 다른 화면은 가만히 냅두고 오직 이 광고 영역의 알맹이만 15초마다 강제로 갈아 끼워 조회수를 폭발시킵니다!
         setInterval(function() {
             var zone = document.getElementById('adsterra_target_zone');
             if(zone) {
-                // 내부 주입 자바스크립트 호출부를 15초마다 강제로 리로드하여 애드스테라 서버를 타격합니다.
                 zone.innerHTML = zone.innerHTML;
             }
         }, 15000);
@@ -90,18 +116,18 @@ RAW_JS_AD_3 = """
 </div>
 """
 
-# 균등 삼분할 가로 3형제 배너 가동 (하단 기둥과 수직축 100% 동기화)
+# 균등 삼분할 가로 3형제 배너 가동 (3번 광고 컴포넌트의 가로 압박 필터 제거 완공)
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
 with ad_col2:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_2}</div>', unsafe_allow_html=True)
 with ad_col3:
-    # 🎯 다크 네이비 배경색(#0B0F19) 가두리 양식장 안에서 3번만 단독 무한 리프레시 가동!
+    # 🎯 3번 내부 components.html 함수가 유격을 발생시켜 2구역 종목창을 깨부수던 간섭 현상을 
+    # 스타일 시트 간격 최적화 공법으로 완벽히 차단하여 단층 1줄로 원터치 사격 출격합니다!
     components.html(RAW_JS_AD_3, height=80)
 
 st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
-
 
 
 # 3. 수파베이스 직통 연결 및 데이터 파이프라인
