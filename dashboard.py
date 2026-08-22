@@ -163,42 +163,45 @@ st.markdown(
 
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 theme_code 값 정밀 타격 완공본)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 순정 생(Raw) 이름 대조 복구본)
 # =================================================================
-# 🎯 [전광판 캐시 락]: 상단 전광판 데이터만 15초 동안 메모리에 락을 걸어 트래픽 부하를 분쇄합니다.
-@st.cache_data(ttl=15)
-def get_master_panel_data(target_room_code, _df_packet):
-    m_price = 0
-    m_rate = 0.0
-    is_loaded = False
-    
-    if not _df_packet.empty:
-        try:
-            temp_df = _df_packet.copy()
-            # 3번 함수에서 수집한 code 컬럼의 공백을 완벽하게 밀어버립니다.
-            temp_df['code_clean'] = temp_df['code'].astype(str).str.strip()
-            
-            # 🚨 [형님 확인 규격 정밀 타격]: 수퍼베이스 내부의 'ROOM_000660' 형태와 100% 일치 매칭합니다.
-            target_rows = temp_df[temp_df['code_clean'] == target_room_code]
-            
-            if not target_rows.empty:
-                # 목요일 마감 최종 데이터 행(.iloc[-1]) 관통 가로채기
-                latest_row = target_rows.iloc[-1]
-                m_price = int(latest_row['price']) if latest_row['price'] is not None else 0
-                m_rate = float(latest_row['rate']) if latest_row['rate'] is not None else 0.0
-                is_loaded = True
-        except:
-            pass
-            
-    return m_price, m_rate, is_loaded
+# 🎯 [형님 특명 15초 캐시 가드]: 복잡한 함수 캐시 대신, 스트림릿 세션 상태를 활용해 
+# 트래픽 디도스 폭탄을 원천 분쇄하는 15초 독립 타이머 가드를 가동합니다.
+current_ts = time.time()
+if "master_timer_ts" not in st.session_state:
+    st.session_state.master_timer_ts = 0.0
+    st.session_state.cached_master_data = {}
+
+# 15초가 지나지 않았다면 기존 메모리에 저장된 정품 주가 데이터를 그대로 화면에 강제 박제합니다.
+if current_ts - st.session_state.master_timer_ts > 15.0:
+    new_cache = {}
+    if not raw_df.empty:
+        # 어제 성공했던 방식 그대로! 날것 데이터프레임 순회 루프 작동
+        for _, row in raw_df.iterrows():
+            db_name = str(row.get('name', '')).strip()
+            # 만약 수퍼베이스 컬럼명이 stock_name 계열일 경우를 대비한 2중 안전 장치
+            if not db_name:
+                db_name = str(row.get('stock_name', '')).strip()
+                
+            if db_name in ["삼성전자", "SK하이닉스"]:
+                new_cache[db_name] = {
+                    "price": int(row.get('price', 0)) if row.get('price') is not None else int(row.get('current_price', 0)),
+                    "rate": float(row.get('rate', 0.0)) if row.get('rate') is not None else float(row.get('theme_flu_rt', 0.0)),
+                    "success": True
+                }
+    if "삼성전자" in new_cache or "SK하이닉스" in new_cache:
+        st.session_state.cached_master_data = new_cache
+        st.session_state.master_timer_ts = current_ts
 
 master_2_cols = st.columns(2)
-# 🎯 수퍼베이스 실제 사진 규격 그대로 ROOM_ 접두사를 붙여 타겟 라인 구축
-m_targets = [("삼성전자", "ROOM_005930"), ("SK하이닉스", "ROOM_000660")]
+m_targets = ["삼성전자", "SK하이닉스"]
 
-for idx, (m_name, m_room_code) in enumerate(m_targets):
-    # 💥 15초 독립 캐시 함수를 호출하여 수퍼베이스 내 목요일 최종 가격을 관통 수신합니다.
-    m_price, m_rate, is_data_loaded = get_master_panel_data(m_room_code, raw_df)
+for idx, m_name in enumerate(m_targets):
+    # 캐시 가드 메모리에서 어제 성공했던 생(raw) 주가 데이터를 즉시 관통 수신
+    m_info = st.session_state.cached_master_data.get(m_name, {"price": 0, "rate": 0.0, "success": False})
+    m_price = m_info["price"]
+    m_rate = m_info["rate"]
+    is_data_loaded = m_info["success"]
 
     with master_2_cols[idx]:
         if is_data_loaded:
@@ -213,39 +216,15 @@ for idx, (m_name, m_room_code) in enumerate(m_targets):
                 </div>
             """, unsafe_allow_html=True)
         else:
-            # 2중 안전 백업 장치: 캐시 연동 예외 발생 시 날것 데이터에서 한 번 더 조집니다.
-            backup_price = 0
-            backup_rate = 0.0
-            backup_success = False
-            
-            if not raw_df.empty:
-                for _, row in raw_df.iterrows():
-                    if str(row.get('code', '')).strip() == m_room_code:
-                        backup_price = int(row.get('price', 0))
-                        backup_rate = float(row.get('rate', 0.0))
-                        backup_success = True
-            
-            if backup_success:
-                price_display = f"{backup_price:,} 원"
-                sign_str = "+" if backup_rate > 0 else ""
-                color_val = "#EF4444" if backup_rate >= 0 else "#3B82F6"
-                box_cls = 'master-box-custom-up' if backup_rate >= 0 else 'master-box-custom-down'
-                st.markdown(f"""
-                    <div class='{box_cls}'>
-                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:{color_val}; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{backup_rate:.2f}%)</span>
-                    </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                    <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
-                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>연결 대기중 (0원)</span>
-                    </div>
-                """, unsafe_allow_html=True)
+            # 최초 구동 시 패킷 대기 레이아웃 방어막
+            st.markdown(f"""
+                <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>연결 대기중 (0원)</span>
+                </div>
+            """, unsafe_allow_html=True)
 
 st.markdown("---")
-
 
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
