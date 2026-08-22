@@ -6,20 +6,20 @@ import time
 import datetime
 from supabase import create_client, Client
 
-# 1. 페이지 레이아웃 세팅 (HTS 스타일 풀화면)
+# 1. 페이지 레이아웃 세팅 (HTS 스타일 풀화면 기본 개방)
 st.set_page_config(
     page_title="실시간 주도주 테마 전광판",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 순정 80px 높이 고정 및 종목 박스 철통 방어막)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 중복 테두리 파괴 및 종목 박스 무결점 방어막)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
     [data-testid="stHeader"] { background: transparent !important; height: 0rem !important; display: none !important; }
     
-    /* 🚨 [형님 맞춤형 화면 조율]: 좌우 폭 제한을 풀어 전광판 전체의 웅장함을 살립니다. */
+    /* 🚨 가로 폭 제한을 완벽히 해제하여 양옆 공간을 시원하게 풀화면으로 넓힙니다. */
     .block-container { 
         max-width: none !important; 
         padding-top: 1.5rem !important; 
@@ -30,7 +30,7 @@ st.markdown("""
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
-    /* 광고 겉틀 박스 높이를 80px 순정 다크 챠콜 박스로 밀착 세팅 */
+    /* 🚨 광고 겉틀 박스 높이를 80px 순정 다크 챠콜 박스로 밀착 세팅 (중복 박스 버그 원천 봉쇄) */
     .coupang-ad-box {
         background-color: #1E293B !important;
         border: 2px dashed #94A3B8 !important;
@@ -45,7 +45,7 @@ st.markdown("""
         overflow: hidden !important;
     }
     
-    /* 🚨 [긴급 수리 마감 완료]: 가운데 2구역 종목창 방어막 고정 디자인 */
+    /* 🚨 가운데 2구역 종목창 방어막 고정 디자인 규칙 (누락 차단 수리 완료) */
     .stock-box-up {
         border-left: 8px solid #EF4444 !important;
         background-color: #1E293B !important;
@@ -73,12 +73,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. 쿠팡 파트너스 광고 코드 직통 삽입 구역 (🚨 가로 600 x 세로 80 황금 비율 고정)
+# 2-2. 쿠팡 파트너스 광고 코드 직통 삽입 구역 (🚨 가로 600 황금 가치 고정 완료)
 # =================================================================
-
-# 🎯 [형님 검증 피드백 완벽 이식]: 너비 width="600" 높이 height="80" 수치를 코드에 칼같이 고정하여
-# 웅장한 대칭 균형을 마감했습니다! 삼형제 자리에 형님의 진짜 광고 데이터가 정밀 결합되어 작동합니다.
-
 HTML_AD_1 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
 """
@@ -91,7 +87,7 @@ HTML_AD_3 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
 """
 
-# 가로 3형제 배너 출력 가동
+# 가로 3형제 단층 배너 출력 가동 (중복 출력 코드 전면 삭제 정화 완료)
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
@@ -101,19 +97,6 @@ with ad_col3:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_3}</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
-
-
-# 가로 3형제 풀배너 웅장하게 가동 (모니터 끝 단까지 강제 밀착)
-ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
-with ad_col1:
-    st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
-with ad_col2:
-    st.markdown(f'<div class="coupang-ad-box">{HTML_AD_2}</div>', unsafe_allow_html=True)
-with ad_col3:
-    st.markdown(f'<div class="coupang-ad-box">{HTML_AD_3}</div>', unsafe_allow_html=True)
-
-st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
-
 
 # 3. 수파베이스 직통 연결 및 데이터 파이프라인
 SUPABASE_URL = st.secrets["supabase"]["url"]
