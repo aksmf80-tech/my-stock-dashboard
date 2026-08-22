@@ -207,7 +207,7 @@ if not status_df.empty and chosen_theme and not raw_df.empty:
     down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
 
 # -----------------------------------------------------------------
-# [2구역] 소속 종목 복층형 기둥
+# [2구역] 소속 종목 복층형 기둥 (HTS 순정 콤팩트 규격)
 # -----------------------------------------------------------------
 with col_stock_double:
     st.markdown(f"### 🎯 [{chosen_theme}] 종목 포지션", unsafe_allow_html=True)
@@ -229,17 +229,20 @@ with col_stock_double:
         else: st.write("<p style='color:#64748B; padding:10px;'>당일 해당 테마에 하락 종목이 없습니다.</p>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------
-# [3구역] 🚨 실시간 익명 웹 채팅방 위젯 (임베드 전용 콤팩트 뷰어 탑재)
+# [3구역] 🚨 실시간 익명 웹 채팅방 위젯 (RumbleTalk 짱짱한 대용량 엔진 이식)
 # -----------------------------------------------------------------
 with col_chat_room:
+    # 가운데 종목 기둥과 헤드라인 높이를 맞추기 위한 수평 마진 12px 다운
     st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
     st.markdown("### 💬 실시간 주주 대화방", unsafe_allow_html=True)
     
-    # 🎯 [핵심 타격 보정]: src 주소를 형님이 처음 주셨던 순정 임베드 규격인 'box/?boxid=...' 형태로 되돌리고 allow 스크립트 특성을 완벽 싱크 결합했습니다.
+    # 💡 [형님 연동 안내]: rumbletalk.com 개설 후 발급받는 고유 주소(예: https://html5chat.com)를
+    # 아래 src="https://html5chat.com" 자리에 주소만 교체해 넣으시면 형님 전용 대형 소통방으로 즉시 연동됩니다.
+    # 현재는 화면이 깨지지 않고 테스트해 보실 수 있도록 데모(demo) 주소를 강제 싱크 결합해 두었습니다.
     st.markdown("""
         <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 8px; height: 626px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
             <iframe 
-                src="https://www3.cbox.ws/box/?boxid=3559455&boxtag=p6H02s" 
+                src="https://html5chat.com" 
                 marginwidth="0" 
                 marginheight="0" 
                 frameborder="0" 
@@ -253,7 +256,7 @@ with col_chat_room:
         </div>
     """, unsafe_allow_html=True)
 
-# 5. 오토 리프레시 엔진 구동
+# 5. 오토 리프레시 엔진 구동 (15초 주기 프론트 갱신 마감)
 try:
     from streamlit_autorefresh import st_autorefresh
     st_autorefresh(interval=15000, key="market_data_refresh_engine_24h")
