@@ -163,51 +163,56 @@ st.markdown(
 
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 한글 이름 실시간 직통 투과)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 15초 독립 캐시 + 정밀 타격 매칭)
 # =================================================================
+# 🎯 [형님 특명 전광판 캐시 락]: 상단 전광판 데이터만 15초 동안 메모리에 락을 걸어 트래픽을 파괴합니다.
+@st.cache_data(ttl=15)
+def get_master_panel_data(target_name, _df_packet):
+    m_price = 0
+    m_rate = 0.0
+    is_loaded = False
+    
+    if not _df_packet.empty:
+        # 데이터프레임 내 'name' 컬럼의 텍스트 공백을 완벽하게 밀어버리고 정밀 타격 대조합니다.
+        _df_packet['name_clean'] = _df_packet['name'].astype(str).str.strip()
+        target_rows = _df_packet[_df_packet['name_clean'] == target_name]
+        
+        if not target_rows.empty:
+            latest_row = target_rows.iloc[-1]
+            m_price = int(latest_row['price'])
+            m_rate = float(latest_row['rate'])
+            is_loaded = True
+            
+    return m_price, m_rate, is_loaded
+
 master_2_cols = st.columns(2)
 m_targets = ["삼성전자", "SK하이닉스"]
 
 for idx, m_name in enumerate(m_targets):
-    m_price = 0  
-    m_rate = 0.0
-    is_data_loaded = False
-
-    try:
-        if not raw_df.empty:
-            raw_df['name_clean'] = raw_df['name'].astype(str).str.strip()
-            target_rows = raw_df[raw_df['name_clean'] == m_name]
-            
-            if not target_rows.empty:
-                latest_row = target_rows.iloc[-1]
-                m_price = int(latest_row['price'])
-                m_rate = float(latest_row['rate'])
-                is_data_loaded = True
-    except:
-        pass
+    # 💥 독립 캐시 함수를 호출하여 15초 주기로 수퍼베이스 실시간 주가 패킷을 받아옵니다.
+    m_price, m_rate, is_data_loaded = get_master_panel_data(m_name, raw_df)
 
     with master_2_cols[idx]:
         if is_data_loaded:
-            price_display = f"{m_price:,}원"
+            price_display = f"{m_price:,} 원"
             sign_str = "+" if m_rate > 0 else ""
             color_val = "#EF4444" if m_rate >= 0 else "#3B82F6"
             box_cls = 'master-box-custom-up' if m_rate >= 0 else 'master-box-custom-down'
             st.markdown(f"""
                 <div class='{box_cls}'>
-                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛 {m_name}</span>
                     <span style='color:{color_val}; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
                 </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
                 <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
-                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛 {m_name}</span>
                     <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>대기중 (0원)</span>
                 </div>
             """, unsafe_allow_html=True)
 
 st.markdown("---")
-
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
 # =================================================================
