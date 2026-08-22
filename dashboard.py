@@ -84,7 +84,7 @@ HTML_AD_2 = """
 """
 
 HTML_AD_3 = """
-<iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
+<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020955&template=carousel&trackingCode=AF2178062&subId=&width=600&height=80&tsource=" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
 """
 
 # 가로 3형제 단층 배너 출력 가동 (중복 출력 코드 전면 삭제 정화 완료)
