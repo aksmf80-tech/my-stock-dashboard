@@ -46,109 +46,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# 🚨 [형님 특명 1]: 네이버 카페 바로가기 대형 배너를 최상단 1번 자리로 전진 배치 완료!
 # =================================================================
-# 2. [비밀 금고 열기] 🚨 [supabase] 가두리 방 내부 정밀 타격 완공
-# =================================================================
-# 형님 Secrets 스샷에 찍힌 대괄호 방 이름 'supabase'를 경유하여 날것의 토큰 주소를 완벽하게 강탈합니다.
-SUPABASE_URL = st.secrets["supabase"]["url"]
-SUPABASE_KEY = st.secrets["supabase"]["key"]
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-# =================================================================
-# 3. [데이터 파이프라인] 15초 독립 캐시 가드 적용 데이터 수송관
-# =================================================================
-@st.cache_data(ttl=15)
-def load_market_data():
-    """🚀 수퍼베이스 kiwoom_themes 테이블에서 날것의 패킷을 긁어와 정형화 데이터프레임으로 수송"""
-    try:
-        # 최근 100개의 테마/종목 패킷을 수급
-        response = supabase.table("kiwoom_themes").select("*").order("updated_at", desc=True).limit(100).execute()
-        data = response.data
-        
-        if not data:
-            return pd.DataFrame()
-            
-        rows = []
-        for item in data:
-            t_name = str(item.get('theme_name', '미분류')).strip()
-            s_code = str(item.get('stock_code', '')).strip()
-            s_name = str(item.get('stock_name', '')).strip()
-            
-            p_val = item.get('current_price')
-            try:
-                price = int(p_val) if p_val is not None else 0
-            except:
-                price = 0
-                
-            r_val = item.get('theme_flu_rt')
-            try:
-                rate = float(r_val) if r_val is not None else 0.0
-            except:
-                rate = 0.0
-                
-            rows.append({
-                'theme': t_name,
-                'code': s_code,
-                'name': s_name,
-                'price': price,
-                'rate': rate
-            })
-            
-        return pd.DataFrame(rows)
-    except Exception as e:
-        return pd.DataFrame()
-
-# 메인 수송관을 통해 쟁반 데이터프레임 수신
-raw_df = load_market_data()
-
-# =================================================================
-# 3. [데이터 파이프라인] 15초 독립 캐시 가드 적용 데이터 수송관
-# =================================================================
-@st.cache_data(ttl=15)
-def load_market_data():
-    """🚀 수퍼베이스 kiwoom_themes 테이블에서 날것의 패킷을 긁어와 정형화 데이터프레임으로 수송"""
-    try:
-        # 최근 100개의 테마/종목 패킷을 수급
-        response = supabase.table("kiwoom_themes").select("*").order("updated_at", desc=True).limit(100).execute()
-        data = response.data
-        
-        if not data:
-            return pd.DataFrame()
-            
-        rows = []
-        for item in data:
-            t_name = str(item.get('theme_name', '미분류')).strip()
-            s_code = str(item.get('stock_code', '')).strip()
-            s_name = str(item.get('stock_name', '')).strip()
-            
-            p_val = item.get('current_price')
-            try:
-                price = int(p_val) if p_val is not None else 0
-            except:
-                price = 0
-                
-            r_val = item.get('theme_flu_rt')
-            try:
-                rate = float(r_val) if r_val is not None else 0.0
-            except:
-                rate = 0.0
-                
-            rows.append({
-                'theme': t_name,
-                'code': s_code,
-                'name': s_name,
-                'price': price,
-                'rate': rate
-            })
-            
-        return pd.DataFrame(rows)
-    except Exception as e:
-        return pd.DataFrame()
-
-# 메인 수송관을 통해 쟁반 데이터프레임 수신
-raw_df = load_market_data()
-# =================================================================
-# 4. [최상단 배너] 시그널공장 네이버 카페 바로가기 통짜 배너 (순정 유지)
+# 2. [최상단 배너] 시그널공장 네이버 카페 바로가기 통짜 배너
 # =================================================================
 st.markdown(
     """
@@ -167,50 +67,95 @@ st.markdown(
 )
 
 # =================================================================
-# 5. [HTS 규격 3분할 광고판] 🚨 형님 특명 7글자 정품 배너 교체 구역
+# 3. [비밀 금고 열기] 형님 순정 가두리 방 번호 [supabase] 정밀 추적 완공
+# =================================================================
+# Secrets 내부에 지정된 대괄호 묶음방 구조를 칼대칭 매핑하여 KeyError를 원천 진압했습니다.
+SUPABASE_URL = st.secrets["supabase"]["url"]
+SUPABASE_KEY = st.secrets["supabase"]["key"]
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# =================================================================
+# 4. [데이터 파이프라인] 15초 캐시 가드 수송관
+# =================================================================
+@st.cache_data(ttl=15)
+def load_market_data():
+    try:
+        response = supabase.table("kiwoom_themes").select("*").order("updated_at", desc=True).limit(100).execute()
+        data = response.data
+        
+        if not data:
+            return pd.DataFrame()
+            
+        rows = []
+        for item in data:
+            t_name = str(item.get('theme_name', '미분류')).strip()
+            s_code = str(item.get('stock_code', '')).strip()
+            s_name = str(item.get('stock_name', '')).strip()
+            
+            p_val = item.get('current_price')
+            try: price = int(p_val) if p_val is not None else 0
+            except: price = 0
+                
+            r_val = item.get('theme_flu_rt')
+            try: rate = float(r_val) if r_val is not None else 0.0
+            except: rate = 0.0
+                
+            rows.append({
+                'theme': t_name, 'code': s_code, 'name': s_name, 'price': price, 'rate': rate
+            })
+        return pd.DataFrame(rows)
+    except:
+        return pd.DataFrame()
+
+# 💥 메인 수송관 데이터프레임 쟁반 수신
+raw_df = load_market_data()
+
+# 🚨 [형님 특명 2]: 3배너 내부에 쓸데없는 기교 멘트 전부 도려내고 9글자 정품 수식 통일!
+# =================================================================
+# 5. [HTS 규격 3분할 광고판] 3칸 칼대칭 인덱스 상자 번호 정렬 완공 구역
 # =================================================================
 master_3_cols = st.columns(3)
 
-# 1. [좌측 광고 칸]: 형님 전용 7글자 고정 배너
-with master_3_cols:
+# 1. [좌측 광고 칸]: 0번 서랍장 정밀 고정
+with master_3_cols[0]:
     st.markdown(
         """
         <div class="master-banner-box" style="background-color: #1E293B;">
             <a href="https://coupang.com" target="_blank" style="text-decoration: none; color: #10B981; font-weight: 800; font-size: 16px;">
-                광고광고 광고
+                안에 광고 자립니다
             </a>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-# 2. [중앙 광고 칸]: 형님 전용 7글자 고정 배너
-with master_3_cols:
+# 2. [중앙 광고 칸]: 1번 서랍장 정밀 고정
+with master_3_cols[1]:
     st.markdown(
         """
         <div class="master-banner-box" style="background-color: #1E293B;">
             <a href="https://naver.com" target="_blank" style="text-decoration: none; color: #3B82F6; font-weight: 800; font-size: 16px;">
-                광고광고 광고
+                안에 광고 자립니다
             </a>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-# 3. [우측 광고 칸]: 형님 전용 7글자 고정 배너
-with master_3_cols:
+# 3. [우측 광고 칸]: 2번 서랍장 정밀 고정 (하단 채팅창 머리 위 칼대칭 정렬)
+with master_3_cols[2]:
     st.markdown(
         """
         <div class="master-banner-box" style="background-color: #1E293B;">
             <a href="https://coupang.com" target="_blank" style="text-decoration: none; color: #10B981; font-weight: 800; font-size: 16px;">
-                광고광고 광고
+                안에 광고 자립니다
             </a>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-# 쿠팡 파트너스 필수 법적 대가성 명시 문구 방어막 (순정 유지)
+# 법적 제재 제로! 쿠팡 파트너스 필수 대가성 명시 문구 방어막 자동 인입
 st.markdown(
     """
     <div style="text-align: center; margin-top: 5px; margin-bottom: 20px;">
@@ -223,6 +168,7 @@ st.markdown(
 )
 
 st.markdown("---")
+
 
 # =================================================================
 # 6. [하단 3분할 대수술] 히트맵 축소 및 종목 중앙 정렬 + 우측 익명 채팅창 완공
