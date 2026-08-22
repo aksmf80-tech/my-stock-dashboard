@@ -146,7 +146,7 @@ with col_heatmap:
 
     # 네이버 카페 바로가기 링크 박스
     st.markdown("""
-        <a href="https://naver.com" target="_blank" style="text-decoration: none; width: 100%;">
+        <a href="https://cafe.naver.com/signalhub" target="_blank" style="text-decoration: none; width: 100%;">
             <div style="background-color: #1E293B; border: 2px solid #2DB400; border-radius: 6px; padding: 14px; text-align: center; color: #2DB400; font-weight: 800; font-size: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer;">
                 💚 공식 네이버 카페 바로가기 👉
             </div>
