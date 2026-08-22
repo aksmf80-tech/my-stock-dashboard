@@ -87,7 +87,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (무필터 순정 버전)
+# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (SKELETON 사살 완공 버전)
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
@@ -99,24 +99,29 @@ def load_market_data():
         response = supabase.table("kiwoom_themes").select("*").execute()
         rows = []
         for item in response.data:
+            s_code = str(item.get('stock_code', '')).strip()
+            s_name = str(item.get('stock_name', '')).strip()
+            
+            # 🔥 [가짜 데이터 암살 가드]: SKELETON_BASE 뼈대는 국물도 없이 쳐내서 화면 정화 완공!
+            if "SKELETON" in s_name.upper() or "SKELETON" in s_code.upper():
+                continue
+                
             r_val = item.get('theme_flu_rt')
             p_val = item.get('current_price')
             t_name = str(item.get('theme_name', '미분류')).strip()
             
             rows.append({
                 'theme': t_name,
-                'name': str(item.get('stock_name', '알수없음')).strip(),
-                'code': str(item.get('stock_code', '005930')).strip(),
+                'name': s_name,
+                'code': s_code,
                 'rate': float(r_val) if r_val is not None else 0.0,
                 'price': int(p_val) if p_val is not None else 0
             })
-        # 🚨 [형님 특명 - 철통 보안 해제]: 그 어떤 테마명도 가리지 않고 DB 원본 그대로 백업 빌드!
         base_df = pd.DataFrame(rows)
     except Exception as e:
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        # 좌측 히트맵용 그룹 통계 데이터셋 가공
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
@@ -131,7 +136,6 @@ def load_market_data():
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
-    # 🚨 가리는 필터링 절대 없이 2,200마리 원본 전체(base_df)를 1번 인자로 다이렉트 출격시킵니다!
     return base_df, status_df
 
 # 변수 매핑 무결점 싱크 연결 완료
@@ -139,12 +143,13 @@ raw_df, status_df = load_market_data()
 
 kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
+
 # =================================================================
-# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
+# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출 (🚨 형님 정품 주소 싱크 완공)
 # =================================================================
 st.markdown(
     "<div class='cafe-banner-container'>\n"
-    "  <a href='https://cafe.naver.com/signalhub' target='_blank' style='text-decoration:none;'>\n"
+    "  <a href='https://naver.com' target='_blank' style='text-decoration:none;'>\n"
     "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:18px; \n"
     "    border:none; padding:15px 24px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width:100%; font-family:sans-serif;'>\n"
     "      🏛️ 시그널공장 네이버 카페 바로가기\n"
@@ -157,60 +162,58 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 가짜 대기중 차단막 전면 철거 완공)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 화면 칸 부활 및 리얼 가격 직통 관통 완공)
 # =================================================================
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
 
 for idx, (m_name, m_code) in enumerate(m_targets):
+    m_price = 0  
+    m_rate = 0.0
+    
     try:
-        # 💡 [상·하단 분리독립 가스관]: 하단 필터링에 오염되지 않은 순정 데이터프레임 복사본 생성
-        check_df = raw_df.copy()
-        check_df['code_clean'] = check_df['code'].astype(str).str.strip().str.zfill(6)
-        
-        # 정확히 일치하는 종목 타겟팅 조준 사격
-        target_rows = check_df[check_df['code_clean'] == str(m_code).strip()]
-        latest_row = target_rows.iloc[-1]
-        
-        # 3번 영역에서 정제된 정품 필터명('price', 'rate') 데이터 다이렉트 강탈
-        m_price = int(float(str(latest_row['price']).strip()))
-        m_rate = float(str(latest_row['rate']).strip())
-        
-        price_display = f"{m_price:,}원"
-        sign_str = "+" if m_rate > 0 else ""
-        
-        with master_2_cols[idx]:
-            # 🔺 상승/보합 시 레드 전광판 분출
-            if m_rate >= 0:
-                st.markdown(f"""
-                    <div class='master-box-custom-up'>
-                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
-                    </div>
-                """, unsafe_allow_html=True)
-            # 🔹 하락 시 블루 전광판 분출
-            else:
-                st.markdown(f"""
-                    <div class='master-box-custom-down'>
-                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#60A5FA; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate:.2f}%)</span>
-                    </div>
-                """, unsafe_allow_html=True)
+        # 💡 [독립 수로 가스관]: 하단 연산과 무관하게 전체 순정 raw_df에서 두 대형주 주가를 다이렉트로 가로챕니다.
+        if 'raw_df' in globals() and not raw_df.empty:
+            check_df = raw_df.copy()
+            check_df['code_clean'] = check_df['code'].astype(str).str.strip().str.zfill(6)
+            
+            target_rows = check_df[check_df['code_clean'] == str(m_code).strip()]
+            
+            if not target_rows.empty:
+                latest_row = target_rows.iloc[-1]
+                m_price = int(float(str(latest_row['price']).strip()))
+                m_rate = float(str(latest_row['rate']).strip())
     except:
-        # 시스템 핵심 뼈대 유지를 위한 최소 가드
         pass
 
-st.markdown("---")
+    # 가짜 안전가드 싹 걷어내고 웅장한 대문 칸에 가격 패킷 무조건 강제 표출
+    price_display = f"{m_price:,}원" if m_price > 0 else "조회실패"
+    sign_str = "+" if m_rate > 0 else ""
+    
+    with master_2_cols[idx]:
+        if m_rate >= 0:
+            st.markdown(f"""
+                <div class='master-box-custom-up'>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class='master-box-custom-down'>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:#60A5FA; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate:.2f}%)</span>
+                </div>
+            """, unsafe_allow_html=True)
 
+st.markdown("---")
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
 # =================================================================
 
-# 세션 상태 사전 완전 초기화
 if "selected_theme_click" not in st.session_state:
     st.session_state.selected_theme_click = ""
 
-# 초기 화면 공백 파괴: 장 시작 시 등락률 대장 1위 테마 자동 프리로딩
 if not st.session_state.selected_theme_click and not status_df.empty:
     st.session_state.selected_theme_click = str(status_df['테마'].iloc[0]).strip()
 
@@ -221,13 +224,12 @@ with left_layout:
 
     if not status_df.empty:
         try:
-            # 🎨 [HTS 신호등 5단 그라데이션 엔진]: 마이너스는 블루, 0% 보합은 다크, 플러스는 핀업 레드로 고정
             hts_color_scale = [
-                [0.0, "#0044AA"],   # 하락 극대값
-                [0.45, "#1E293B"],  # 미세 하락
-                [0.5, "#0F172A"],   # 🎯 정확한 0.00% 보합 영점 (HTS 순정 리얼 블랙)
-                [0.55, "#2D1515"],  # 미세 상승
-                [1.0, "#CC0000"]    # 당일 주도 테마 강렬한 레드
+                [0.0, "#0044AA"],   
+                [0.45, "#1E293B"],  
+                [0.5, "#0F172A"],   
+                [0.55, "#2D1515"],  
+                [1.0, "#CC0000"]    
             ]
             
             max_rate = float(status_df['등락률'].max())
@@ -259,7 +261,6 @@ with left_layout:
             
             chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
             
-            # 🎯 [트리맵 클릭 0초 반응 매핑]: 누르는 족족 우측 리더보드가 칼같이 변합니다.
             if chart_res and isinstance(chart_res, dict) and "selection" in chart_res:
                 points_list = chart_res["selection"].get("points", [])
                 if points_list and len(points_list) > 0:
@@ -288,8 +289,9 @@ with right_layout:
         
         final_stock_list = []
         if not raw_df.empty:
-            raw_df['theme_clean'] = raw_df['theme'].astype(str).str.strip()
-            theme_detail_df = raw_df[raw_df['theme_clean'] == chosen_theme].copy()
+            theme_df = raw_df.copy()
+            theme_df['theme_clean'] = theme_df['theme'].astype(str).str.strip()
+            theme_detail_df = theme_df[theme_df['theme_clean'] == chosen_theme].copy()
             
             for _, row in theme_detail_df.iterrows():
                 s_price = int(row.get('price', 0))
@@ -298,15 +300,12 @@ with right_layout:
                 s_code = str(row.get('code', '005930')).strip()
                 final_stock_list.append((s_name, s_rate, s_price, s_code))
                 
-        # 등락률 포지션별 안전 해체
         up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
         down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
         
-        # 🔺 상승주 대장 순 정렬(내림차순) / 🔹 하락주 소외주 순 정렬(오름차순) 축 고정
         up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
         down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
         
-        # 💡 [형님 특명 완공 레이아웃]: 뉴스를 싹 다 걷어내고, 좌상승 우하락 1대1 대칭 듀얼 호가창 가동!
         sub_col1, sub_col2 = st.columns([5.0, 5.0], gap="medium")
         
         with sub_col1:
@@ -338,9 +337,9 @@ with right_layout:
                         )
                 else:
                     st.write("<p style='color:#64748B; padding:10px;'>당일 해당 테마에 하락 종목이 없습니다.</p>", unsafe_allow_html=True)
-    else:
-        st.markdown("### 🗂️ 소속 종목 리더보드")
-        st.info("🔄 데이터 패킷 수신 대기 중...")
+else:
+    st.markdown("### 🗂️ 소속 종목 리더보드")
+    st.info("🔄 데이터 패킷 수신 대기 중...")
 
 # =================================================================
 # 7. 오토 리프레시 엔진 구동
