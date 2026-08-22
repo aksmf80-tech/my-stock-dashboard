@@ -6,21 +6,23 @@ import time
 import datetime
 from supabase import create_client, Client
 
-# 1. 페이지 레이아웃 세팅
+# 1. 페이지 레이아웃 세팅 (HTS 스타일 풀화면)
 st.set_page_config(
     page_title="실시간 주도주 테마 전광판",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 종목 및 광고 짤림 방어)
 st.markdown("""
     <style>
+    /* 상단 기본 헤더 완전 제거 및 밀어올림 */
     [data-testid="stHeader"] { background: transparent !important; height: 0rem !important; display: none !important; }
     .block-container { padding-top: 2.0rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
+    /* 쿠팡 광고판 규격 고정 스타일 */
     .coupang-ad-box {
         background-color: #1E293B !important;
         border: 2px dashed #94A3B8 !important;
@@ -36,6 +38,7 @@ st.markdown("""
         justify-content: center !important;
     }
     
+    /* 종목 리스트 상승/하락 호가창 스타일 */
     .stock-box-up {
         border-left: 8px solid #EF4444 !important;
         background-color: #1E293B !important;
@@ -61,7 +64,7 @@ st.markdown("""
     .stock-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 19px !important; }
     </style>
 """, unsafe_allow_html=True)
-# 2-2. 최상단 쿠팡 광고 3자리 가로 배치
+# 2-2. 최상단 쿠팡 광고 3자리 가로 배정
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
     st.markdown('<div class="coupang-ad-box">📢 쿠팡 광고 자리 (1번 영역)</div>', unsafe_allow_html=True)
@@ -72,7 +75,7 @@ with ad_col3:
 
 st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
 
-# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인
+# 3. 수파베이스 직통 연결 및 데이터 파이프라인
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -130,13 +133,15 @@ if "selected_theme_click" not in st.session_state:
 if not st.session_state.selected_theme_click and not status_df.empty:
     st.session_state.selected_theme_click = str(status_df['테마'].iloc[0]).strip()
 
-# 3분할 황금 비율 고정 세팅
+# 3분할 황금 비율 고정 세팅 (3.3 : 3.7 : 3.0)
 col_heatmap, col_stock_double, col_chat_room = st.columns([3.3, 3.7, 3.0], gap="medium")
 
 # -----------------------------------------------------------------
-# [1구역] 네이버 카페 바로가기 + 실시간 테마 히트맵
+# [1구역] 네이버 카페 바로가기 + 실시간 테마 히트맵 (상단 머리 다운 다운)
 # -----------------------------------------------------------------
 with col_heatmap:
+    # 🎯 가운데 종목창과 완벽한 정렬을 위해 강제 다운 상단 마진 12px 주입
+    st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
     st.markdown(f"### 🗺️ 테마 히트맵 <small style='font-size:12px; color:#94A3B8; font-weight:normal;'>({update_time})</small>", unsafe_allow_html=True)
 
     # 네이버 카페 바로가기 링크 박스
@@ -160,8 +165,9 @@ with col_heatmap:
                 color_continuous_scale=hts_color_scale, range_color=[-bound, bound], custom_data=['테마']
             )
             fig.update_traces(texttemplate="<b>%{label}</b><br>%{color:.2f}%", textfont=dict(size=13, color="white", family="sans-serif"), textposition="middle center")
-            fig.update_layout(margin=dict(t=5, b=5, l=5, r=5), height=620, coloraxis_showscale=False, template="plotly_dark")
             
+            # 🚨 높이를 600px로 조율하여 바닥 라인 정밀 정렬 마감
+            fig.update_layout(margin=dict(t=5, b=5, l=5, r=5), height=600, coloraxis_showscale=False, template="plotly_dark")
             chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
             
             if chart_res and isinstance(chart_res, dict) and "selection" in chart_res:
@@ -197,18 +203,17 @@ if not status_df.empty and chosen_theme and not raw_df.empty:
         
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
-    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
+    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
 
 # -----------------------------------------------------------------
-# [2구역] 소속 종목 복층형 기둥 (🚨 형님 특명: 세로 증고로 하단 일렬 종대 싱크 마감)
+# [2구역] 소속 종목 복층형 기둥 (순정 콤팩트 규격 복구 완료)
 # -----------------------------------------------------------------
 with col_stock_double:
     st.markdown(f"### 🎯 [{chosen_theme}] 종목 포지션", unsafe_allow_html=True)
     st.markdown(f"<b style='color:#F87171; font-size:14px;'>🔺 소속 상승 종목 ({len(up_stocks)}개)</b>", unsafe_allow_html=True)
     
-    # 🚨 바닥 영점 조율을 위해 기존 285px에서 308px로 상단 박스 정밀 수직 확장
-    with st.container(height=308, border=True):
+    with st.container(height=285, border=True):
         if up_stocks:
             for s_name, s_rate, s_price, s_code in up_stocks[:50]:
                 st.markdown(f"<div class='stock-box-up' style='padding: 10px 14px !important; margin-bottom: 5px !important;'><span class='stock-name-up' style='font-size:16px !important;'>🔺 {s_name} <small style='font-size:11px; color:#94A3B8;'>{s_code}</small></span><span class='stock-rate-up' style='font-size:16px !important;'>{s_price:,}원 (+{s_rate:.2f}%)</span></div>", unsafe_allow_html=True)
@@ -217,26 +222,29 @@ with col_stock_double:
     st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
     st.markdown(f"<b style='color:#60A5FA; font-size:14px;'>🔹 소속 하락 종목 ({len(down_stocks)}개)</b>", unsafe_allow_html=True)
     
-    # 🚨 바닥 영점 조율을 위해 기존 285px에서 308px로 하단 박스 정밀 수직 확장하여 총합 라인을 바닥에 밀착
-    with st.container(height=308, border=True):
+    with st.container(height=285, border=True):
         if down_stocks:
             for s_name, s_rate, s_price, s_code in down_stocks[:50]:
                 st.markdown(f"<div class='stock-box-down' style='padding: 10px 14px !important; margin-bottom: 5px !important;'><span class='stock-name-down' style='font-size:16px !important;'>🔹 {s_name} <small style='font-size:11px; color:#94A3B8;'>{s_code}</small></span><span class='stock-rate-down' style='font-size:16px !important;'>{s_price:,}원 ({s_rate:.2f}%)</span></div>", unsafe_allow_html=True)
         else: st.write("<p style='color:#64748B; padding:10px;'>당일 해당 테마에 하락 종목이 없습니다.</p>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------
-# [3구역] 무료 채팅방 날개 배너
+# [3구역] 무료 채팅방 날개 배너 (🚨 수평 일치를 위한 다운 보정)
 # -----------------------------------------------------------------
 with col_chat_room:
-    st.markdown("### 💬  소통망", unsafe_allow_html=True)
+    # 🎯 가운데 종목창과 머리 높이를 맞추기 위해 상단에 미세 마진 12px 주입하여 다운
+    st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
+    st.markdown("### 💬 VIP 실시간 소통망", unsafe_allow_html=True)
+    
+    # 🚨 높이를 626px로 마감하여 아랫선을 칼같이 균등 일렬 종대 완성
     st.markdown("""
-        <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 25px 20px; text-align: center; height: 672px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
-            <div style="font-size: 40px; margin-bottom: 15px;">🔓</div>
-            <h3 style="color: #10B981; font-weight: 900; margin-bottom: 5px; font-size: 22px;">대화방</h3>
-            <p style="color: #94A3B8; font-size: 13px; margin-bottom: 25px; line-height: 1.5;">당일 실시간 주도주 테마 정보와<br>수파베이스 패킷 급등 시그널을<br>조건 없이 가장 빠르게 공유합니다.</p>
-            <div style="background-color: #0F172A; border: 1px dashed #34D399; padding: 12px; border-radius: 6px; width: 100%; color: #34D399; font-weight: 700; font-size: 14px; margin-bottom: 25px;">🔥 [참여 코드: 고정 대기 중]</div>
+        <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 20px 20px; text-align: center; height: 626px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
+            <div style="font-size: 36px; margin-bottom: 12px;">🔓</div>
+            <h3 style="color: #10B981; font-weight: 900; margin-bottom: 5px; font-size: 21px;">평생 무료 정보 리딩방</h3>
+            <p style="color: #94A3B8; font-size: 13px; margin-bottom: 20px; line-height: 1.5;">당일 실시간 주도주 테마 정보와<br>수파베이스 패킷 급등 시그널을<br>조건 없이 가장 빠르게 공유합니다.</p>
+            <div style="background-color: #0F172A; border: 1px dashed #34D399; padding: 10px; border-radius: 6px; width: 100%; color: #34D399; font-weight: 700; font-size: 14px; margin-bottom: 20px;">🔥 [참여 코드: 고정 대기 중]</div>
             <a href="https://kakao.com" target="_blank" style="text-decoration: none; width: 100%;"><div style="background-color: #10B981; color: white; font-weight: 800; padding: 14px; border-radius: 6px; font-size: 16px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); cursor: pointer;">👉 무료 카카오톡방 입장하기</div></a>
-            <div style="margin-top: 20px; font-size: 11px; color: #64748B;">* 본 방은 일체의 유료 결제를 유도하지 않습니다.</div>
+            <div style="margin-top: 15px; font-size: 11px; color: #64748B;">* 본 방은 일체의 유료 결제를 유도하지 않습니다.</div>
         </div>
     """, unsafe_allow_html=True)
 
