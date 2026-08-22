@@ -162,31 +162,55 @@ st.markdown(
 
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 형님 특명: 원초적 주가 강제 고정 완공)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 종목명 글씨 다이렉트 저격 완공)
 # =================================================================
 master_2_cols = st.columns(2)
 
-# 💡 [원초적 직통 가스관]: 수파베이스 백엔드 금고에 박혀있는 목요일 마감 종가 금액을 생짜 글자로 강제 박아넣어 송출합니다!
-with master_2_cols[0]:
-    # 🔺 삼성전자: 목요일 마감 종가 (가짜 가이드라인 없이 순정 박스 출력)
-    st.markdown("""
-        <div class='master-box-custom-up'>
-            <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ 삼성전자</span>
-            <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>55,400원 (+0.00%)</span>
-        </div>
-    """, unsafe_allow_html=True)
+# 🎯 [영점 조절]: 엇박자 나는 코드는 다 버리고, 전 우주에 단 하나뿐인 진짜 정품 한글 종목명으로 조준사격!
+m_targets = [("삼성전자", "삼성전자"), ("SK하이닉스", "SK하이닉스")]
 
-with master_2_cols[1]:
-    # 🔺 SK하이닉스: 수파베이스 금고에서 확인 사살한 리얼 정품 목요일 마감 금액 1,691,000원 강제 다이렉트 주사!
-    st.markdown("""
-        <div class='master-box-custom-up'>
-            <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ SK하이닉스</span>
-            <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>1,691,000원 (+0.00%)</span>
-        </div>
-    """, unsafe_allow_html=True)
+for idx, (m_name, target_name) in enumerate(m_targets):
+    m_price = 0  
+    m_rate = 0.0
+    is_data_loaded = False
+    
+    try:
+        # 💡 아래 리스트가 가격 다 뿌려주는 똑똑한 raw_df 데이터판을 처음부터 끝까지 순정으로 훑어 내립니다!
+        if 'raw_df' in globals() and not raw_df.empty:
+            for _, row in raw_df.iterrows():
+                # 아래 리스트가 종목명을 찌르는 방식과 토씨 하나 안 틀리고 똑같이 글자(str)로 읽어옵니다.
+                s_name = str(row.get('name', '')).strip()
+                
+                # 💥 [수로 전격 개통]: 숫자가 쪼그라들 일이 절대 없는 "삼성전자", "SK하이닉스" 글씨 이름이 일치하면 즉시 가격 강탈!
+                if s_name == target_name:
+                    m_price = int(row.get('price', 0))
+                    m_rate = float(row.get('rate', 0.0))
+                    is_data_loaded = True
+                    break  # 정품 데이터 찾았으면 즉시 루프 탈출!
+    except:
+        pass
+
+    # 아래 리스트 형식 포맷 그대로 상단 대문에 100% 리얼 수파베이스 데이터 관통 표출
+    price_display = f"{m_price:,}원" if is_data_loaded else "조회실패"
+    sign_str = "+" if m_rate > 0 else ""
+    
+    with master_2_cols[idx]:
+        if m_rate >= 0:
+            st.markdown(f"""
+                <div class='master-box-custom-up'>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class='master-box-custom-down'>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:#60A5FA; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate:.2f}%)</span>
+                </div>
+            """, unsafe_allow_html=True)
 
 st.markdown("---")  # 마스터 상황판 구분선 완공!
-
 
 
 # =================================================================
