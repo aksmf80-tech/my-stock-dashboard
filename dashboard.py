@@ -167,53 +167,50 @@ st.markdown(
 )
 
 # =================================================================
-# 5. [HTS 규격 3분할 광고판] 쿠팡 파트너스 고정형 락(Lock) 발사대 완공 구역
+# 5. [HTS 규격 3분할 광고판] 🚨 형님 특명 7글자 정품 배너 교체 구역
 # =================================================================
 master_3_cols = st.columns(3)
 
-# 1. [좌측 광고 칸]: 첫 번째 쿠팡 상품 배너 자리
-with master_3_cols[0]:
+# 1. [좌측 광고 칸]: 형님 전용 7글자 고정 배너
+with master_3_cols:
     st.markdown(
         """
         <div class="master-banner-box" style="background-color: #1E293B;">
-            <a href="https://coupang.com" target="_blank" style="text-decoration: none; color: #10B981; font-weight: 800; font-size: 15px;">
-                💻 장비가 실력이다! 초고속 단타 모니터전<br>
-                <span style="color: #94A3B8; font-size: 11px; font-weight: 500; margin-top: 4px; display: inline-block;">※ 누르면 쿠팡 24시간 실적 락 격발 ➡️</span>
+            <a href="https://coupang.com" target="_blank" style="text-decoration: none; color: #10B981; font-weight: 800; font-size: 16px;">
+                광고광고 광고
             </a>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-# 2. [중앙 광고 칸]: 형님 시그널공장 홍보 및 공지 배너 고정
-with master_3_cols[1]:
-    st.markdown(
-        """
-        <a href="https://naver.com" target="_blank" style="text-decoration: none;">
-            <div class="master-banner-box" style="background: linear-gradient(135deg, #1E3A8A 0%, #0D9488 100%);">
-                <span style="color: white; font-size: 16px; font-weight: 800;">🏛️ 시그널공장 VIP 정보방</span>
-                <span style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 500; margin-top: 4px;">주도주 핵심 압축 리포트 직통 수령 ➡️</span>
-            </div>
-        </a>
-        """,
-        unsafe_allow_html=True
-    )
-
-# 3. [우측 광고 칸]: 두 번째 쿠팡 상품 배너 자리 (채팅창 머리 위 수직 칼대칭)
-with master_3_cols[2]:
+# 2. [중앙 광고 칸]: 형님 전용 7글자 고정 배너
+with master_3_cols:
     st.markdown(
         """
         <div class="master-banner-box" style="background-color: #1E293B;">
-            <a href="https://coupang.com" target="_blank" style="text-decoration: none; color: #10B981; font-weight: 800; font-size: 15px;">
-                ⌨️ 0.1초 반응 손맛! 무선 기계식 키보드전<br>
-                <span style="color: #94A3B8; font-size: 11px; font-weight: 500; margin-top: 4px; display: inline-block;">※ 구매 금액의 3%가 형님 통장으로 인입 ➡️</span>
+            <a href="https://naver.com" target="_blank" style="text-decoration: none; color: #3B82F6; font-weight: 800; font-size: 16px;">
+                광고광고 광고
             </a>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-# 쿠팡 파트너스 몰수 방지 필수 법적 대가성 명시 문구 방어막 심기
+# 3. [우측 광고 칸]: 형님 전용 7글자 고정 배너
+with master_3_cols:
+    st.markdown(
+        """
+        <div class="master-banner-box" style="background-color: #1E293B;">
+            <a href="https://coupang.com" target="_blank" style="text-decoration: none; color: #10B981; font-weight: 800; font-size: 16px;">
+                광고광고 광고
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# 쿠팡 파트너스 필수 법적 대가성 명시 문구 방어막 (순정 유지)
 st.markdown(
     """
     <div style="text-align: center; margin-top: 5px; margin-bottom: 20px;">
@@ -226,6 +223,7 @@ st.markdown(
 )
 
 st.markdown("---")
+
 # =================================================================
 # 6. [하단 3분할 대수술] 히트맵 축소 및 종목 중앙 정렬 + 우측 익명 채팅창 완공
 # =================================================================
