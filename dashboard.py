@@ -166,7 +166,49 @@ st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#
 # =================================================================
 # 5. [전광판 삭제 완료] 향후 광고 배너 입점 예정 구역
 # =================================================================
-st.empty()
+# =================================================================
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 무조건 안착 최종 정품)
+# =================================================================
+master_2_cols = st.columns(2)
+
+# 기교 제로! 깃허브 3번 수송관(raw_df)이 뱉어내는 순정 컬럼명 그대로 날것 순회 작동
+if 'raw_df' in locals() and not raw_df.empty:
+    for _, row in raw_df.iterrows():
+        # 수퍼베이스에서 가공 없이 날아오는 순정 'name' 컬럼을 1:1로 정직하게 대조합니다.
+        db_name = str(row.get('name', '')).strip()
+        
+        # 1. 삼성전자 날것 다이렉트 출력 (0번 좌측 상자 고정 직통 수로)
+        if db_name == "삼성전자":
+            p_disp = f"{int(row.get('price', 0)):,} 원"
+            m_rate = float(row.get('rate', 0.0))
+            s_str = "+" if m_rate > 0 else ""
+            c_val = "#EF4444" if m_rate >= 0 else "#3B82F6"
+            b_cls = 'master-box-custom-up' if m_rate >= 0 else 'master-box-custom-down'
+            with master_2_cols[0]:
+                st.markdown(f"""
+                    <div class='{b_cls}'>
+                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ 삼성전자</span>
+                        <span style='color:{c_val}; font-weight:900; font-size:26px; margin-left:auto;'>{p_disp} ({s_str}{m_rate:.2f}%)</span>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+        # 2. SK하이닉스 날것 다이렉트 출력 (1번 우측 상자 고정 직통 수로)
+        elif db_name == "SK하이닉스":
+            p_disp = f"{int(row.get('price', 0)):,} 원"
+            m_rate = float(row.get('rate', 0.0))
+            s_str = "+" if m_rate > 0 else ""
+            c_val = "#EF4444" if m_rate >= 0 else "#3B82F6"
+            b_cls = 'master-box-custom-up' if m_rate >= 0 else 'master-box-custom-down'
+            with master_2_cols[1]:
+                st.markdown(f"""
+                    <div class='{b_cls}'>
+                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ SK하이닉스</span>
+                        <span style='color:{c_val}; font-weight:900; font-size:26px; margin-left:auto;'>{p_disp} ({s_str}{m_rate:.2f}%)</span>
+                    </div>
+                """, unsafe_allow_html=True)
+
+st.markdown("---")
+
 
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
