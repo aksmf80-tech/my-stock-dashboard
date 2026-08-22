@@ -234,13 +234,13 @@ with col_stock_double:
 with col_chat_room:
     # 🎯 가운데 종목창과 머리 높이를 맞추기 위해 상단에 미세 마진 12px 주입하여 다운
     st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
-    st.markdown("### 💬 VIP 실시간 소통망", unsafe_allow_html=True)
+    st.markdown("### 💬  소통망", unsafe_allow_html=True)
     
     # 🚨 높이를 626px로 마감하여 아랫선을 칼같이 균등 일렬 종대 완성
     st.markdown("""
         <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 20px 20px; text-align: center; height: 626px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
             <div style="font-size: 36px; margin-bottom: 12px;">🔓</div>
-            <h3 style="color: #10B981; font-weight: 900; margin-bottom: 5px; font-size: 21px;">평생 무료 정보 리딩방</h3>
+            <h3 style="color: #10B981; font-weight: 900; margin-bottom: 5px; font-size: 21px;">소통방</h3>
             <p style="color: #94A3B8; font-size: 13px; margin-bottom: 20px; line-height: 1.5;">당일 실시간 주도주 테마 정보와<br>수파베이스 패킷 급등 시그널을<br>조건 없이 가장 빠르게 공유합니다.</p>
             <div style="background-color: #0F172A; border: 1px dashed #34D399; padding: 10px; border-radius: 6px; width: 100%; color: #34D399; font-weight: 700; font-size: 14px; margin-bottom: 20px;">🔥 [참여 코드: 고정 대기 중]</div>
             <a href="https://kakao.com" target="_blank" style="text-decoration: none; width: 100%;"><div style="background-color: #10B981; color: white; font-weight: 800; padding: 14px; border-radius: 6px; font-size: 16px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); cursor: pointer;">👉 무료 카카오톡방 입장하기</div></a>
