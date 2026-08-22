@@ -162,7 +162,7 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 아래 리스트와 100% 완전 동기화 단순 버전)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 소수점 엇박자 완전 사살 버전)
 # =================================================================
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
@@ -170,23 +170,26 @@ m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
 for idx, (m_name, m_code) in enumerate(m_targets):
     m_price = 0  
     m_rate = 0.0
+    is_data_loaded = False
     
     try:
-        # 💡 아래 리스트가 수파베이스 쟁반(raw_df)을 훑어내리는 메커니즘과 100% 똑같은 단순 수로 가동!
+        # 💡 아래 리스트가 가격 다 뿌려주는 똑똑한 raw_df 데이터판에서 날것 그대로 끄집어냅니다.
         if not raw_df.empty:
             for _, row in raw_df.iterrows():
                 s_code = str(row.get('code', '')).strip()
                 
-                # 아래 종목 코드 매칭 방식과 완벽하게 일치시킵니다.
+                # 내가 찾는 종목코드가 맞으면 즉시 가격과 등락률 강탈!
                 if s_code == m_code:
-                    m_price = int(row.get('price', 0))
-                    m_rate = float(row.get('rate', 0.0))
+                    # 🔥 [영점 조절 완공]: 판다스 내부에서 소수점(float)으로 바뀐 주가 패킷을 안전하게 강제 정수화(int)합니다!
+                    m_price = int(float(str(row.get('price', 0)).strip()))
+                    m_rate = float(str(row.get('rate', 0.0)).strip())
+                    is_data_loaded = True
                     break
     except:
         pass
 
-    # 아래 리스트 형식 포맷 그대로 상단 대문에 강제 강탈 표출
-    price_display = f"{m_price:,}원"
+    # 아래 리스트가 화면에 뿌려주는 포맷 그대로 대문 전광판에 주사
+    price_display = f"{m_price:,}원" if (is_data_loaded and m_price > 0) else "0원"
     sign_str = "+" if m_rate > 0 else ""
     
     with master_2_cols[idx]:
