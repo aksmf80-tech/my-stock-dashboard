@@ -47,11 +47,59 @@ st.markdown(
 )
 
 # =================================================================
-# 2. [비밀 금고 열기] Supabase 보안 인증 및 파이프라인 개통
+# 2. [비밀 금고 열기] 🚨 [supabase] 가두리 방 내부 정밀 타격 완공
 # =================================================================
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+# 형님 Secrets 스샷에 찍힌 대괄호 방 이름 'supabase'를 경유하여 날것의 토큰 주소를 완벽하게 강탈합니다.
+SUPABASE_URL = st.secrets["supabase"]["url"]
+SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# =================================================================
+# 3. [데이터 파이프라인] 15초 독립 캐시 가드 적용 데이터 수송관
+# =================================================================
+@st.cache_data(ttl=15)
+def load_market_data():
+    """🚀 수퍼베이스 kiwoom_themes 테이블에서 날것의 패킷을 긁어와 정형화 데이터프레임으로 수송"""
+    try:
+        # 최근 100개의 테마/종목 패킷을 수급
+        response = supabase.table("kiwoom_themes").select("*").order("updated_at", desc=True).limit(100).execute()
+        data = response.data
+        
+        if not data:
+            return pd.DataFrame()
+            
+        rows = []
+        for item in data:
+            t_name = str(item.get('theme_name', '미분류')).strip()
+            s_code = str(item.get('stock_code', '')).strip()
+            s_name = str(item.get('stock_name', '')).strip()
+            
+            p_val = item.get('current_price')
+            try:
+                price = int(p_val) if p_val is not None else 0
+            except:
+                price = 0
+                
+            r_val = item.get('theme_flu_rt')
+            try:
+                rate = float(r_val) if r_val is not None else 0.0
+            except:
+                rate = 0.0
+                
+            rows.append({
+                'theme': t_name,
+                'code': s_code,
+                'name': s_name,
+                'price': price,
+                'rate': rate
+            })
+            
+        return pd.DataFrame(rows)
+    except Exception as e:
+        return pd.DataFrame()
+
+# 메인 수송관을 통해 쟁반 데이터프레임 수신
+raw_df = load_market_data()
 
 # =================================================================
 # 3. [데이터 파이프라인] 15초 독립 캐시 가드 적용 데이터 수송관
