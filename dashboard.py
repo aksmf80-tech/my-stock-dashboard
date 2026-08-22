@@ -164,63 +164,49 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 5번 구역 단독 최종 완공본)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 날것 그 자체 관통본)
 # =================================================================
 master_2_cols = st.columns(2)
 
-# 영원히 바뀌지 않는 005930, 000660 종목코드로 타겟 정밀 타격 라인 배치
-m_targets = [
-    {"name": "삼성전자", "code": "005930", "col_idx": 0},
-    {"name": "SK하이닉스", "code": "000660", "col_idx": 1}
-]
-
-for target in m_targets:
-    m_name = target["name"]
-    m_code = target["code"]
-    m_idx = target["col_idx"]
-    
-    m_price = 0  
-    m_rate = 0.0
-    is_data_loaded = False
-
-    # 🚨 [5번 단독 완공 수로]: 하단 리스트가 성공적으로 데이터를 출력하는 수로를 100% 동일하게 복사했습니다!
-    if raw_df is not None and not raw_df.empty:
-        for _, row in raw_df.iterrows():
-            db_code = str(row.get('code', '')).strip()
-            if not db_code:
-                db_code = str(row.get('stock_code', '')).strip()
+# 🚨 기교 제로! 하단 리스트가 성공적으로 데이터를 뽑아 쓰는 문법 그대로 날것 순회 작동
+if not raw_df.empty:
+    for _, row in raw_df.iterrows():
+        # 수퍼베이스에서 날아온 정품 이름 날것 그대로 1:1 대조
+        db_name = str(row.get('name', '')).strip()
+        if not db_name:
+            db_name = str(row.get('stock_name', '')).strip()
             
-            # 수집기 데이터 적재 방식(ROOM_ 접두사 포함)에 상관없이 무조건 잡아채는 2중 무결점 필터
-            if db_code == m_code or db_code == f"ROOM_{m_code}":
-                # 하단 리스트가 화면을 그릴 때 가져오는 실제 컬럼 수기값을 직통으로 강탈
-                m_price = int(row.get('price', 0)) if row.get('price') is not None else int(row.get('current_price', 0))
-                m_rate = float(row.get('rate', 0.0)) if row.get('rate') is not None else float(row.get('theme_flu_rt', 0.0))
-                is_data_loaded = True
-                break  # 타겟 데이터 최종 1줄 매칭 즉시 루프 탈출
-
-    # 🚨 [레이아웃 정밀 조율]: 상자가 깨지거나 연결 대기중으로 튕기는 원인을 완벽 수리했습니다.
-    with master_2_cols[m_idx]:
-        if is_data_loaded:
-            price_display = f"{m_price:,} 원"
-            sign_str = "+" if m_rate > 0 else ""
-            color_val = "#EF4444" if m_rate >= 0 else "#3B82F6"
-            box_cls = 'master-box-custom-up' if m_rate >= 0 else 'master-box-custom-down'
-            st.markdown(f"""
-                <div class='{box_cls}'>
-                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:{color_val}; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-                <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
-                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>연결 대기중 (0원)</span>
-                </div>
-            """, unsafe_allow_html=True)
+        # 1. 삼성전자 날것 다이렉트 송출
+        if db_name == "삼성전자":
+            p_disp = f"{int(row.get('price', 0)):,} 원"
+            m_rate = float(row.get('rate', 0.0))
+            s_str = "+" if m_rate > 0 else ""
+            c_val = "#EF4444" if m_rate >= 0 else "#3B82F6"
+            b_cls = 'master-box-custom-up' if m_rate >= 0 else 'master-box-custom-down'
+            with master_2_cols[0]:
+                st.markdown(f"""
+                    <div class='{b_cls}'>
+                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ 삼성전자</span>
+                        <span style='color:{c_val}; font-weight:900; font-size:26px; margin-left:auto;'>{p_disp} ({s_str}{m_rate:.2f}%)</span>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+        # 2. SK하이닉스 날것 다이렉트 송출
+        elif db_name == "SK하이닉스":
+            p_disp = f"{int(row.get('price', 0)):,} 원"
+            m_rate = float(row.get('rate', 0.0))
+            s_str = "+" if m_rate > 0 else ""
+            c_val = "#EF4444" if m_rate >= 0 else "#3B82F6"
+            b_cls = 'master-box-custom-up' if m_rate >= 0 else 'master-box-custom-down'
+            with master_2_cols[1]:
+                st.markdown(f"""
+                    <div class='{b_cls}'>
+                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ SK하이닉스</span>
+                        <span style='color:{c_val}; font-weight:900; font-size:26px; margin-left:auto;'>{p_disp} ({s_str}{m_rate:.2f}%)</span>
+                    </div>
+                """, unsafe_allow_html=True)
 
 st.markdown("---")
-
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
 # =================================================================
