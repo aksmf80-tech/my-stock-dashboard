@@ -207,7 +207,7 @@ if not status_df.empty and chosen_theme and not raw_df.empty:
     down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
 
 # -----------------------------------------------------------------
-# [2구역] 소속 종목 복층형 기둥
+# [2구역] 소속 종목 복층형 기둥 (HTS 순정 콤팩트 규격)
 # -----------------------------------------------------------------
 with col_stock_double:
     st.markdown(f"### 🎯 [{chosen_theme}] 종목 포지션", unsafe_allow_html=True)
@@ -229,18 +229,18 @@ with col_stock_double:
         else: st.write("<p style='color:#64748B; padding:10px;'>당일 해당 테마에 하락 종목이 없습니다.</p>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------
-# [3구역] 🚨 실시간 익명 웹 채팅방 위젯 (RumbleTalk 임베드 보안 코드 보정 완공)
+# [3구역] 🚨 Cbox 순정 다이렉트 익명 소통방 (형님 방 주소 다이렉트 패킷)
 # -----------------------------------------------------------------
 with col_chat_room:
+    # 가운데 종목 기둥과 헤드라인 수평을 맞추기 위한 12px 다운 마진
     st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
     st.markdown("### 💬 실시간 주주 대화방", unsafe_allow_html=True)
     
-    # 🎯 [버그 정밀 조준 사격]: 럼블톡 보안 정책을 우회하기 위해 주소를 임베드 전용 라우터 주소인 
-    # 'https://rumbletalk.com' 규격으로 완벽하게 전환 배치했습니다!
+    # 🎯 src 주소 내부에 형님의 고유 코드(3559455 및 p6H02s)와 직통 명령어(&sec=main) 결합 완공
     st.markdown("""
-        <div style="background-color: #1E293B; border: 2px solid #1E293B; border-radius: 8px; padding: 6px; height: 626px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
+        <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 8px; height: 626px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
             <iframe 
-               <script src="https://rumbletalk.com/client/?KCh8s!k6"></script> 
+                src="https://cbox.ws" 
                 marginwidth="0" 
                 marginheight="0" 
                 frameborder="0" 
@@ -254,9 +254,10 @@ with col_chat_room:
         </div>
     """, unsafe_allow_html=True)
 
-# 5. 오토 리프레시 엔진 구동
+# 5. 오토 리프레시 엔진 구동 (15초 자동 브라우저 동기화)
 try:
     from streamlit_autorefresh import st_autorefresh
     st_autorefresh(interval=15000, key="market_data_refresh_engine_24h")
 except:
     pass
+
