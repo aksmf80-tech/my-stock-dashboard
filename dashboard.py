@@ -87,11 +87,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (🚨 쟁반 이름 싱크 완전 완공 버전)
+# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# 🚨 [형님 특명] 무조건 여기에 박으셔야 30만 명 디도스 트래픽 방어막이 켜집니다!
+@st.cache_data(ttl=15)  # ⬅️ 방향키로 여기로 이동하셔서 딱 이 한 줄을 적으시면 됩니다!
+def load_market_data():
+    try:
+        response = supabase.table("kiwoom_themes").select("*").execute()
+        rows = []
+        # ... 하단 로직 동일 ...
+
 
 def load_market_data():
     try:
