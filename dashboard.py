@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -13,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 [형님 특명] 3번 광고판 468px 정밀 압축 엔진 탑재)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 상단 광고판 수평 일렬종대 영점 조절)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
@@ -36,22 +37,6 @@ st.markdown("""
         border: none !important; 
         padding: 0px !important; 
         text-align: center !important;
-        min-height: 80px !important;
-        max-height: 80px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        overflow: hidden !important;
-    }
-    
-    /* 🚨 [형님 특명 반영 - 3번 애드스테라 전용 초밀착 겉틀]: 
-       바깥 차콜 박스 너비를 468px로 꽉 묶어 내부 알맹이와 유격 없이 1대1로 일치시킵니다. */
-    .adsterra-ad-box {
-        background-color: #1E293B !important;
-        border: none !important;
-        padding: 0px !important;
-        margin: 0 auto !important; /* 좌우 남는 공백을 자동으로 배분해 정중앙 정렬 유도 */
-        max-width: 468px !important; /* 가로폭을 468px로 제한 자물쇠 체결 */
         min-height: 80px !important;
         max-height: 80px !important;
         display: flex !important;
@@ -88,7 +73,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. 쿠팡 파트너스 & 애드스테라 융합 광고 주입 구역 (수평 압축 버전)
+# 2-2. 쿠팡 파트너스 광고 코드 미리 세팅 구역
 # =================================================================
 HTML_AD_1 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
@@ -98,9 +83,9 @@ HTML_AD_2 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
 """
 
-# 3번 자리 (🚨 자바스크립트 소스를 가로 468, 세로 60 순정 규격 그대로 단정하게 고정 수리 완료)
-HTML_AD_3 = """
-<div style="width:100%; height:60px; display:flex; align-items:center; justify-content:center;">
+# 🚨 [보안 우회 핵심 엔진]: 스트림릿 차단 필터를 파괴하기 위해 자바스크립트를 전용 날것 패킷으로 래핑합니다.
+RAW_JS_AD_3 = """
+<div style="width:100%; height:80px; display:flex; align-items:center; justify-content:center; background-color:#1E293B; margin:0; padding:0;">
     <script type="text/javascript">
         atOptions = {
             'key' : '837653d89b5187fe6192be2c7b895798',
@@ -114,16 +99,19 @@ HTML_AD_3 = """
 </div>
 """
 
-# 가로 3형제 배너 출력 가동 (3번 자리만 전용 adsterra-ad-box 스타일로 초밀착 격리 수리)
+# 가로 3형제 배너 출력 가동
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
 with ad_col2:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_2}</div>', unsafe_allow_html=True)
 with ad_col3:
-    st.markdown(f'<div class="adsterra-ad-box">{HTML_AD_3}</div>', unsafe_allow_html=True)
+    # 🎯 [치트키 투입]: 3번 자리만 st.markdown 대신 components.html 함수로 보안 필터를 안전하게 무력화 우회 출격시킵니다!
+    with st.container():
+        components.html(RAW_JS_AD_3, height=80, scrolling=no)
 
 st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
+
 
 
 # 3. 수파베이스 직통 연결 및 데이터 파이프라인
