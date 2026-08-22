@@ -33,7 +33,7 @@ st.markdown("""
     /* 🚨 광고 겉틀 박스 높이를 80px 순정 다크 챠콜 박스로 밀착 세팅 (중복 박스 버그 원천 봉쇄) */
     .coupang-ad-box {
         background-color: #1E293B !important;
-        border: 2px dashed #94A3B8 !important;
+        border: none !important;
         border-radius: 6px !important;
         padding: 0px !important; /* 내부 여백을 0으로 깎아서 광고 알맹이 풀 밀착 */
         text-align: center !important;
