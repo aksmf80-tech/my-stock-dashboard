@@ -162,68 +162,55 @@ st.markdown(
 
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 테마 고정 방 송출 기법 완공)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 아래 리스트와 100% 동일 수로 완공)
 # =================================================================
 master_2_cols = st.columns(2)
+m_targets = [("삼성전자", "삼성전자"), ("SK하이닉스", "SK하이닉스")]
 
-# 🎯 [형님 특명 영점 조절]: 하단 기계/장비 방처럼, 오직 '대형주마스터' 방 소속 종목만 퍼 올리도록 가스관 고정!
-fixed_master_theme = "대형주마스터"
-master_stock_list = []
-
-try:
-    if not raw_df.empty:
-        # 하단 리스트가 테마명 글자 공백 잘라 매칭하는 방식과 100% 똑같이 복제!
-        loop_df = raw_df.copy()
-        loop_df['theme_clean'] = loop_df['theme'].astype(str).str.strip()
-        
-        # '대형주마스터' 방에 입주해 있는 종목들만 칼같이 필터링 (가두리 완전 동기화)
-        master_detail_df = loop_df[loop_df['theme_clean'] == fixed_master_theme].copy()
-        
-        # 하단 리스트가 rows 훑어서 쟁반 담는 정품 공식 토씨 하나 안 틀리고 그대로 복사!
-        for _, row in master_detail_df.iterrows():
-            s_price = int(row.get('price', 0))
-            s_name = str(row.get('name', '알수없음')).strip()
-            s_rate = float(row.get('rate', 0.0))
-            s_code = str(row.get('code', '005930')).strip()
-            master_stock_list.append((s_name, s_rate, s_price, s_code))
-except:
-    pass
-
-# 하단 리스트가 화면에 최종 송출하는 HTS 규격 그라데이션 박스 문법 그대로 대문 전광판에 주입!
-m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
-
-for idx, (m_name, m_code) in enumerate(m_targets):
-    display_price = "0원"
-    display_rate = 0.0
-    is_found = False
+for idx, (m_name, target_name) in enumerate(m_targets):
+    m_price = 0  
+    m_rate = 0.0
+    is_data_loaded = False
     
-    # '대형주마스터' 방에서 긁어온 생선들 중에 코드 일치하는 놈 최종 송출
-    for s_name, s_rate, s_price, s_code in master_stock_list:
-        if str(s_code).strip() == str(m_code).strip():
-            display_price = f"{s_price:,}원"
-            display_rate = s_rate
-            is_found = True
-            break
-            
-    sign_str = "+" if display_rate > 0 else ""
+    try:
+        # 💡 아래 리스트가 가격 다 뿌려주는 똑똑한 raw_df 데이터판을 처음부터 끝까지 직접 샅샅이 뒤집니다!
+        if 'raw_df' in globals() and not raw_df.empty:
+            for _, row in raw_df.iterrows():
+                # 아래 리스트가 종목명을 읽어오는 방식과 100% 똑같이 글자(str)로 읽어서 공백을 자릅니다.
+                s_name = str(row.get('name', '')).strip()
+                
+                # 숫자가 쪼그라들 일이 절대 없는 진짜 '글자 이름(삼성전자/SK하이닉스)'이 일치하면,
+                # 아래 리스트 공식 그대로 'price'와 'rate' 변수명을 즉시 강탈 후 탈출!
+                if s_name == target_name:
+                    m_price = int(row.get('price', 0))
+                    m_rate = float(row.get('rate', 0.0))
+                    is_data_loaded = True
+                    break  # 정품 생선 찾았으면 즉시 루프 탈출!
+    except:
+        pass
+
+    # 아래 리스트 형식 포맷 그대로 상단 대문에 강제 관통 표출
+    price_display = f"{m_price:,}원" if is_data_loaded else "0원"
+    sign_str = "+" if m_rate > 0 else ""
     
     with master_2_cols[idx]:
-        if display_rate >= 0:
+        if m_rate >= 0:
             st.markdown(f"""
                 <div class='master-box-custom-up'>
                     <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>{display_price} ({sign_str}{display_rate:.2f}%)</span>
+                    <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
                 </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
                 <div class='master-box-custom-down'>
                     <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#60A5FA; font-weight:900; font-size:26px; margin-left:auto;'>{display_price} ({display_rate:.2f}%)</span>
+                    <span style='color:#60A5FA; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate:.2f}%)</span>
                 </div>
             """, unsafe_allow_html=True)
 
-st.markdown("---")  # 마스터 전광판 하단 가로줄 엔드 마크 완공!
+st.markdown("---")  # 구분선 엔드 마크 완공!
+
 
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
