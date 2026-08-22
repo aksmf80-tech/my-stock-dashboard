@@ -163,38 +163,47 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 아래 리스트와 100% 동일 수로 완공)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 theme_code 고유 락 직통 완공)
 # =================================================================
 master_2_cols = st.columns(2)
-m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
+# 🎯 [영점 조절]: 수파베이스 테이블의 절대 변하지 않는 정품 고유 키인 ROOM_방번호로 수로 정명중 조준!
+m_targets = [("삼성전자", "ROOM_005930"), ("SK하이닉스", "ROOM_000660")]
 
-for idx, (m_name, m_code) in enumerate(m_targets):
+for idx, (m_name, m_target_room) in enumerate(m_targets):
     m_price = 0  
     m_rate = 0.0
     is_data_loaded = False
     
     try:
-        # 💡 드디어 이름이 완벽하게 싱크된 진짜 raw_df 데이터판을 통째로 뒤져서 사격합니다!
+        # 💡 아래 리스트가 가격 다 뿌려주는 똑똑한 raw_df 데이터판을 처음부터 끝까지 직접 샅샅이 뒤집니다!
         if not raw_df.empty:
             for _, row in raw_df.iterrows():
-                # 숫자가 소수점으로 쪼그라들었든 말든 강제로 순정 숫자로 변환하여 영점을 일치시킵니다.
-                try:
-                    s_code_numeric = int(float(str(row.get('code', '0')).strip()))
-                    target_numeric = int(m_code)
-                except:
-                    continue
+                # 3번 영역 rows에서 수파베이스의 'theme_code'를 그대로 담아둔 대시보드 쟁반 주소를 읽습니다.
+                # 만약 기존 3번 변수명이 'theme'로 묶여있다면, 아래 리스트 방식과 똑같이 매칭합니다.
+                s_theme_code = str(row.get('theme', '')).strip()
                 
-                # 숫자의 순정 본질(660 == 660)이 맞으면 주가와 등락률 즉시 강탈 후 탈출!
-                if s_code_numeric == target_numeric:
-                    m_price = int(float(str(row.get('price', 0)).strip()))
-                    m_rate = float(str(row.get('rate', 0.0)).strip())
+                # 💥 [진짜 수로 개통]: 쪼그라들 리스크가 0%인 'ROOM_000660' 글자가 완벽하게 일치하면 즉시 가격 강탈!
+                if "ROOM_" in s_theme_code and s_theme_code == m_target_room:
+                    m_price = int(row.get('price', 0))
+                    m_rate = float(row.get('rate', 0.0))
                     is_data_loaded = True
-                    break
+                    break  # 정품 생선 찾았으면 즉시 루프 탈출!
+                    
+            # ✨ [혹시 모를 2중 가스관 방어막]: 만약 3번 쟁반에 theme_code가 stock_code 생짜로 누적되어 있다면 아래 방식으로도 1번 더 사격합니다.
+            if not is_data_loaded:
+                for _, row in raw_df.iterrows():
+                    s_code_clean = str(row.get('code', '')).strip().str.zfill(6)
+                    pure_stock_code = m_target_room.replace("ROOM_", "")
+                    if s_code_clean == pure_stock_code:
+                        m_price = int(row.get('price', 0))
+                        m_rate = float(row.get('rate', 0.0))
+                        is_data_loaded = True
+                        break
     except:
         pass
 
-    # 아래 리스트 형식 포맷 그대로 상단 대문에 강제 표출
-    price_display = f"{m_price:,}원" if (is_data_loaded and m_price > 0) else "0원"
+    # 아래 리스트 형식 포맷 그대로 상단 대문에 강제 관통 표출
+    price_display = f"{m_price:,}원" if is_data_loaded else "0원"
     sign_str = "+" if m_rate > 0 else ""
     
     with master_2_cols[idx]:
@@ -214,8 +223,6 @@ for idx, (m_name, m_code) in enumerate(m_targets):
             """, unsafe_allow_html=True)
 
 st.markdown("---")
-
-
 
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
