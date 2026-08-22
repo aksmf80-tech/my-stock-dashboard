@@ -87,7 +87,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (SKELETON 사살 완공 버전)
+# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (🚨 DB 필드 싱크 완벽 완공 버전)
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
@@ -107,6 +107,7 @@ def load_market_data():
                 continue
                 
             r_val = item.get('theme_flu_rt')
+            # 🎯 [진짜 범인 사살 완료]: item.get('price') 대신 진짜 DB 이름인 'current_price' 수로 개통!
             p_val = item.get('current_price')
             t_name = str(item.get('theme_name', '미분류')).strip()
             
@@ -115,7 +116,7 @@ def load_market_data():
                 'name': s_name,
                 'code': s_code,
                 'rate': float(r_val) if r_val is not None else 0.0,
-                'price': int(p_val) if p_val is not None else 0
+                'price': int(p_val) if p_val is not None else 0  # 정품 데이터 완벽 안착
             })
         base_df = pd.DataFrame(rows)
     except Exception as e:
@@ -145,7 +146,7 @@ kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
 
 # =================================================================
-# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출 (🚨 형님 정품 주소 싱크 완공)
+# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
 # =================================================================
 st.markdown(
     "<div class='cafe-banner-container'>\n"
@@ -162,7 +163,7 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 화면 칸 부활 및 리얼 가격 직통 관통 완공)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 리얼 주가 직통 관통 완공)
 # =================================================================
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
@@ -170,24 +171,26 @@ m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
 for idx, (m_name, m_code) in enumerate(m_targets):
     m_price = 0  
     m_rate = 0.0
-    
+    is_data_loaded = False
+
     try:
-        # 💡 [독립 수로 가스관]: 하단 연산과 무관하게 전체 순정 raw_df에서 두 대형주 주가를 다이렉트로 가로챕니다.
         if 'raw_df' in globals() and not raw_df.empty:
             check_df = raw_df.copy()
+            # DB가 문자열 text 형식으로 '000660' 고유 형식을 유지하고 있으므로 공백만 자르고 문자열로 락(Lock)을 맵핑합니다.
             check_df['code_clean'] = check_df['code'].astype(str).str.strip().str.zfill(6)
             
             target_rows = check_df[check_df['code_clean'] == str(m_code).strip()]
             
             if not target_rows.empty:
                 latest_row = target_rows.iloc[-1]
-                m_price = int(float(str(latest_row['price']).strip()))
-                m_rate = float(str(latest_row['rate']).strip())
+                m_price = int(latest_row['price'])
+                m_rate = float(latest_row['rate'])
+                is_data_loaded = True
     except:
         pass
 
-    # 가짜 안전가드 싹 걷어내고 웅장한 대문 칸에 가격 패킷 무조건 강제 표출
-    price_display = f"{m_price:,}원" if m_price > 0 else "조회실패"
+    # 웅장한 대문 칸에 가격 패킷 다이렉트 표출
+    price_display = f"{m_price:,}원" if is_data_loaded else "조회실패"
     sign_str = "+" if m_rate > 0 else ""
     
     with master_2_cols[idx]:
