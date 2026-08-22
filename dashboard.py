@@ -80,8 +80,10 @@ HTML_AD_1 = """
 """
 
 HTML_AD_2 = """
-<iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
-"""
+<script src="https://ads-partners.coupang.com/g.js"></script>
+<script>
+	new PartnersCoupang.G({"id":1020953,"template":"carousel","trackingCode":"AF2178062","width":"600","height":"80","tsource":""});
+</script>
 
 HTML_AD_3 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
