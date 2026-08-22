@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 [형님 특명] 3번 겉틀 강제 468px 소멸 엔지니어링)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 3번 겉틀 군살 완전 제거 및 하단 삼분할 밸런스 정렬)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
@@ -45,13 +45,20 @@ st.markdown("""
         overflow: hidden !important;
     }
     
-    /* 🚨 [치트키 투입 - 스트림릿 고유 가두리 빗장 완전 파괴]: 
-       스트림릿이 iframe 컴포넌트를 그릴 때 강제로 벌려버리는 가로폭 고정틀([data-testid="stHtml"])을 
-       조준 타격하여, 3번 기둥 안에서 가로 너비가 무조건 468px 최대치로 꽉 묶이도록 자물쇠를 체결합니다. */
-    div[data-testid="stColumn"]:nth-of-type(3) div[data-testid="stHtml"] iframe {
-        max-width: 468px !important;
-        margin: 0 auto !important; /* 남는 공간을 좌우로 정갈하게 분배해 자동 정중앙 정렬 */
-        display: block !important;
+    /* 🚨 [형님 특명 완공]: 3번 애드스테라 전용 초밀착 겉틀 박스 
+       가로 너비를 딱 468px로 고정하고, 뼈대 비율과 1대1 싱크를 맞춰 남는 검은 여백을 원천 차단 소멸시킵니다. */
+    .adsterra-ad-box {
+        background-color: #1E293B !important;
+        border: none !important;
+        padding: 0px !important;
+        margin: 0 auto !important; 
+        max-width: 468px !important; 
+        min-height: 80px !important;
+        max-height: 80px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: hidden !important;
     }
     
     /* 가운데 2구역 종목창 방어막 고정 디자인 규칙 */
@@ -82,7 +89,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. 쿠팡 파트너스 광고 코드 미리 세팅 구역
+# 2-2. 쿠팡 파트너스 & 애드스테라 융합 광고 주입 구역 (비율 조정 완료)
 # =================================================================
 HTML_AD_1 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
@@ -108,15 +115,18 @@ RAW_JS_AD_3 = """
 </div>
 """
 
-# 가로 3형제 배너 출력 가동
-ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
+# 🚨 [뼈대 리모델링 감행]: 기존의 무조건 3등분(3, gap="medium")을 폐기처분하고, 
+# 형님의 황금 수치 비율에 딱 맞도록 기둥 폭을 가로 [1 : 1 : 0.78] 구조로 차등 재설계했습니다!
+ad_col1, ad_col2, ad_col3 = st.columns([1, 1, 0.78], gap="medium")
 with ad_col1:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
 with ad_col2:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_2}</div>', unsafe_allow_html=True)
 with ad_col3:
-    # 🎯 겉틀 가두리 하이잭 정밀 타격 함수로 468px 강제 소멸 정렬 완료!
+    # 전용 밀착 겉틀 상자 규칙을 씌워 빗장을 풀어버립니다.
+    st.markdown(f'<div class="adsterra-ad-box">', unsafe_allow_html=True)
     components.html(RAW_JS_AD_3, height=80)
+    st.markdown(f'</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
 
