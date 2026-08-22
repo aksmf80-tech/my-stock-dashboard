@@ -162,7 +162,7 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 소수점 엇박자 완전 사살 버전)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 숫자형 영점 조절 완공 버전)
 # =================================================================
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
@@ -176,11 +176,15 @@ for idx, (m_name, m_code) in enumerate(m_targets):
         # 💡 아래 리스트가 가격 다 뿌려주는 똑똑한 raw_df 데이터판에서 날것 그대로 끄집어냅니다.
         if not raw_df.empty:
             for _, row in raw_df.iterrows():
-                s_code = str(row.get('code', '')).strip()
+                # 🔥 [최종 영점 조절]: 코드가 '000660'이든, 앞자리 0이 다 잘린 '660'이든 상관없이 강제로 순정 숫자로 변환합니다!
+                try:
+                    s_code_numeric = int(float(str(row.get('code', '0')).strip()))
+                    target_numeric = int(m_code)  # '000660' -> 660 / '005930' -> 5930
+                except:
+                    continue
                 
-                # 내가 찾는 종목코드가 맞으면 즉시 가격과 등락률 강탈!
-                if s_code == m_code:
-                    # 🔥 [영점 조절 완공]: 판다스 내부에서 소수점(float)으로 바뀐 주가 패킷을 안전하게 강제 정수화(int)합니다!
+                # 숫자의 순정 본질(660 == 660)이 맞으면 주가와 등락률 즉시 강탈 후 탈출!
+                if s_code_numeric == target_numeric:
                     m_price = int(float(str(row.get('price', 0)).strip()))
                     m_rate = float(str(row.get('rate', 0.0)).strip())
                     is_data_loaded = True
@@ -188,7 +192,7 @@ for idx, (m_name, m_code) in enumerate(m_targets):
     except:
         pass
 
-    # 아래 리스트가 화면에 뿌려주는 포맷 그대로 대문 전광판에 주사
+    # 아래 리스트 형식 포맷 그대로 상단 대문에 강제 표출
     price_display = f"{m_price:,}원" if (is_data_loaded and m_price > 0) else "0원"
     sign_str = "+" if m_rate > 0 else ""
     
