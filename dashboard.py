@@ -163,60 +163,54 @@ st.markdown(
 
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 종목코드 고정 날것 직통 투과)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 15초 독립 캐시 + 목요일 종가 관통)
 # =================================================================
-master_2_cols = st.columns(2)
-m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
-
-for idx, (m_name, m_code) in enumerate(m_targets):
-    m_price = 0  
+# 🎯 [형님 특명 전광판 캐시 락]: 상단 전광판 전용으로 15초 동안 메모리에 락을 걸어 트래픽 부하를 분쇄합니다.
+@st.cache_data(ttl=15)
+def get_master_panel_data(target_name, _df_packet):
+    m_price = 0
     m_rate = 0.0
-    is_data_loaded = False
-
-    try:
-        # 🚨 [형님 절대 특명 명세]: 어떤 필터나 가두리 연산도 거치지 않고, 
-        # 오직 종목코드(005930, 000660)만 일치하면 DB 날것 그대로 강제 강탈합니다!
-        if not raw_df.empty:
-            raw_df['code_clean'] = raw_df['code'].astype(str).str.strip()
-            target_rows = raw_df[raw_df['code_clean'] == m_code]
+    is_loaded = False
+    
+    if not _df_packet.empty:
+        # 🚨 [중요]: 'name' 컬럼의 공백을 완벽하게 밀어버리고 한글 이름으로 정밀 타격 대조합니다.
+        _df_packet['name_clean'] = _df_packet['name'].astype(str).str.strip()
+        target_rows = _df_packet[_df_packet['name_clean'] == target_name]
+        
+        if not target_rows.empty:
+            # 주말/장후 시간대에는 수퍼베이스에 남아있는 목요일 마감 최종 행(.iloc[-1])을 강제로 관통 가로채기 합니다.
+            latest_row = target_rows.iloc[-1]
+            m_price = int(latest_row['price'])
+            m_rate = float(latest_row['rate'])
+            is_loaded = True
             
-            if not target_rows.empty:
-                latest_row = target_rows.iloc[-1]
-                
-                # 수파베이스에 날아와 박힌 가격과 등락률 원본 그대로 즉시 관통
-                p_live = int(latest_row['price'])
-                r_live = float(latest_row['rate'])
-                
-                m_price = p_live
-                m_rate = r_live
-                is_data_loaded = True
-    except:
-        pass
+    return m_price, m_rate, is_loaded
+
+master_2_cols = st.columns(2)
+m_targets = ["삼성전자", "SK하이닉스"]
+
+for idx, m_name in enumerate(m_targets):
+    # 💥 독립 캐시 함수를 호출하여 15초 주기로 수퍼베이스 목요일 최종 주가 패킷을 받아옵니다.
+    m_price, m_rate, is_data_loaded = get_master_panel_data(m_name, raw_df)
 
     with master_2_cols[idx]:
-        # 💡 테마 분류 족쇄를 원천 파괴하여, 수파베이스 내부의 리얼 가격 패킷이 상단에 무조건 강제 표출됩니다!
         if is_data_loaded:
-            price_display = f"{m_price:,}원"
+            price_display = f"{m_price:,} 원"
             sign_str = "+" if m_rate > 0 else ""
-            if m_rate >= 0:
-                st.markdown(f"""
-                    <div class='master-box-custom-up'>
-                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#EF4444; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
-                    </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                    <div class='master-box-custom-down'>
-                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#3B82F6; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate:.2f}%)</span>
-                    </div>
-                """, unsafe_allow_html=True)
+            color_val = "#EF4444" if m_rate >= 0 else "#3B82F6"
+            box_cls = 'master-box-custom-up' if m_rate >= 0 else 'master-box-custom-down'
+            st.markdown(f"""
+                <div class='{box_cls}'>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:{color_val}; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
+                </div>
+            """, unsafe_allow_html=True)
         else:
+            # 데이터 수신 전이나 에러 시 예외 방어막
             st.markdown(f"""
                 <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
                     <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>대기중 (0원)</span>
+                    <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>연결 대기중 (0원)</span>
                 </div>
             """, unsafe_allow_html=True)
 
