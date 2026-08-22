@@ -70,7 +70,7 @@ st.markdown("""
 
 # 1번 자리에 첫 번째 쿠팡 광고 코드를 따옴표 안에 붙여넣으세요!
 HTML_AD_1 = """
-<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no"></iframe>
+<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020951&template=carousel&trackingCode=AF2178062&subId=&width=400&height=80&tsource=" width="400" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
 """
 
 # 2번 자리에 두 번째 쿠팡 광고 코드를 따옴표 안에 붙여넣으세요!
