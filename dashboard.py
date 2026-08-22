@@ -177,22 +177,22 @@ def fetch_master_stock_direct(_df_packet):
     
     if _df_packet is not None and not _df_packet.empty:
         try:
-            # 수퍼베이스에서 빌드된 데이터프레임 순회 타격
+            # 하단 리스트가 성공적으로 가동되는 데이터프레임 순회 루프 작동
             for _, row in _df_packet.iterrows():
                 # 3번 수집기 내부에서 변환된 소문자 'code' 컬럼값을 안전하게 추출
                 db_code = str(row.get('code', '')).strip()
                 
                 # 🚨 [형님 특명 명세]: 영원히 바뀌지 않는 '005930'과 '000660' 코드만 발견 즉시 단가 탈취
-                if db_code == "005930":
+                if db_code == "005930" or db_code == "ROOM_005930":
                     result["005930"] = {
-                        "price": int(row.get('price', 0)),
-                        "rate": float(row.get('rate', 0.0)),
+                        "price": int(row.get('price', 0)) if row.get('price') is not None else int(row.get('current_price', 0)),
+                        "rate": float(row.get('rate', 0.0)) if row.get('rate') is not None else float(row.get('theme_flu_rt', 0.0)),
                         "success": True
                     }
                 elif db_code == "000660" or db_code == "ROOM_000660":
                     result["000660"] = {
-                        "price": int(row.get('price', 0)),
-                        "rate": float(row.get('rate', 0.0)),
+                        "price": int(row.get('price', 0)) if row.get('price') is not None else int(row.get('current_price', 0)),
+                        "rate": float(row.get('rate', 0.0)) if row.get('rate') is not None else float(row.get('theme_flu_rt', 0.0)),
                         "success": True
                     }
         except:
@@ -202,7 +202,7 @@ def fetch_master_stock_direct(_df_packet):
 
 master_2_cols = st.columns(2)
 
-# 💥 독립 캐시 함수를 직통 호출하여 목요일 최종 가격 쟁반을 수신합니다.
+# 💥 독립 캐시 함수를 직통 호출하여 수파베이스 최종 가격 쟁반을 수신합니다.
 master_data_pack = fetch_master_stock_direct(raw_df)
 
 # 1. 삼성전자 대형 전광판 렌더링
@@ -250,6 +250,7 @@ with master_2_cols[1]:
         """, unsafe_allow_html=True)
 
 st.markdown("---")
+
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
 # =================================================================
