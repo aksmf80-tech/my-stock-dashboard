@@ -240,7 +240,7 @@ with col_chat_room:
     st.markdown("""
         <div style="background-color: #1E293B; border: 2px solid #1E293B; border-radius: 8px; padding: 6px; height: 626px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
             <iframe 
-                src="https://rumbletalk.com/client/?KCh8s!k6" 
+                <div id="rt-cbafa761ce68626a0490cc5f97689d07"></div> <script src="https://rumbletalk.com/client/?KCh8s!k6"></script> 
                 marginwidth="0" 
                 marginheight="0" 
                 frameborder="0" 
