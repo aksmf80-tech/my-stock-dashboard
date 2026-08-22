@@ -6,28 +6,38 @@ import time
 import datetime
 from supabase import create_client, Client
 
-# 1. 페이지 레이아웃 세팅 (HTS 스타일 풀화면)
+# 1. 페이지 레이아웃 세팅 (HTS 스타일 풀화면 기본 개방)
 st.set_page_config(
     page_title="실시간 주도주 테마 전광판",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 순정 80px 높이 고정 및 종목 박스 철통 방어)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 [형님 특명] 좌우 끝단 공백 유격 원천 파괴)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
     [data-testid="stHeader"] { background: transparent !important; height: 0rem !important; display: none !important; }
-    .block-container { padding-top: 2.0rem !important; padding-bottom: 0.5rem !important; }
+    
+    /* 🚨 [핵심 타격 보정]: 스트림릿 고유의 가로 제한 사슬을 완벽하게 부수고 100% 풀 개방합니다.
+       max-width를 무제한(none)으로 풀고, 좌우 패딩 마진을 0.8rem으로 최소화하여 모니터 양쪽 끝 벽면까지 꽉 채웁니다. */
+    .block-container { 
+        max-width: none !important; 
+        padding-top: 1.5rem !important; 
+        padding-bottom: 0.5rem !important; 
+        padding-left: 0.8rem !important; 
+        padding-right: 0.8rem !important; 
+    }
+    
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
-    /* 광고 겉틀 박스 높이를 80px 순정 다크 챠콜 박스로 묶어 하단과 대칭을 맞춥니다. */
+    /* 광고 겉틀 박스 높이를 80px 순정 다크 챠콜 박스로 밀착 세팅 */
     .coupang-ad-box {
         background-color: #1E293B !important;
         border: 2px dashed #94A3B8 !important;
         border-radius: 6px !important;
-        padding: 0px !important; /* 내부 여백을 0으로 깎아서 광고가 꽉 차게 유도 */
+        padding: 0px !important; /* 내부 여백을 0으로 깎아서 광고 알맹이 풀 밀착 */
         text-align: center !important;
         min-height: 80px !important;
         max-height: 80px !important;
@@ -37,7 +47,7 @@ st.markdown("""
         overflow: hidden !important;
     }
     
-    /* 🚨 가운데 2구역 종목창 방어막 */
+    /* 가운데 2구역 종목창 방어막 고정 */
     .stock-box-up {
         border-left: 8px solid #EF4444 !important;
         background-color: #1E293B !important;
@@ -65,26 +75,21 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. 쿠팡 파트너스 광고 코드 직통 삽입 구역 (🚨 가로폭 100% 강제 도금)
+# 2-2. 쿠팡 파트너스 광고 코드 직통 삽입 구역 (가로 무제한 확장 버전)
 # =================================================================
-
-# 💡 [핵심 보정 완료]: 주소 뒤에 &width=100% 파라미터를 정밀 결합하고, 
-# iframe 자체 너비 속성도 width="100%"로 묶어서 반만 차던 버그를 완벽하게 진압했습니다!
-# 형님 고유 ID(3559455) 슬롯이 고정 장착되어 있습니다.
-
 HTML_AD_1 = """
-<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020951&template=carousel&trackingCode=AF2178062&subId=&width=400&height=80&tsource=" width="400" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
 """
 
 HTML_AD_2 = """
-<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
 """
 
 HTML_AD_3 = """
-<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
 """
 
-# 가로 3형제 풀배너 가동
+# 가로 3형제 풀배너 웅장하게 가동 (모니터 끝 단까지 강제 밀착)
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
@@ -94,6 +99,7 @@ with ad_col3:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_3}</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
+
 
 # 3. 수파베이스 직통 연결 및 데이터 파이프라인
 SUPABASE_URL = st.secrets["supabase"]["url"]
