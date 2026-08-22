@@ -197,16 +197,18 @@ if not status_df.empty and chosen_theme and not raw_df.empty:
         
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
-    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
+    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
 
 # -----------------------------------------------------------------
-# [2구역] 소속 종목 복층형 기둥 (상승 위 / 하락 아래)
+# [2구역] 소속 종목 복층형 기둥 (🚨 형님 특명: 세로 증고로 하단 일렬 종대 싱크 마감)
 # -----------------------------------------------------------------
 with col_stock_double:
     st.markdown(f"### 🎯 [{chosen_theme}] 종목 포지션", unsafe_allow_html=True)
     st.markdown(f"<b style='color:#F87171; font-size:14px;'>🔺 소속 상승 종목 ({len(up_stocks)}개)</b>", unsafe_allow_html=True)
-    with st.container(height=285, border=True):
+    
+    # 🚨 바닥 영점 조율을 위해 기존 285px에서 308px로 상단 박스 정밀 수직 확장
+    with st.container(height=308, border=True):
         if up_stocks:
             for s_name, s_rate, s_price, s_code in up_stocks[:50]:
                 st.markdown(f"<div class='stock-box-up' style='padding: 10px 14px !important; margin-bottom: 5px !important;'><span class='stock-name-up' style='font-size:16px !important;'>🔺 {s_name} <small style='font-size:11px; color:#94A3B8;'>{s_code}</small></span><span class='stock-rate-up' style='font-size:16px !important;'>{s_price:,}원 (+{s_rate:.2f}%)</span></div>", unsafe_allow_html=True)
@@ -214,7 +216,9 @@ with col_stock_double:
             
     st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
     st.markdown(f"<b style='color:#60A5FA; font-size:14px;'>🔹 소속 하락 종목 ({len(down_stocks)}개)</b>", unsafe_allow_html=True)
-    with st.container(height=285, border=True):
+    
+    # 🚨 바닥 영점 조율을 위해 기존 285px에서 308px로 하단 박스 정밀 수직 확장하여 총합 라인을 바닥에 밀착
+    with st.container(height=308, border=True):
         if down_stocks:
             for s_name, s_rate, s_price, s_code in down_stocks[:50]:
                 st.markdown(f"<div class='stock-box-down' style='padding: 10px 14px !important; margin-bottom: 5px !important;'><span class='stock-name-down' style='font-size:16px !important;'>🔹 {s_name} <small style='font-size:11px; color:#94A3B8;'>{s_code}</small></span><span class='stock-rate-down' style='font-size:16px !important;'>{s_price:,}원 ({s_rate:.2f}%)</span></div>", unsafe_allow_html=True)
@@ -224,11 +228,11 @@ with col_stock_double:
 # [3구역] 무료 채팅방 날개 배너
 # -----------------------------------------------------------------
 with col_chat_room:
-    st.markdown("### 💬 VIP 실시간 소통망", unsafe_allow_html=True)
+    st.markdown("### 💬  소통망", unsafe_allow_html=True)
     st.markdown("""
         <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 25px 20px; text-align: center; height: 672px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
             <div style="font-size: 40px; margin-bottom: 15px;">🔓</div>
-            <h3 style="color: #10B981; font-weight: 900; margin-bottom: 5px; font-size: 22px;">평생 무료 정보 리딩방</h3>
+            <h3 style="color: #10B981; font-weight: 900; margin-bottom: 5px; font-size: 22px;">대화방</h3>
             <p style="color: #94A3B8; font-size: 13px; margin-bottom: 25px; line-height: 1.5;">당일 실시간 주도주 테마 정보와<br>수파베이스 패킷 급등 시그널을<br>조건 없이 가장 빠르게 공유합니다.</p>
             <div style="background-color: #0F172A; border: 1px dashed #34D399; padding: 12px; border-radius: 6px; width: 100%; color: #34D399; font-weight: 700; font-size: 14px; margin-bottom: 25px;">🔥 [참여 코드: 고정 대기 중]</div>
             <a href="https://kakao.com" target="_blank" style="text-decoration: none; width: 100%;"><div style="background-color: #10B981; color: white; font-weight: 800; padding: 14px; border-radius: 6px; font-size: 16px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); cursor: pointer;">👉 무료 카카오톡방 입장하기</div></a>
