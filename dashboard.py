@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 2구역 깨짐 영구 방어막 및 3번 수평 대칭 영점 조절)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 2구역 깨짐 영구 진압 및 바탕색 일체화 마감)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
@@ -31,7 +31,7 @@ st.markdown("""
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
-    /* 1번, 2번, 3번 광고판을 감싸는 순정 다크 챠콜 박스 규격 */
+    /* 1번, 2번 쿠팡용 대형 겉틀 박스 규격 */
     .coupang-ad-box {
         background-color: #1E293B !important;
         border: none !important; 
@@ -45,7 +45,7 @@ st.markdown("""
         overflow: hidden !important;
     }
     
-    /* 가운데 2구역 종목창 찌그러짐 차단 방어막 수술 */
+    /* 가운데 2구역 종목창 찌러짐 차단 방어막 수술 완료 */
     .stock-box-up, .stock-box-down {
         padding: 10px 12px !important; 
         margin-bottom: 6px !important;
@@ -74,7 +74,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. 쿠팡 파트너스 & 애드스테라 광고 주입 구역 (수평 3대3대3 싱크 마감)
+# 2-2. 쿠팡 파트너스 & 애드스테라 광고 주입 구역 (순정 3대3대3 싱크 버전)
 # =================================================================
 HTML_AD_1 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
@@ -84,19 +84,9 @@ HTML_AD_2 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
 """
 
-# 🚨 [형님 지시 반영 - 무결점 3번 웹 표준 iframe 타임 스탬프 리프레시 엔진]
-# 겉틀 배경색을 사이트 진짜 배경인 #0B0F19 다크 네이비 블랙으로 통일하여 이질감을 소멸시켰고,
-# 15초(15000ms)마다 iframe 주소줄(?t=시간숫자)을 흔들어 깨워 광고 증발 버그를 전면 살상 진압했습니다!
-# 🚨 [광고 완전 부활 및 15초 단독 리프레시 완성 패킷]
-# 브라우저의 가상 문서를 다루는 기술(srcdoc 공법)을 투입했습니다.
-# 메인 주식 전광판과 채팅창은 깜빡임이 0%로 완벽하게 유지되고,
-# 3번 광고판만 자물쇠 방어막 안에서 15초마다 합법적으로 광고를 리로드하여 달러를 캐냅니다!
-
-# 🚨 [형님의 지혜 반영 - 자바스크립트 타이머 완전 살상 도려내기 패킷]
-# 시스템을 마비시키던 강제 루프 코드를 흔적도 없이 전면 삭제 정화했습니다.
-# 화면 깜빡임 0%, 굳어버리는 버그 0%, 개미들은 장중에 가만히 보기만 해도 
-# 체류 시간 단가 가산점과 자체 배너 롤링 시스템으로 달러가 정순하게 복사됩니다!
-
+# 🚨 [시스템 마비 차단 완료]: 굳어버리던 자바스크립트 강제 타이머 루프를 전면 소멸 처치했습니다!
+# 배경색을 진짜 바탕색인 #0B0F19 다크 네이비로 완전히 일체화시켜 겉틀 상자를 은폐하고,
+# 개미들이 가만히 보기만 해도 광고주 자체 롤링 시스템과 체류시간 보너스로 달러를 적립하는 순정 마감 버전입니다.
 RAW_JS_AD_3 = """
 <div style="width:100%; height:80px; display:flex; align-items:center; justify-content:center; background-color:#0B0F19; margin:0; padding:0; overflow:hidden;">
     <script type="text/javascript">
@@ -112,26 +102,6 @@ RAW_JS_AD_3 = """
 </div>
 """
 
-
-        function loadAd() {
-            var iframe = document.getElementById('adsterra_sub_frame');
-            if(iframe) {
-                // 15초마다 iframe 내부 가상 문서를 아예 완전히 파괴하고 새로 작성(srcdoc 강제 갱신)하여
-                // 자바스크립트 엔진이 무조건 처음부터 깨끗하게 광고를 다시 불러오도록 설계했습니다.
-                iframe.srcdoc = adCode;
-            }
-        }
-
-        // 사이트가 처음 열릴 때 광고 1회 즉시 송출
-        loadAd();
-
-        // 🚨 이후 다른 주식 화면은 가만히 두고, 오직 이 3번 배너만 15초(15000ms)마다 무한대로 새로고침 시킵니다!
-        setInterval(loadAd, 15000);
-    </script>
-</div>
-"""
-
-
 # 균등 삼분할 가로 3형제 배너 가동 (하단 기둥과 수직축 100% 동기화)
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
@@ -139,10 +109,11 @@ with ad_col1:
 with ad_col2:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_2}</div>', unsafe_allow_html=True)
 with ad_col3:
-    # 🎯 다크 네이비 가두리 안에서 3번 광고판만 15초 독립 롤링 루프를 정상 기동합니다!
+    # 🎯 다크 네이비 순정 가두리 안에서 자바스크립트 튕김 없이 광고 알맹이를 안전하게 단층 출력합니다!
     components.html(RAW_JS_AD_3, height=80)
 
 st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
+
 
 # 3. 수파베이스 직통 연결 및 데이터 파이프라인
 SUPABASE_URL = st.secrets["supabase"]["url"]
