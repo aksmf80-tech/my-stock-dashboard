@@ -157,65 +157,50 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 종목코드 고정 날것 직통 투과)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 가짜 대기중 차단막 전면 철거 완공)
 # =================================================================
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
 
 for idx, (m_name, m_code) in enumerate(m_targets):
-    m_price = 0  
-    m_rate = 0.0
-    is_data_loaded = False
-
     try:
-        # 🚨 [형님 절대 특명 명세]: 어떤 필터나 가두리 연산도 거치지 않고, 
-        # 오직 종목코드(005930, 000660)만 일치하면 DB 날것 그대로 강제 강탈합니다!
-        if not raw_df.empty:
-            raw_df['code_clean'] = raw_df['code'].astype(str).str.strip()
-            target_rows = raw_df[raw_df['code_clean'] == m_code]
-            
-            if not target_rows.empty:
-                latest_row = target_rows.iloc[-1]
-                
-                # 수파베이스에 날아와 박힌 가격과 등락률 원본 그대로 즉시 관통
-                p_live = int(latest_row['price'])
-                r_live = float(latest_row['rate'])
-                
-                m_price = p_live
-                m_rate = r_live
-                is_data_loaded = True
-    except:
-        pass
-
-    with master_2_cols[idx]:
-        # 💡 테마 분류 족쇄를 원천 파괴하여, 수파베이스 내부의 리얼 가격 패킷이 상단에 무조건 강제 표출됩니다!
-        if is_data_loaded:
-            price_display = f"{m_price:,}원"
-            sign_str = "+" if m_rate > 0 else ""
+        # 💡 [상·하단 분리독립 가스관]: 하단 필터링에 오염되지 않은 순정 데이터프레임 복사본 생성
+        check_df = raw_df.copy()
+        check_df['code_clean'] = check_df['code'].astype(str).str.strip().str.zfill(6)
+        
+        # 정확히 일치하는 종목 타겟팅 조준 사격
+        target_rows = check_df[check_df['code_clean'] == str(m_code).strip()]
+        latest_row = target_rows.iloc[-1]
+        
+        # 3번 영역에서 정제된 정품 필터명('price', 'rate') 데이터 다이렉트 강탈
+        m_price = int(float(str(latest_row['price']).strip()))
+        m_rate = float(str(latest_row['rate']).strip())
+        
+        price_display = f"{m_price:,}원"
+        sign_str = "+" if m_rate > 0 else ""
+        
+        with master_2_cols[idx]:
+            # 🔺 상승/보합 시 레드 전광판 분출
             if m_rate >= 0:
                 st.markdown(f"""
                     <div class='master-box-custom-up'>
                         <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#EF4444; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
+                        <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
                     </div>
                 """, unsafe_allow_html=True)
+            # 🔹 하락 시 블루 전광판 분출
             else:
                 st.markdown(f"""
                     <div class='master-box-custom-down'>
                         <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#3B82F6; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate:.2f}%)</span>
+                        <span style='color:#60A5FA; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate:.2f}%)</span>
                     </div>
                 """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-                <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
-                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>대기중 (0원)</span>
-                </div>
-            """, unsafe_allow_html=True)
+    except:
+        # 시스템 핵심 뼈대 유지를 위한 최소 가드
+        pass
 
 st.markdown("---")
-
 
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
