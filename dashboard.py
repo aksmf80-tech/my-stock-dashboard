@@ -23,45 +23,25 @@ st.markdown("""
     /* [천장 차단막 완전 철거]: 스트림릿 고유 상단 투명 헤더의 억압을 완벽하게 부수고 밀어 올립니다! */
     [data-testid="stHeader"] { background: transparent !important; height: 0rem !important; display: none !important; }
     
-    /* 전체 화면 가두리 패딩을 위쪽으로 넉넉하게 6.5rem 확장하여 배너가 절대 안 잘리게 방어합니다. */
-    .block-container { padding-top: 6.5rem !important; padding-bottom: 0.5rem !important; }
-    [data-testid="stVerticalBlock"] { gap: 0.6rem !important; }
-    hr { margin: 0.6rem 0 !important; }
+    /* 전체 화면 가두리 패딩을 재조정하여 광고판과 히트맵이 밀착되도록 배치합니다. */
+    .block-container { padding-top: 2.0rem !important; padding-bottom: 0.5rem !important; }
+    [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
+    hr { margin: 0.4rem 0 !important; }
     
     /* 쿠팡 광고 배너 스타일 정의 */
     .coupang-ad-box {
         background-color: #1E293B !important;
         border: 2px dashed #94A3B8 !important;
         border-radius: 6px !important;
-        padding: 20px !important;
+        padding: 15px !important;
         text-align: center !important;
         color: #94A3B8 !important;
         font-weight: 700 !important;
-        font-size: 16px !important;
-        min-height: 90px !important;
+        font-size: 15px !important;
+        min-height: 80px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-    }
-    
-    /* HTS 전광판 규격 대왕 글씨 배너 테두리 및 정렬 최적화 */
-    .master-box-custom-up {
-        background-color: #1E293B !important;
-        border-left: 8px solid #EF4444 !important;
-        padding: 16px 22px !important;
-        border-radius: 6px !important;
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center;
-    }
-    .master-box-custom-down {
-        background-color: #1E293B !important;
-        border-left: 8px solid #3B82F6 !important;
-        padding: 16px 22px !important;
-        border-radius: 6px !important;
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center;
     }
     
     /* 우측 종목 박스 가독성 및 HTS 호가창 규격 대형화 서체 */
@@ -96,7 +76,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. [형님 특명] 최상단 쿠팡 광고 3자리 가로 배치 레이아웃
+# 2-2. 최상단 쿠팡 광고 3자리 가로 배치 레이아웃
 # =================================================================
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
@@ -106,7 +86,7 @@ with ad_col2:
 with ad_col3:
     st.markdown('<div class="coupang-ad-box">📢 쿠팡 광고 자리 (3번 영역)</div>', unsafe_allow_html=True)
 
-st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
 # =================================================================
 # 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (무필터 순정 버전)
 # =================================================================
@@ -157,47 +137,8 @@ raw_df, status_df = load_market_data()
 
 kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
-
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치
-# =================================================================
-samsung = raw_df[raw_df['name'] == '삼성전자']
-hynix = raw_df[raw_df['name'] == 'SK하이닉스']
-
-top_col1, top_col2 = st.columns(2, gap="medium")
-with top_col1:
-    if not samsung.empty:
-        s_rate = float(samsung.iloc[0]['rate'])
-        s_price = int(samsung.iloc[0]['price'])
-        box_style = "master-box-custom-up" if s_rate >= 0 else "master-box-custom-down"
-        rate_color = "stock-rate-up" if s_rate >= 0 else "stock-rate-down"
-        st.markdown(f"""
-            <div class="{box_style}">
-                <span style='font-size:22px; font-weight:800; color:white;'>삼성전자 (005930)</span>
-                <span style='font-size:24px; font-weight:900;' class="{rate_color}">{s_price:,.0f}원 ({s_rate:+.2f}%)</span>
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("<div class='master-box-custom-up'><span style='color:white;'>삼성전자 데이터 대기 중</span></div>", unsafe_allow_html=True)
-
-with top_col2:
-    if not hynix.empty:
-        h_rate = float(hynix.iloc[0]['rate'])
-        h_price = int(hynix.iloc[0]['price'])
-        box_style = "master-box-custom-up" if h_rate >= 0 else "master-box-custom-down"
-        rate_color = "stock-rate-up" if h_rate >= 0 else "stock-rate-down"
-        st.markdown(f"""
-            <div class="{box_style}">
-                <span style='font-size:22px; font-weight:800; color:white;'>SK하이닉스 (000660)</span>
-                <span style='font-size:24px; font-weight:900;' class="{rate_color}">{h_price:,.0f}원 ({h_rate:+.2f}%)</span>
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("<div class='master-box-custom-up'><span style='color:white;'>SK하이닉스 데이터 대기 중</span></div>", unsafe_allow_html=True)
-
-st.markdown("---")
-# =================================================================
-# 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
+# 4. 하단 레이아웃 (광고 밑으로 핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
 # =================================================================
 
 # 세션 상태 사전 완전 초기화
@@ -244,9 +185,10 @@ with left_layout:
                 textposition="middle center"
             )
             
+            # 불필요한 마진을 최소화하고 세로 크기를 680으로 확장하여 가독성 강화
             fig.update_layout(
                 margin=dict(t=5, b=5, l=5, r=5), 
-                height=620,
+                height=680,
                 coloraxis_showscale=False, 
                 template="plotly_dark"
             )
@@ -300,7 +242,7 @@ with right_layout:
         
         with sub_col1:
             st.markdown(f"#### 🔺 소속 상승 종목 ({len(up_stocks)}개)", unsafe_allow_html=True)
-            with st.container(height=520, border=True):
+            with st.container(height=580, border=True):  # 데이터 노출량 확장을 위해 박스 높이 580 증고
                 if up_stocks:
                     for s_name, s_rate, s_price, s_code in up_stocks[:50]:
                         st.markdown(
@@ -315,7 +257,7 @@ with right_layout:
                     
         with sub_col2:
             st.markdown(f"#### 🔹 소속 하락 종목 ({len(down_stocks)}개)", unsafe_allow_html=True)
-            with st.container(height=520, border=True):
+            with st.container(height=580, border=True):  # 데이터 노출량 확장을 위해 박스 높이 580 증고
                 if down_stocks:
                     for s_name, s_rate, s_price, s_code in down_stocks[:50]:
                         st.markdown(
@@ -332,7 +274,7 @@ with right_layout:
         st.info("🔄 데이터 패킷 수신 대기 중...")
 
 # =================================================================
-# 7. 오토 리프레시 엔진 구동
+# 5. 오토 리프레시 엔진 구동
 # =================================================================
 try:
     from streamlit_autorefresh import st_autorefresh
