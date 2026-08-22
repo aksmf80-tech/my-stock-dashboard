@@ -239,7 +239,7 @@ with col_chat_room:
     st.markdown("""
         <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 8px; height: 626px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
             <iframe 
-                src="https://html5chat.com" 
+                src="hhttps://rumbletalk.com/client/?KCh8s!k6" 
                 marginwidth="0" 
                 marginheight="0" 
                 frameborder="0" 
