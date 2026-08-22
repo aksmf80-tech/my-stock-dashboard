@@ -16,7 +16,7 @@ st.set_page_config(
 )
 
 # =================================================================
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 카페 배너 & 종목 짤림 절대 방어막)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 광고 배너 & 종목 짤림 절대 방어막)
 # =================================================================
 st.markdown("""
     <style>
@@ -28,12 +28,20 @@ st.markdown("""
     [data-testid="stVerticalBlock"] { gap: 0.6rem !important; }
     hr { margin: 0.6rem 0 !important; }
     
-    /* 네이버 카페 배너 박스 절대 좌표 고정 */
-    .cafe-banner-container {
-        margin-top: -5.0rem !important;
-        margin-bottom: 1.8rem !important;
+    /* 쿠팡 광고 배너 스타일 정의 */
+    .coupang-ad-box {
+        background-color: #1E293B !important;
+        border: 2px dashed #94A3B8 !important;
+        border-radius: 6px !important;
+        padding: 20px !important;
         text-align: center !important;
-        width: 100% !important;
+        color: #94A3B8 !important;
+        font-weight: 700 !important;
+        font-size: 16px !important;
+        min-height: 90px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     
     /* HTS 전광판 규격 대왕 글씨 배너 테두리 및 정렬 최적화 */
@@ -86,6 +94,19 @@ st.markdown("""
     .stock-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 19px !important; }
     </style>
 """, unsafe_allow_html=True)
+
+# =================================================================
+# 2-2. [형님 특명] 최상단 쿠팡 광고 3자리 가로 배치 레이아웃
+# =================================================================
+ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
+with ad_col1:
+    st.markdown('<div class="coupang-ad-box">📢 쿠팡 광고 자리 (1번 영역)</div>', unsafe_allow_html=True)
+with ad_col2:
+    st.markdown('<div class="coupang-ad-box">📢 쿠팡 광고 자리 (2번 영역)</div>', unsafe_allow_html=True)
+with ad_col3:
+    st.markdown('<div class="coupang-ad-box">📢 쿠팡 광고 자리 (3번 영역)</div>', unsafe_allow_html=True)
+
+st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 # =================================================================
 # 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (무필터 순정 버전)
 # =================================================================
@@ -110,13 +131,11 @@ def load_market_data():
                 'rate': float(r_val) if r_val is not None else 0.0,
                 'price': int(p_val) if p_val is not None else 0
             })
-        # 🚨 [형님 특명 - 철통 보안 해제]: 그 어떤 테마명도 가리지 않고 DB 원본 그대로 백업 빌드!
         base_df = pd.DataFrame(rows)
     except Exception as e:
         base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
     if not base_df.empty:
-        # 좌측 히트맵용 그룹 통계 데이터셋 가공
         agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
@@ -131,7 +150,6 @@ def load_market_data():
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
-    # 🚨 가리는 필터링 절대 없이 2,200마리 원본 전체(base_df)를 1번 인자로 다이렉트 출격시킵니다!
     return base_df, status_df
 
 # 변수 매핑 무결점 싱크 연결 완료
@@ -141,10 +159,43 @@ kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 종목코드 고정 날것 직통 투과)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치
 # =================================================================
-st.empty()
+samsung = raw_df[raw_df['name'] == '삼성전자']
+hynix = raw_df[raw_df['name'] == 'SK하이닉스']
 
+top_col1, top_col2 = st.columns(2, gap="medium")
+with top_col1:
+    if not samsung.empty:
+        s_rate = float(samsung.iloc[0]['rate'])
+        s_price = int(samsung.iloc[0]['price'])
+        box_style = "master-box-custom-up" if s_rate >= 0 else "master-box-custom-down"
+        rate_color = "stock-rate-up" if s_rate >= 0 else "stock-rate-down"
+        st.markdown(f"""
+            <div class="{box_style}">
+                <span style='font-size:22px; font-weight:800; color:white;'>삼성전자 (005930)</span>
+                <span style='font-size:24px; font-weight:900;' class="{rate_color}">{s_price:,.0f}원 ({s_rate:+.2f}%)</span>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='master-box-custom-up'><span style='color:white;'>삼성전자 데이터 대기 중</span></div>", unsafe_allow_html=True)
+
+with top_col2:
+    if not hynix.empty:
+        h_rate = float(hynix.iloc[0]['rate'])
+        h_price = int(hynix.iloc[0]['price'])
+        box_style = "master-box-custom-up" if h_rate >= 0 else "master-box-custom-down"
+        rate_color = "stock-rate-up" if h_rate >= 0 else "stock-rate-down"
+        st.markdown(f"""
+            <div class="{box_style}">
+                <span style='font-size:22px; font-weight:800; color:white;'>SK하이닉스 (000660)</span>
+                <span style='font-size:24px; font-weight:900;' class="{rate_color}">{h_price:,.0f}원 ({h_rate:+.2f}%)</span>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='master-box-custom-up'><span style='color:white;'>SK하이닉스 데이터 대기 중</span></div>", unsafe_allow_html=True)
+
+st.markdown("---")
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
 # =================================================================
@@ -160,15 +211,15 @@ if not st.session_state.selected_theme_click and not status_df.empty:
 left_layout, right_layout = st.columns([4.4, 5.6], gap="large")
 
 with left_layout:
-    st.markdown("### 🗺️ 실시간 주도 테마 히트맵")
+    st.markdown(f"### 🗺️ 실시간 주도 테마 히트맵 <small style='font-size:12px; color:#94A3B8; font-weight:normal;'>({update_time} 갱신)</small>", unsafe_allow_html=True)
 
     if not status_df.empty:
         try:
-            # 🎨 [HTS 신호등 5단 그라데이션 엔진]: 마이너스는 블루, 0% 보합은 다크, 플러스는 핀업 레드로 고정
+            # 🎨 [HTS 신호등 5단 그라데이션 엔진]
             hts_color_scale = [
                 [0.0, "#0044AA"],   # 하락 극대값
                 [0.45, "#1E293B"],  # 미세 하락
-                [0.5, "#0F172A"],   # 🎯 정확한 0.00% 보합 영점 (HTS 순정 리얼 블랙)
+                [0.5, "#0F172A"],   # 🎯 정확한 0.00% 보합 영점
                 [0.55, "#2D1515"],  # 미세 상승
                 [1.0, "#CC0000"]    # 당일 주도 테마 강렬한 레드
             ]
@@ -202,18 +253,15 @@ with left_layout:
             
             chart_res = st.plotly_chart(fig, use_container_width=True, on_select="rerun", selection_mode="points")
             
-            # 🎯 [트리맵 클릭 0초 반응 매핑]: 누르는 족족 우측 리더보드가 칼같이 변합니다.
+            # 🎯 [트리맵 클릭 0초 반응 매핑]
             if chart_res and isinstance(chart_res, dict) and "selection" in chart_res:
                 points_list = chart_res["selection"].get("points", [])
                 if points_list and len(points_list) > 0:
                     first_point = points_list[0]
-                    
                     if isinstance(first_point, dict):
                         custom_data_val = first_point.get("customdata", [])
                         label_val = first_point.get("label", "")
-                        
                         chosen_lbl = custom_data_val[0] if (custom_data_val and isinstance(custom_data_val, list)) else label_val
-                        
                         if chosen_lbl and str(chosen_lbl).strip() != st.session_state.selected_theme_click:
                             st.session_state.selected_theme_click = str(chosen_lbl).strip()
                             st.rerun()
@@ -245,11 +293,9 @@ with right_layout:
         up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
         down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
         
-        # 🔺 상승주 대장 순 정렬(내림차순) / 🔹 하락주 소외주 순 정렬(오름차순) 축 고정
         up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
         down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
         
-        # 💡 [형님 특명 완공 레이아웃]: 뉴스를 싹 다 걷어내고, 좌상승 우하락 1대1 대칭 듀얼 호가창 가동!
         sub_col1, sub_col2 = st.columns([5.0, 5.0], gap="medium")
         
         with sub_col1:
