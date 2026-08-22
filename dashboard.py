@@ -162,7 +162,7 @@ st.markdown(
 )
 
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
-python
+
 # =================================================================
 # 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 영원불멸 종목코드 직통 관통본)
 # =================================================================
