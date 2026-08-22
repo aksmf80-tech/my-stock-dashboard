@@ -239,7 +239,7 @@ with col_chat_room:
     st.markdown("""
         <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 8px; height: 626px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
             <iframe 
-                src="https://cbox.ws" 
+                src="https://www3.cbox.ws/box/?boxid=3559455&boxtag=p6H02s" 
                 marginwidth="0" 
                 marginheight="0" 
                 frameborder="0" 
