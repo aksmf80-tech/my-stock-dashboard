@@ -87,13 +87,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (🚨 중복 박멸 철통 보안 버전)
+# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (🚨 실종된 가스관 복구 완공 버전)
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 🎯 [형님 특명 가스관 완공]: 30만 명 디도스 트래픽 폭탄을 함마로 막아내는 15초 정품 캐시 락 부활!
+# 🎯 [형님 특명 트래픽 방어막]: 30만 명 디도스 폭탄을 완벽하게 분쇄하는 15초 캐시 락 기지 구축!
 @st.cache_data(ttl=15)
 def load_market_data():
     try:
@@ -139,6 +139,12 @@ def load_market_data():
         
     return raw_df, status_df
 
+# 💥 [실종 수로 긴급 복구]: 잘려 나갔던 정품 데이터 쟁반 출격 명령 수로를 다시 강제로 안착시킵니다!
+raw_df, status_df = load_market_data()
+
+# 시계 연산 영점 동기화
+kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+update_time = kst_current.strftime('%H:%M:%S')
 
 # =================================================================
 # 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출 (정품 주소 사수)
