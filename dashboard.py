@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 3번 겉틀 군살 완전 제거 및 하단 삼분할 밸런스 정렬)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 균등 삼분할 원상복구 및 종목창 방어막 세팅)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
@@ -31,28 +31,12 @@ st.markdown("""
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
-    /* 1번, 2번 쿠팡용 대형 겉틀 박스 규격 */
+    /* 1번, 2번, 3번 광고판을 감싸는 순정 다크 챠콜 박스 규격 */
     .coupang-ad-box {
         background-color: #1E293B !important;
         border: none !important; 
         padding: 0px !important; 
         text-align: center !important;
-        min-height: 80px !important;
-        max-height: 80px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        overflow: hidden !important;
-    }
-    
-    /* 🚨 [형님 특명 완공]: 3번 애드스테라 전용 초밀착 겉틀 박스 
-       가로 너비를 딱 468px로 고정하고, 뼈대 비율과 1대1 싱크를 맞춰 남는 검은 여백을 원천 차단 소멸시킵니다. */
-    .adsterra-ad-box {
-        background-color: #1E293B !important;
-        border: none !important;
-        padding: 0px !important;
-        margin: 0 auto !important; 
-        max-width: 468px !important; 
         min-height: 80px !important;
         max-height: 80px !important;
         display: flex !important;
@@ -89,7 +73,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. 쿠팡 파트너스 & 애드스테라 융합 광고 주입 구역 (비율 조정 완료)
+# 2-2. 쿠팡 파트너스 & 애드스테라 광고 주입 구역 (순정 3대3대3 싱크 버전)
 # =================================================================
 HTML_AD_1 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
@@ -115,16 +99,15 @@ RAW_JS_AD_3 = """
 </div>
 """
 
-# 🚨 [뼈대 리모델링 감행]: 기존의 무조건 3등분(3, gap="medium")을 폐기처분하고, 
-# 형님의 황금 수치 비율에 딱 맞도록 기둥 폭을 가로 [1 : 1 : 0.78] 구조로 차등 재설계했습니다!
-ad_col1, ad_col2, ad_col3 = st.columns([1, 1, 0.78], gap="medium")
+# 🎯 [순정 복원]: 형님 지시대로 가로 기둥 뼈대를 다시 정확히 3등분(3, gap="medium")으로 복구했습니다!
+ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
 with ad_col2:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_2}</div>', unsafe_allow_html=True)
 with ad_col3:
-    # 전용 밀착 겉틀 상자 규칙을 씌워 빗장을 풀어버립니다.
-    st.markdown(f'<div class="adsterra-ad-box">', unsafe_allow_html=True)
+    # 3번 자리도 순정 박스 안에 안전하게 components 가두리 양식장으로 격리 출력합니다.
+    st.markdown(f'<div class="coupang-ad-box">', unsafe_allow_html=True)
     components.html(RAW_JS_AD_3, height=80)
     st.markdown(f'</div>', unsafe_allow_html=True)
 
