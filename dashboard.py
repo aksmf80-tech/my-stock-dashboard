@@ -13,77 +13,50 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 종목 및 광고 짤림 방어)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 상단 쿠팡 테두리 군살 완전 도려내기 엔지니어링)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
     [data-testid="stHeader"] { background: transparent !important; height: 0rem !important; display: none !important; }
-    .block-container { padding-top: 2.0rem !important; padding-bottom: 0.5rem !important; }
+    .block-container { padding-top: 1.5rem !important; padding-bottom: 0.5rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
-    /* 쿠팡 광고판 규격 고정 스타일 */
+    /* 🚨 [형님 특명 - 광고 겉틀 테두리 여백 원천 파괴]: 
+       padding을 0px로 밀어버리고 높이를 80px로 꽉 묶어 내부 쿠팡 배너와 1대1 밀착시킵니다. */
     .coupang-ad-box {
-        background-color: #1E293B !important;
-        border: 2px dashed #94A3B8 !important;
-        border-radius: 6px !important;
-        padding: 15px !important;
+        background-color: transparent !important;
+        border: none !important; /* 조잡한 바깥쪽 점선/실선 테두리 완전 소멸 */
+        padding: 0px !important; /* 위아래 붕 뜨는 흰색/남색 여백 0px 원천 차단 */
         text-align: center !important;
-        color: #94A3B8 !important;
-        font-weight: 700 !important;
-        font-size: 15px !important;
         min-height: 80px !important;
+        max-height: 80px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        overflow: hidden !important;
     }
-    
-    /* 종목 리스트 상승/하락 호가창 스타일 */
-    .stock-box-up {
-        border-left: 8px solid #EF4444 !important;
-        background-color: #1E293B !important;
-        padding: 14px 18px !important;
-        border-radius: 6px !important;
-        margin-bottom: 8px !important;
-        display: flex; justify-content: space-between; align-items: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .stock-box-down {
-        border-left: 8px solid #3B82F6 !important;
-        background-color: #1E293B !important;
-        padding: 14px 18px !important;
-        border-radius: 6px !important;
-        margin-bottom: 8px !important;
-        display: flex; justify-content: space-between; align-items: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .stock-name-up { color: #FFF !important; font-weight: 800 !important; font-size: 18px !important; }
-    .stock-name-down { color: #FFF !important; font-weight: 800 !important; font-size: 18px !important; }
-    .stock-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 19px !important; }
-    .stock-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 19px !important; }
     </style>
 """, unsafe_allow_html=True)
+
 # =================================================================
-# 2-2. 🚨 [형님 특명] 쿠팡 파트너스 광고 코드 직통 삽입 구역
+# 2-2. 🚨 쿠팡 파트너스 광고 코드 직통 삽입 구역 (테두리 초밀착 버전)
 # =================================================================
 
-# 1번 자리에 첫 번째 쿠팡 광고 코드를 따옴표 안에 붙여넣으세요!
+# 형님 방 번호 패킷을 넣어 테두리 유격 없이 알맹이만 꽉 차게 뿜어내도록 수식을 마감했습니다.
 HTML_AD_1 = """
-<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020951&template=carousel&trackingCode=AF2178062&subId=&width=400&height=80&tsource=" width="400" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
 """
 
-# 2번 자리에 두 번째 쿠팡 광고 코드를 따옴표 안에 붙여넣으세요!
 HTML_AD_2 = """
-<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no"></iframe>
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
 """
 
-# 3번 자리에 세 번째 쿠팡 광고 코드를 따옴표 안에 붙여넣으세요!
 HTML_AD_3 = """
-<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no"></iframe>
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
 """
 
-# 가로 3형제 배너 출력 가동
+# 가로 3형제 슬림 배너 가동
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
@@ -92,7 +65,8 @@ with ad_col2:
 with ad_col3:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_3}</div>', unsafe_allow_html=True)
 
-st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-bottom: 2px;'></div>", unsafe_allow_html=True)
+
 
 # 3. 수파베이스 직통 연결 및 데이터 파이프라인
 SUPABASE_URL = st.secrets["supabase"]["url"]
