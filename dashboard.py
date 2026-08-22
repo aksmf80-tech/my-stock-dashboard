@@ -83,7 +83,7 @@ HTML_AD_2 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
 """
 
-# 🚨 [보안 우회 핵심 엔진]: 스트림릿 차단 필터를 파괴하기 위해 자바스크립트를 전용 날것 패킷으로 래핑합니다.
+# 🚨 [보안 우회 정밀 복원]: 자바스크립트를 가둬서 송출하는 청정 패킷 원문입니다.
 RAW_JS_AD_3 = """
 <div style="width:100%; height:80px; display:flex; align-items:center; justify-content:center; background-color:#1E293B; margin:0; padding:0;">
     <script type="text/javascript">
@@ -95,7 +95,7 @@ RAW_JS_AD_3 = """
             'params' : {}
         };
     </script>
-    <script type="text/javascript" src="https://www.highrevenueformat.com/837653d89b5187fe6192be2c7b895798/invoke.js"></script>
+    <script type="text/javascript" src="https://highrevenueformat.com"></script>
 </div>
 """
 
@@ -106,13 +106,10 @@ with ad_col1:
 with ad_col2:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_2}</div>', unsafe_allow_html=True)
 with ad_col3:
-    # 🎯 [치트키 투입]: 3번 자리만 st.markdown 대신 components.html 함수로 보안 필터를 안전하게 무력화 우회 출격시킵니다!
-    with st.container():
-        components.html(RAW_JS_AD_3, height=80, scrolling=no)
+    # 🎯 [긴급 수리 마감]: scrolling="no" 자리에 따옴표를 정밀 체결하여 치명적인 구문 오타를 원천 박살 냈습니다!
+    components.html(RAW_JS_AD_3, height=80, scrolling="no")
 
 st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
-
-
 
 # 3. 수파베이스 직통 연결 및 데이터 파이프라인
 SUPABASE_URL = st.secrets["supabase"]["url"]
