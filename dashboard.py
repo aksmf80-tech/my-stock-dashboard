@@ -162,70 +162,93 @@ st.markdown(
 )
 
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
+python# =================================================================
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 영원불멸 종목코드 직통 관통본)
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 순정 생(Raw) 이름 대조 복구본)
-# =================================================================
-# 🎯 [형님 특명 15초 캐시 가드]: 복잡한 함수 캐시 대신, 스트림릿 세션 상태를 활용해 
-# 트래픽 디도스 폭탄을 원천 분쇄하는 15초 독립 타이머 가드를 가동합니다.
-current_ts = time.time()
-if "master_timer_ts" not in st.session_state:
-    st.session_state.master_timer_ts = 0.0
-    st.session_state.cached_master_data = {}
-
-# 15초가 지나지 않았다면 기존 메모리에 저장된 정품 주가 데이터를 그대로 화면에 강제 박제합니다.
-if current_ts - st.session_state.master_timer_ts > 15.0:
-    new_cache = {}
-    if not raw_df.empty:
-        # 어제 성공했던 방식 그대로! 날것 데이터프레임 순회 루프 작동
-        for _, row in raw_df.iterrows():
-            db_name = str(row.get('name', '')).strip()
-            # 만약 수퍼베이스 컬럼명이 stock_name 계열일 경우를 대비한 2중 안전 장치
-            if not db_name:
-                db_name = str(row.get('stock_name', '')).strip()
+# 🎯 [전광판 전용 독립 15초 캐시]: 하단 연산과 완벽히 격리하여 트래픽 부하를 분쇄하는 철옹성 기지입니다.
+@st.cache_data(ttl=15)
+def fetch_master_stock_direct(_df_packet):
+    # 전광판에 뿌려줄 기본값 세팅
+    result = {
+        "005930": {"price": 0, "rate": 0.0, "success": False},
+        "000660": {"price": 0, "rate": 0.0, "success": False}
+    }
+    
+    if _df_packet is not None and not _df_packet.empty:
+        try:
+            # 수퍼베이스에서 빌드된 데이터프레임 순회 타격
+            for _, row in _df_packet.iterrows():
+                # 3번 수집기 내부에서 변환된 소문자 'code' 컬럼값을 안전하게 추출
+                db_code = str(row.get('code', '')).strip()
                 
-            if db_name in ["삼성전자", "SK하이닉스"]:
-                new_cache[db_name] = {
-                    "price": int(row.get('price', 0)) if row.get('price') is not None else int(row.get('current_price', 0)),
-                    "rate": float(row.get('rate', 0.0)) if row.get('rate') is not None else float(row.get('theme_flu_rt', 0.0)),
-                    "success": True
-                }
-    if "삼성전자" in new_cache or "SK하이닉스" in new_cache:
-        st.session_state.cached_master_data = new_cache
-        st.session_state.master_timer_ts = current_ts
+                # 🚨 [형님 특명 명세]: 영원히 바뀌지 않는 '005930'과 '000660' 코드만 발견 즉시 단가 탈취
+                if db_code == "005930":
+                    result["005930"] = {
+                        "price": int(row.get('price', 0)),
+                        "rate": float(row.get('rate', 0.0)),
+                        "success": True
+                    }
+                elif db_code == "000660" or db_code == "ROOM_000660":
+                    result["000660"] = {
+                        "price": int(row.get('price', 0)),
+                        "rate": float(row.get('rate', 0.0)),
+                        "success": True
+                    }
+        except:
+            pass
+            
+    return result
 
 master_2_cols = st.columns(2)
-m_targets = ["삼성전자", "SK하이닉스"]
 
-for idx, m_name in enumerate(m_targets):
-    # 캐시 가드 메모리에서 어제 성공했던 생(raw) 주가 데이터를 즉시 관통 수신
-    m_info = st.session_state.cached_master_data.get(m_name, {"price": 0, "rate": 0.0, "success": False})
-    m_price = m_info["price"]
-    m_rate = m_info["rate"]
-    is_data_loaded = m_info["success"]
+# 💥 독립 캐시 함수를 직통 호출하여 목요일 최종 가격 쟁반을 수신합니다.
+master_data_pack = fetch_master_stock_direct(raw_df)
 
-    with master_2_cols[idx]:
-        if is_data_loaded:
-            price_display = f"{m_price:,} 원"
-            sign_str = "+" if m_rate > 0 else ""
-            color_val = "#EF4444" if m_rate >= 0 else "#3B82F6"
-            box_cls = 'master-box-custom-up' if m_rate >= 0 else 'master-box-custom-down'
-            st.markdown(f"""
-                <div class='{box_cls}'>
-                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:{color_val}; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            # 최초 구동 시 패킷 대기 레이아웃 방어막
-            st.markdown(f"""
-                <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
-                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>연결 대기중 (0원)</span>
-                </div>
-            """, unsafe_allow_html=True)
+# 1. 삼성전자 대형 전광판 렌더링
+sam_info = master_data_pack["005930"]
+with master_2_cols[0]:
+    if sam_info["success"]:
+        p_disp = f"{sam_info['price']:,} 원"
+        s_str = "+" if sam_info['rate'] > 0 else ""
+        c_val = "#EF4444" if sam_info['rate'] >= 0 else "#3B82F6"
+        b_cls = 'master-box-custom-up' if sam_info['rate'] >= 0 else 'master-box-custom-down'
+        st.markdown(f"""
+            <div class='{b_cls}'>
+                <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ 삼성전자</span>
+                <span style='color:{c_val}; font-weight:900; font-size:26px; margin-left:auto;'>{p_disp} ({s_str}{sam_info['rate']:.2f}%)</span>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+            <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
+                <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ 삼성전자</span>
+                <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>연결 대기중 (0원)</span>
+            </div>
+        """, unsafe_allow_html=True)
+
+# 2. SK하이닉스 대형 전광판 렌더링
+sk_info = master_data_pack["000660"]
+with master_2_cols[1]:
+    if sk_info["success"]:
+        p_disp = f"{sk_info['price']:,} 원"
+        s_str = "+" if sk_info['rate'] > 0 else ""
+        c_val = "#EF4444" if sk_info['rate'] >= 0 else "#3B82F6"
+        b_cls = 'master-box-custom-up' if sk_info['rate'] >= 0 else 'master-box-custom-down'
+        st.markdown(f"""
+            <div class='{b_cls}'>
+                <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ SK하이닉스</span>
+                <span style='color:{c_val}; font-weight:900; font-size:26px; margin-left:auto;'>{p_disp} ({s_str}{sk_info['rate']:.2f}%)</span>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+            <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
+                <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ SK하이닉스</span>
+                <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>연결 대기중 (0원)</span>
+            </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("---")
-
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
 # =================================================================
