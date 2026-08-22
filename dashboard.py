@@ -80,11 +80,11 @@ st.markdown("""
 # 2-2. 쿠팡 파트너스 & 애드스테라 광고 주입 구역 (정밀 보정 버전)
 # =================================================================
 HTML_AD_1 = """
-<iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
+<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020951&template=carousel&trackingCode=AF2178062&subId=&width=600&height=80&tsource=" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
 """
 
 HTML_AD_2 = """
-<iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
+<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020953&template=carousel&trackingCode=AF2178062&subId=&width=600&height=80&tsource=" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
 """
 
 # 🚨 [3번 광고판 단독 리프레시 및 테두리 소멸 완전 마감 패킷]
