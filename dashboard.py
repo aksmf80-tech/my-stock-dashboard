@@ -73,7 +73,7 @@ st.markdown("""
 # 형님 고유 ID(3559455) 슬롯이 고정 장착되어 있습니다.
 
 HTML_AD_1 = """
-<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
+<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020951&template=carousel&trackingCode=AF2178062&subId=&width=400&height=80&tsource=" width="400" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
 """
 
 HTML_AD_2 = """
