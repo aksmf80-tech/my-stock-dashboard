@@ -13,18 +13,30 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 날아간 2구역 종목 박스 디자인 긴급 이식 완료)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 원래 순정 사이즈 원상복구 및 종목 박스 철통 방어)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
     [data-testid="stHeader"] { background: transparent !important; height: 0rem !important; display: none !important; }
+    .block-container { padding-top: 2.0rem !important; padding-bottom: 0.5rem !important; }
+    [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
+    hr { margin: 0.4rem 0 !important; }
     
-    /* 전체 패딩을 극도로 압축하여 광고판과 하단 기둥들이 완벽하게 밀착되도록 조정 */
-    .block-container { padding-top: 1.0rem !important; padding-bottom: 0.5rem !important; }
-    [data-testid="stVerticalBlock"] { gap: 0.2rem !important; }
-    hr { margin: 0.2rem 0 !important; }
+    /* 🚨 [원상복구 완료]: 형님이 가장 보기 편해 하셨던 높이 80px 순정 다크 챠콜 박스로 돌려놓았습니다. */
+    .coupang-ad-box {
+        background-color: #1E293B !important;
+        border: 2px dashed #94A3B8 !important;
+        border-radius: 6px !important;
+        padding: 15px !important;
+        text-align: center !important;
+        min-height: 80px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: hidden !important;
+    }
     
-    /* 🚨 [긴급 수리 완료]: 이 디자인 코드가 빠져서 가운데가 날아갔던 것입니다. 완벽하게 복원했습니다. */
+    /* 🚨 [가운데 종목창 완벽 고정]: 이 코드가 들어가 있어야 2구역 기둥이 날아가지 않고 우뚝 섭니다. */
     .stock-box-up {
         border-left: 8px solid #EF4444 !important;
         background-color: #1E293B !important;
@@ -48,40 +60,25 @@ st.markdown("""
     .stock-name-down { color: #FFF !important; font-weight: 800 !important; font-size: 18px !important; }
     .stock-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 19px !important; }
     .stock-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 19px !important; }
-    
-    /* 광고 겉틀 검은 여백 원천 파괴 슬림 셋팅 */
-    .coupang-ad-box {
-        background-color: transparent !important;
-        border: none !important; 
-        padding: 0px !important; 
-        margin: 0px !important;
-        text-align: center !important;
-        min-height: 60px !important;
-        max-height: 60px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        overflow: hidden !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. 쿠팡 파트너스 개별 광고 코드 주입 구역 (수평 밀착 버전)
+# 2-2. 쿠팡 파트너스 광고 코드 직통 삽입 구역 (순정 복구 버전)
 # =================================================================
 HTML_AD_1 = """
-<iframe src="https://coupang.com" width="100%" height="60" frameborder="0" scrolling="no" style="border:none;"></iframe>
+<div style="color: #94A3B8; font-weight: 700; font-size: 14px;">📢 쿠팡 광고 슬롯 (1번 구역)</div>
 """
 
 HTML_AD_2 = """
-<iframe src="https://coupang.com" width="100%" height="60" frameborder="0" scrolling="no" style="border:none;"></iframe>
+<div style="color: #94A3B8; font-weight: 700; font-size: 14px;">📢 쿠팡 광고 슬롯 (2번 구역)</div>
 """
 
 HTML_AD_3 = """
-<iframe src="https://coupang.com" width="100%" height="60" frameborder="0" scrolling="no" style="border:none;"></iframe>
+<div style="color: #94A3B8; font-weight: 700; font-size: 14px;">📢 쿠팡 광고 슬롯 (3번 구역)</div>
 """
 
-# 가로 3형제 초슬림 풀밀착 배너 출력 가동
+# 가로 3형제 순정 배너 출력 가동
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
@@ -90,7 +87,7 @@ with ad_col2:
 with ad_col3:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_3}</div>', unsafe_allow_html=True)
 
-st.markdown("<div style='margin-bottom: 2px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
 
 # 3. 수파베이스 직통 연결 및 데이터 파이프라인
 SUPABASE_URL = st.secrets["supabase"]["url"]
