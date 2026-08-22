@@ -64,14 +64,33 @@ st.markdown("""
     .stock-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 19px !important; }
     </style>
 """, unsafe_allow_html=True)
-# 2-2. 최상단 쿠팡 광고 3자리 가로 배정
+# =================================================================
+# 2-2. 🚨 [형님 특명] 쿠팡 파트너스 광고 코드 직통 삽입 구역
+# =================================================================
+
+# 1번 자리에 첫 번째 쿠팡 광고 코드를 따옴표 안에 붙여넣으세요!
+HTML_AD_1 = """
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no"></iframe>
+"""
+
+# 2번 자리에 두 번째 쿠팡 광고 코드를 따옴표 안에 붙여넣으세요!
+HTML_AD_2 = """
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no"></iframe>
+"""
+
+# 3번 자리에 세 번째 쿠팡 광고 코드를 따옴표 안에 붙여넣으세요!
+HTML_AD_3 = """
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no"></iframe>
+"""
+
+# 가로 3형제 배너 출력 가동
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
-    st.markdown('<div class="coupang-ad-box">📢 쿠팡 광고 자리 (1번 영역)</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
 with ad_col2:
-    st.markdown('<div class="coupang-ad-box">📢 쿠팡 광고 자리 (2번 영역)</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="coupang-ad-box">{HTML_AD_2}</div>', unsafe_allow_html=True)
 with ad_col3:
-    st.markdown('<div class="coupang-ad-box">📢 쿠팡 광고 자리 (3번 영역)</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="coupang-ad-box">{HTML_AD_3}</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
 
