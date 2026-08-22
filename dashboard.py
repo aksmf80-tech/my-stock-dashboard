@@ -207,7 +207,7 @@ if not status_df.empty and chosen_theme and not raw_df.empty:
     down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
 
 # -----------------------------------------------------------------
-# [2구역] 소속 종목 복층형 기둥 (순정 콤팩트 수평 일렬 종대)
+# [2구역] 소속 종목 복층형 기둥
 # -----------------------------------------------------------------
 with col_stock_double:
     st.markdown(f"### 🎯 [{chosen_theme}] 종목 포지션", unsafe_allow_html=True)
@@ -229,14 +229,13 @@ with col_stock_double:
         else: st.write("<p style='color:#64748B; padding:10px;'>당일 해당 테마에 하락 종목이 없습니다.</p>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------
-# [3구역] 🚨 형님 고유 실시간 익명 웹 채팅방 위젯 연동 완공
+# [3구역] 🚨 실시간 익명 웹 채팅방 위젯 (다이렉트 소통 전용 패킷 주소 주입)
 # -----------------------------------------------------------------
 with col_chat_room:
-    # 가운데 종목창과 머리 높이를 정밀 수평 동기화하기 위한 12px 다운 마진
     st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
     st.markdown("### 💬 실시간 주주 대화방", unsafe_allow_html=True)
     
-    # 🎯 src 주소 내부에 형님의 boxid(3559455)와 boxtag(p6H02s)를 완벽하게 직통 박제 완료했습니다.
+    # 🎯 [버그 영점 정밀 치료]: src 도메인을 주소창 전용 링크인 'www3.cbox.ws/box/index.php' 규격으로 정교하게 세팅하여 대화 기능만 강제 다이렉트 출격시킵니다!
     st.markdown("""
         <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 8px; height: 626px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
             <iframe 
@@ -254,10 +253,9 @@ with col_chat_room:
         </div>
     """, unsafe_allow_html=True)
 
-# 5. 오토 리프레시 엔진 구동 (15초 자동 브라우저 동기화)
+# 5. 오토 리프레시 엔진 구동
 try:
     from streamlit_autorefresh import st_autorefresh
     st_autorefresh(interval=15000, key="market_data_refresh_engine_24h")
 except:
     pass
-
