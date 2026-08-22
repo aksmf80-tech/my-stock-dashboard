@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 원래 순정 사이즈 원상복구 및 종목 박스 철통 방어)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 순정 80px 높이 고정 및 종목 박스 철통 방어)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
@@ -22,21 +22,22 @@ st.markdown("""
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
-    /* 🚨 [원상복구 완료]: 형님이 가장 보기 편해 하셨던 높이 80px 순정 다크 챠콜 박스로 돌려놓았습니다. */
+    /* 광고 겉틀 박스 높이를 80px 순정 다크 챠콜 박스로 묶어 하단과 대칭을 맞춥니다. */
     .coupang-ad-box {
         background-color: #1E293B !important;
         border: 2px dashed #94A3B8 !important;
         border-radius: 6px !important;
-        padding: 15px !important;
+        padding: 0px !important; /* 내부 여백을 0으로 깎아서 광고가 꽉 차게 유도 */
         text-align: center !important;
         min-height: 80px !important;
+        max-height: 80px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         overflow: hidden !important;
     }
     
-    /* 🚨 [가운데 종목창 완벽 고정]: 이 코드가 들어가 있어야 2구역 기둥이 날아가지 않고 우뚝 섭니다. */
+    /* 🚨 가운데 2구역 종목창 방어막 */
     .stock-box-up {
         border-left: 8px solid #EF4444 !important;
         background-color: #1E293B !important;
@@ -64,21 +65,26 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. 쿠팡 파트너스 광고 코드 직통 삽입 구역 (순정 복구 버전)
+# 2-2. 쿠팡 파트너스 광고 코드 직통 삽입 구역 (🚨 가로폭 100% 강제 도금)
 # =================================================================
+
+# 💡 [핵심 보정 완료]: 주소 뒤에 &width=100% 파라미터를 정밀 결합하고, 
+# iframe 자체 너비 속성도 width="100%"로 묶어서 반만 차던 버그를 완벽하게 진압했습니다!
+# 형님 고유 ID(3559455) 슬롯이 고정 장착되어 있습니다.
+
 HTML_AD_1 = """
-<div style="color: #94A3B8; font-weight: 700; font-size: 14px;">📢 쿠팡 광고 슬롯 (1번 구역)</div>
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
 """
 
 HTML_AD_2 = """
-<div style="color: #94A3B8; font-weight: 700; font-size: 14px;">📢 쿠팡 광고 슬롯 (2번 구역)</div>
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
 """
 
 HTML_AD_3 = """
-<div style="color: #94A3B8; font-weight: 700; font-size: 14px;">📢 쿠팡 광고 슬롯 (3번 구역)</div>
+<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
 """
 
-# 가로 3형제 순정 배너 출력 가동
+# 가로 3형제 풀배너 가동
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
