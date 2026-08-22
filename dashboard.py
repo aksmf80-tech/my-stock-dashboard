@@ -169,9 +169,8 @@ st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#
 # =================================================================
 st.empty()
 
-
 # =================================================================
-# 6. 하단 레이아웃 (🚨 우측 날개 미니 라이브 채팅방 직통 개통 버전)
+# 6. 하단 레이아웃 (🚨 주말 NaN% 에러 완치 및 미니 채팅창 개통 최종본)
 # =================================================================
 # 🎯 [세션 및 레이아웃 초기화] 다른 소스코드 충돌을 원천 방어합니다.
 if 'selected_theme_click' not in st.session_state:
@@ -181,7 +180,7 @@ if 'selected_theme_click' not in st.session_state:
 bottom_cols = st.columns([4.4, 5.6], gap="medium")
 
 # -----------------------------------------------------------------
-# 🗺️ [좌측 칸]: 실시간 주도 테마 히트맵 (순정 뼈대 100% 보존)
+# 🗺️ [좌측 칸]: 실시간 주도 테마 히트맵 (🚨 주말 에러 원천 봉쇄)
 # -----------------------------------------------------------------
 with bottom_cols[0]:
     st.markdown("### 🗺️ 실시간 주도 테마 히트맵")
@@ -206,11 +205,12 @@ with bottom_cols[0]:
             color_continuous_midpoint=0.0
         )
         
+        # 🚨 [치명적 버그 수정]: 주말에 데이터가 없어도 에러 안 나게 서식을 날것 그대로 매핑
         fig.update_traces(
-            texttemplate="<b>{label}</b><br>{color:.2f}%",
+            texttemplate="<b>{label}</b><br>{color}%",
             textposition="inside",
             insidetextfont=dict(size=14, color='white'),
-            hovertemplate="<b>{label}</b><br>평균 등락률: {color:.2f}%<br>종목 수: {value}개"
+            hovertemplate="<b>{label}</b><br>평균 등락률: {color}%"
         )
         
         fig.update_layout(
@@ -234,7 +234,7 @@ with bottom_cols[0]:
                 pass
 
 # -----------------------------------------------------------------
-# 🗂️ [우측 칸]: 테마 포지션 + 💥 우측 날개 미니 라이브 채팅방 완공
+# 🗂️ [우측 칸]: 테마 포지션 + 💥 우측 날개 미니 라이브 채팅창 완공
 # -----------------------------------------------------------------
 with bottom_cols[1]:
     # 선택된 테마 대화방 가동 (기본값은 첫 번째 테마 강제 맵핑)
@@ -254,8 +254,7 @@ with bottom_cols[1]:
             up_stocks = theme_detail_df[theme_detail_df['rate'] >= 0].sort_values(by='rate', ascending=False)
             down_stocks = theme_detail_df[theme_detail_df['rate'] < 0].sort_values(by='rate', ascending=True)
             
-            # 🚨 [형님 특명 명세 조율]: 가로 칸을 3개로 분할하여 상승, 하락, 채팅방을 칼대칭 배치합니다!
-            # 상승종목(4.2 비율), 하락종목(4.2 비율), 미니 채팅창(3.6 비율)의 균형 정렬 장치입니다.
+            # 🚨 가로 칸을 3개로 분할하여 상승, 하락, 채팅방을 칼대칭 배치합니다!
             sub_cols = st.columns([4.2, 4.2, 3.6], gap="small")
             
             # 칸 1. 소속 상승 종목 렌더링
@@ -268,7 +267,7 @@ with bottom_cols[1]:
                     s_price = int(row.get('price', 0))
                     s_rate = float(row.get('rate', 0.0))
                     up_box_html += f"""
-                    <div style='display:flex; justify-content:between; align-items:center; margin-bottom:8px; border-bottom:1px solid #1F2937; padding-bottom:4px;'>
+                    <div style='display:flex; justify-content:content; align-items:center; margin-bottom:8px; border-bottom:1px solid #1F2937; padding-bottom:4px;'>
                         <span style='color:#FFF; font-weight:600; font-size:13px;'>{s_name} <small style='color:#9CA3AF;'>{s_code}</small></span>
                         <span style='color:#EF4444; font-weight:700; font-size:13px; margin-left:auto;'>{s_price:,}원 (+{s_rate:.2f}%)</span>
                     </div>
@@ -289,7 +288,7 @@ with bottom_cols[1]:
                         s_price = int(row.get('price', 0))
                         s_rate = float(row.get('rate', 0.0))
                         down_box_html += f"""
-                        <div style='display:flex; justify-content:between; align-items:center; margin-bottom:8px; border-bottom:1px solid #1F2937; padding-bottom:4px;'>
+                        <div style='display:flex; justify-content:content; align-items:center; margin-bottom:8px; border-bottom:1px solid #1F2937; padding-bottom:4px;'>
                             <span style='color:#FFF; font-weight:600; font-size:13px;'>{s_name} <small style='color:#9CA3AF;'>{s_code}</small></span>
                             <span style='color:#3B82F6; font-weight:700; font-size:13px; margin-left:auto;'>{s_price:,}원 ({s_rate:.2f}%)</span>
                         </div>
@@ -297,11 +296,9 @@ with bottom_cols[1]:
                 down_box_html += "</div>"
                 st.markdown(down_box_html, unsafe_allow_html=True)
 
-            # 칸 3. 💥 [대망의 우측 날개 미니 라이브 채팅창] 관통 완공!
+            # 칸 3. 💥 [우측 날개 미니 라이브 채팅창] 관통 완공!
             with sub_cols[2]:
                 st.markdown("<span style='color:#10B981; font-weight:700; font-size:15px;'>💬 실시간 라이브 토크</span>", unsafe_allow_html=True)
-                # 전 세계 사이트에서 공인된 100% 평생 무료 익명 소통 엔진(Cbox) 수로를 iframe 규격으로 안착시켰습니다!
-                # 개미들이 들어와서 회원가입 없이 닉네임만 적으면 즉시 1초 만에 대화가 터집니다.
                 chat_html = """
                 <div style='border:1px solid #374151; border-radius:6px; overflow:hidden; background-color:#111827; height:460px;'>
                     <iframe src="https://cbox.ws" 
@@ -323,3 +320,4 @@ with bottom_cols[1]:
 # -----------------------------------------------------------------
 from streamlit_autorefresh import st_autorefresh
 st_autorefresh(interval=15000, key="market_data_refresh")
+
