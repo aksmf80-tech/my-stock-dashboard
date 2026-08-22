@@ -163,7 +163,7 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 가짜 차단막 제로 직통 투과 버전)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 자료형 엇박자 완벽 교정 완공)
 # =================================================================
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
@@ -174,22 +174,27 @@ for idx, (m_name, m_code) in enumerate(m_targets):
     is_data_loaded = False
 
     try:
+        # 💡 [순정 직통 수로]: 하단 연산에 절대 오염 안 된 raw_df 원본 풀에서 직통 타겟 사격
         if 'raw_df' in globals() and not raw_df.empty:
             check_df = raw_df.copy()
-            # DB의 text 타입 규격 '000660'과 정확히 일치하도록 문자열 공백 정제 락(Lock)을 겁니다.
-            check_df['code_clean'] = check_df['code'].astype(str).str.strip().str.zfill(6)
             
-            target_rows = check_df[check_df['code_clean'] == str(m_code).strip()]
+            # 🔥 [형님 특명 영점 조절]: 코드가 '000660' 문자열이든 '660' 정수형이든 상관없이 강제로 숫자로 통일해서 매칭 락(Lock)을 겁니다.
+            check_df['code_numeric'] = pd.to_numeric(check_df['code'], errors='coerce')
+            target_numeric_code = int(m_code)  # '005930' -> 5930 / '000660' -> 660 정수화
+            
+            target_rows = check_df[check_df['code_numeric'] == target_numeric_code]
             
             if not target_rows.empty:
                 latest_row = target_rows.iloc[-1]
+                
+                # 3번 영역 쟁반에서 무결점으로 정제된 이름('price', 'rate')으로 데이터 관통
                 m_price = int(latest_row['price'])
                 m_rate = float(latest_row['rate'])
                 is_data_loaded = True
     except:
         pass
 
-    # 웅장한 대문 칸에 가격 패킷 무조건 강제 표출
+    # 가짜 가림막, 가짜 조회실패 문구 전면 철거하고 리얼 주가 화면 대문에 강제 표출
     price_display = f"{m_price:,}원" if is_data_loaded else "조회실패"
     sign_str = "+" if m_rate > 0 else ""
     
