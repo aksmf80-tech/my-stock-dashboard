@@ -13,24 +13,51 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 상단 쿠팡 테두리 군살 완전 도려내기 엔지니어링)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 날아간 2구역 종목 박스 디자인 긴급 이식 완료)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
     [data-testid="stHeader"] { background: transparent !important; height: 0rem !important; display: none !important; }
-    .block-container { padding-top: 1.5rem !important; padding-bottom: 0.5rem !important; }
-    [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
-    hr { margin: 0.4rem 0 !important; }
     
-    /* 🚨 [형님 특명 - 광고 겉틀 테두리 여백 원천 파괴]: 
-       padding을 0px로 밀어버리고 높이를 80px로 꽉 묶어 내부 쿠팡 배너와 1대1 밀착시킵니다. */
+    /* 전체 패딩을 극도로 압축하여 광고판과 하단 기둥들이 완벽하게 밀착되도록 조정 */
+    .block-container { padding-top: 1.0rem !important; padding-bottom: 0.5rem !important; }
+    [data-testid="stVerticalBlock"] { gap: 0.2rem !important; }
+    hr { margin: 0.2rem 0 !important; }
+    
+    /* 🚨 [긴급 수리 완료]: 이 디자인 코드가 빠져서 가운데가 날아갔던 것입니다. 완벽하게 복원했습니다. */
+    .stock-box-up {
+        border-left: 8px solid #EF4444 !important;
+        background-color: #1E293B !important;
+        padding: 14px 18px !important;
+        border-radius: 6px !important;
+        margin-bottom: 8px !important;
+        display: flex; justify-content: space-between; align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stock-box-down {
+        border-left: 8px solid #3B82F6 !important;
+        background-color: #1E293B !important;
+        padding: 14px 18px !important;
+        border-radius: 6px !important;
+        margin-bottom: 8px !important;
+        display: flex; justify-content: space-between; align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stock-name-up { color: #FFF !important; font-weight: 800 !important; font-size: 18px !important; }
+    .stock-name-down { color: #FFF !important; font-weight: 800 !important; font-size: 18px !important; }
+    .stock-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 19px !important; }
+    .stock-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 19px !important; }
+    
+    /* 광고 겉틀 검은 여백 원천 파괴 슬림 셋팅 */
     .coupang-ad-box {
         background-color: transparent !important;
-        border: none !important; /* 조잡한 바깥쪽 점선/실선 테두리 완전 소멸 */
-        padding: 0px !important; /* 위아래 붕 뜨는 흰색/남색 여백 0px 원천 차단 */
+        border: none !important; 
+        padding: 0px !important; 
+        margin: 0px !important;
         text-align: center !important;
-        min-height: 80px !important;
-        max-height: 80px !important;
+        min-height: 60px !important;
+        max-height: 60px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -40,23 +67,21 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. 🚨 쿠팡 파트너스 광고 코드 직통 삽입 구역 (테두리 초밀착 버전)
+# 2-2. 쿠팡 파트너스 개별 광고 코드 주입 구역 (수평 밀착 버전)
 # =================================================================
-
-# 형님 방 번호 패킷을 넣어 테두리 유격 없이 알맹이만 꽉 차게 뿜어내도록 수식을 마감했습니다.
 HTML_AD_1 = """
-<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
+<iframe src="https://coupang.com" width="100%" height="60" frameborder="0" scrolling="no" style="border:none;"></iframe>
 """
 
 HTML_AD_2 = """
-<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
+<iframe src="https://coupang.com" width="100%" height="60" frameborder="0" scrolling="no" style="border:none;"></iframe>
 """
 
 HTML_AD_3 = """
-<iframe src="https://coupang.com" width="100%" height="80" frameborder="0" scrolling="no" style="border:none;"></iframe>
+<iframe src="https://coupang.com" width="100%" height="60" frameborder="0" scrolling="no" style="border:none;"></iframe>
 """
 
-# 가로 3형제 슬림 배너 가동
+# 가로 3형제 초슬림 풀밀착 배너 출력 가동
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
@@ -66,7 +91,6 @@ with ad_col3:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_3}</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 2px;'></div>", unsafe_allow_html=True)
-
 
 # 3. 수파베이스 직통 연결 및 데이터 파이프라인
 SUPABASE_URL = st.secrets["supabase"]["url"]
