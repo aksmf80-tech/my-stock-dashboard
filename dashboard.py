@@ -1,192 +1,199 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import plotly.express as px
-import time
-import datetime
 from supabase import create_client, Client
 
 # =================================================================
-# 1. 페이지 레이아웃 세팅 (상단 시스템 여백 전면 개방)
+# 1. [인프라 공사] 스트림릿 기본 주방 환경 설정 및 철옹성 방어막
 # =================================================================
 st.set_page_config(
-    page_title="실시간 주도주 테마 전광판",
+    page_title="iWin 주도주 실시간 테마 대시보드",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# =================================================================
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 카페 배너 & 종목 짤림 절대 방어막)
-# =================================================================
-st.markdown("""
-    <style>
-    /* [천장 차단막 완전 철거]: 스트림릿 고유 상단 투명 헤더의 억압을 완벽하게 부수고 밀어 올립니다! */
-    [data-testid="stHeader"] { background: transparent !important; height: 0rem !important; display: none !important; }
-    
-    /* 전체 화면 가두리 패딩을 위쪽으로 넉넉하게 6.5rem 확장하여 배너가 절대 안 잘리게 방어합니다. */
-    .block-container { padding-top: 6.5rem !important; padding-bottom: 0.5rem !important; }
-    [data-testid="stVerticalBlock"] { gap: 0.6rem !important; }
-    hr { margin: 0.6rem 0 !important; }
-    
-    /* 네이버 카페 배너 박스 절대 좌표 고정 */
-    .cafe-banner-container {
-        margin-top: -5.0rem !important;
-        margin-bottom: 1.8rem !important;
-        text-align: center !important;
-        width: 100% !important;
-    }
-    
-    /* HTS 전광판 규격 대왕 글씨 배너 테두리 및 정렬 최적화 */
-    .master-box-custom-up {
-        background-color: #1E293B !important;
-        border-left: 8px solid #EF4444 !important;
-        padding: 16px 22px !important;
-        border-radius: 6px !important;
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center;
-    }
-    .master-box-custom-down {
-        background-color: #1E293B !important;
-        border-left: 8px solid #3B82F6 !important;
-        padding: 16px 22px !important;
-        border-radius: 6px !important;
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center;
-    }
-    
-    /* 우측 종목 박스 가독성 및 HTS 호가창 규격 대형화 서체 */
-    .stock-box-up {
-        border-left: 8px solid #EF4444 !important;
-        background-color: #1E293B !important;
-        padding: 14px 18px !important;
-        border-radius: 6px !important;
-        margin-bottom: 8px !important;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .stock-box-down {
-        border-left: 8px solid #3B82F6 !important;
-        background-color: #1E293B !important;
-        padding: 14px 18px !important;
-        border-radius: 6px !important;
-        margin-bottom: 8px !important;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .stock-name-up { color: #FFF !important; font-weight: 800 !important; font-size: 18px !important; }
-    .stock-name-down { color: #FFF !important; font-weight: 800 !important; font-size: 18px !important; }
-    .stock-rate-up { color: #F87171 !important; font-weight: 900 !important; font-size: 19px !important; }
-    .stock-rate-down { color: #60A5FA !important; font-weight: 900 !important; font-size: 19px !important; }
-    </style>
-""", unsafe_allow_html=True)
-# =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (🚨 실종된 가스관 복구 완공 버전)
-# =================================================================
-SUPABASE_URL = st.secrets["supabase"]["url"]
-SUPABASE_KEY = st.secrets["supabase"]["key"]
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-# 🎯 [형님 특명 트래픽 방어막]: 30만 명 디도스 폭탄을 완벽하게 분쇄하는 15초 캐시 락 기지 구축!
-@st.cache_data(ttl=15)
-def load_market_data():
-    try:
-        response = supabase.table("kiwoom_themes").select("*").execute()
-        rows = []
-        for item in response.data:
-            s_code = str(item.get('stock_code', '')).strip()
-            s_name = str(item.get('stock_name', '')).strip()
-            
-            # 🔥 [가짜 데이터 암살 가드]: SKELETON_BASE 뼈대는 국물도 없이 쳐내서 화면 정화 완공!
-            if "SKELETON" in s_name.upper() or "SKELETON" in s_code.upper():
-                continue
-                
-            r_val = item.get('theme_flu_rt')
-            p_val = item.get('current_price')
-            t_name = str(item.get('theme_name', '미분류')).strip()
-            
-            rows.append({
-                'theme': t_name,
-                'name': s_name,
-                'code': s_code,
-                'rate': float(r_val) if r_val is not None else 0.0,
-                'price': int(p_val) if p_val is not None else 0  # 싱싱한 리얼 단가 안착
-            })
-        raw_df = pd.DataFrame(rows)
-    except Exception as e:
-        raw_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
-
-    if not raw_df.empty:
-        agg_df = raw_df.groupby('theme')['rate'].mean().reset_index()
-        kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
-        current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
-        
-        status_df = pd.DataFrame({
-            '테마': agg_df['theme'],
-            '등락률': agg_df['rate'].round(2),
-            '업데이트시간': [current_time_str] * len(agg_df)
-        })
-        status_df = status_df.sort_values(by='등락률', ascending=False).reset_index(drop=True)
-        status_df['화면크기_가중치'] = np.linspace(35, 10, len(status_df)) if len(status_df) > 0 else []
-    else:
-        status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
-        
-    return raw_df, status_df
-
-# 💥 [실종 수로 긴급 복구]: 잘려 나갔던 정품 데이터 쟁반 출격 명령 수로를 다시 강제로 안착시킵니다!
-raw_df, status_df = load_market_data()
-
-# 시계 연산 영점 동기화
-kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
-update_time = kst_current.strftime('%H:%M:%S')
-
-# =================================================================
-# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출 (정품 주소 사수)
-# =================================================================
+# HTS 규격 붉은색/푸른색 및 가두리 3분할 전용 다크 테마 커스텀 스킨 주입
 st.markdown(
-    "<div class='cafe-banner-container'>\n"
-    "  <a href='https://cafe.naver.com/signalhub' target='_blank' style='text-decoration:none;'>\n"
-    "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:18px; \n"
-    "    border:none; padding:15px 24px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width:100%; font-family:sans-serif;'>\n"
-    "      🏛️ 시그널공장 네이버 카페 바로가기\n"
-    "    </button>\n"
-    "  </a>\n"
-    "</div>", 
+    """
+    <style>
+    /* 전체 다크룸 배경 기지 고정 */
+    .stApp {
+        background-color: #0F172A;
+    }
+    /* 상단 3분할 쿠팡/카페 정품 배너용 CSS */
+    .master-banner-box {
+        padding: 15px; 
+        border-radius: 8px; 
+        text-align: center;
+        border: 1px solid rgba(255,255,255,0.1); 
+        height: 100px; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: center;
+    }
+    /* 가독성 극대화를 위한 스크롤바 디자인 세척 */
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #111827;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #374151;
+        border-radius: 3px;
+    }
+    </style>
+    """,
     unsafe_allow_html=True
 )
 
-st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
+# =================================================================
+# 2. [비밀 금고 열기] Supabase 보안 인증 및 파이프라인 개통
+# =================================================================
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# =================================================================
+# 3. [데이터 파이프라인] 15초 독립 캐시 가드 적용 데이터 수송관
+# =================================================================
+@st.cache_data(ttl=15)
+def load_market_data():
+    """🚀 수퍼베이스 kiwoom_themes 테이블에서 날것의 패킷을 긁어와 정형화 데이터프레임으로 수송"""
+    try:
+        # 최근 100개의 테마/종목 패킷을 수급
+        response = supabase.table("kiwoom_themes").select("*").order("updated_at", desc=True).limit(100).execute()
+        data = response.data
+        
+        if not data:
+            return pd.DataFrame()
+            
+        rows = []
+        for item in data:
+            t_name = str(item.get('theme_name', '미분류')).strip()
+            s_code = str(item.get('stock_code', '')).strip()
+            s_name = str(item.get('stock_name', '')).strip()
+            
+            p_val = item.get('current_price')
+            try:
+                price = int(p_val) if p_val is not None else 0
+            except:
+                price = 0
+                
+            r_val = item.get('theme_flu_rt')
+            try:
+                rate = float(r_val) if r_val is not None else 0.0
+            except:
+                rate = 0.0
+                
+            rows.append({
+                'theme': t_name,
+                'code': s_code,
+                'name': s_name,
+                'price': price,
+                'rate': rate
+            })
+            
+        return pd.DataFrame(rows)
+    except Exception as e:
+        return pd.DataFrame()
+
+# 메인 수송관을 통해 쟁반 데이터프레임 수신
+raw_df = load_market_data()
+# =================================================================
+# 4. [최상단 배너] 시그널공장 네이버 카페 바로가기 통짜 배너 (순정 유지)
+# =================================================================
+st.markdown(
+    """
+    <a href="https://naver.com" target="_blank" style="text-decoration: none;">
+        <div style="background: linear-gradient(135deg, #03C75A 0%, #029443 100%);
+                    padding: 16px; border-radius: 10px; text-align: center;
+                    box-shadow: 0 4px 15px rgba(3, 199, 90, 0.2); margin-bottom: 20px;
+                    transition: transform 0.2s ease; border: 1px solid rgba(255,255,255,0.1);">
+            <span style="color: white; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">
+                💚 시그널공장 네이버 카페 바로가기 💚
+            </span>
+        </div>
+    </a>
+    """,
+    unsafe_allow_html=True
+)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 ➡️ 향후 광고 배너 입점 구역
+# 5. [HTS 규격 3분할 광고판] 쿠팡 파트너스 고정형 락(Lock) 발사대 완공 구역
 # =================================================================
-st.empty()
+master_3_cols = st.columns(3)
 
+# 1. [좌측 광고 칸]: 첫 번째 쿠팡 상품 배너 자리
+with master_3_cols[0]:
+    st.markdown(
+        """
+        <div class="master-banner-box" style="background-color: #1E293B;">
+            <a href="https://coupang.com" target="_blank" style="text-decoration: none; color: #10B981; font-weight: 800; font-size: 15px;">
+                💻 장비가 실력이다! 초고속 단타 모니터전<br>
+                <span style="color: #94A3B8; font-size: 11px; font-weight: 500; margin-top: 4px; display: inline-block;">※ 누르면 쿠팡 24시간 실적 락 격발 ➡️</span>
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# 2. [중앙 광고 칸]: 형님 시그널공장 홍보 및 공지 배너 고정
+with master_3_cols[1]:
+    st.markdown(
+        """
+        <a href="https://naver.com" target="_blank" style="text-decoration: none;">
+            <div class="master-banner-box" style="background: linear-gradient(135deg, #1E3A8A 0%, #0D9488 100%);">
+                <span style="color: white; font-size: 16px; font-weight: 800;">🏛️ 시그널공장 VIP 정보방</span>
+                <span style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 500; margin-top: 4px;">주도주 핵심 압축 리포트 직통 수령 ➡️</span>
+            </div>
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
+
+# 3. [우측 광고 칸]: 두 번째 쿠팡 상품 배너 자리 (채팅창 머리 위 수직 칼대칭)
+with master_3_cols[2]:
+    st.markdown(
+        """
+        <div class="master-banner-box" style="background-color: #1E293B;">
+            <a href="https://coupang.com" target="_blank" style="text-decoration: none; color: #10B981; font-weight: 800; font-size: 15px;">
+                ⌨️ 0.1초 반응 손맛! 무선 기계식 키보드전<br>
+                <span style="color: #94A3B8; font-size: 11px; font-weight: 500; margin-top: 4px; display: inline-block;">※ 구매 금액의 3%가 형님 통장으로 인입 ➡️</span>
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# 쿠팡 파트너스 몰수 방지 필수 법적 대가성 명시 문구 방어막 심기
+st.markdown(
+    """
+    <div style="text-align: center; margin-top: 5px; margin-bottom: 20px;">
+        <span style="color: #64748B; font-size: 11px; font-weight: 500;">
+            ※ 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.
+        </span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown("---")
 # =================================================================
-# 6. 하단 레이아웃 (🚨 주말 NaN% 에러 완치 및 미니 채팅창 개통 최종본)
+# 6. [하단 3분할 대수술] 히트맵 축소 및 종목 중앙 정렬 + 우측 익명 채팅창 완공
 # =================================================================
-# 🎯 [세션 및 레이아웃 초기화] 다른 소스코드 충돌을 원천 방어합니다.
 if 'selected_theme_click' not in st.session_state:
     st.session_state.selected_theme_click = None
 
-# 좌측 히트맵과 우측 대형 리더보드의 순정 황금 비율(4.4 : 5.6)을 완벽하게 사수합니다.
+# 좌측 히트맵구역과 우측 리더보드구역의 순정 황금 비율(4.4 : 5.6) 교차 고정
 bottom_cols = st.columns([4.4, 5.6], gap="medium")
 
 # -----------------------------------------------------------------
-# 🗺️ [좌측 칸]: 실시간 주도 테마 히트맵 (🚨 주말 에러 원천 봉쇄)
+# 🗺️ [좌측 칸]: 실시간 주도 테마 히트맵 (사이즈 콤팩트 축소)
 # -----------------------------------------------------------------
 with bottom_cols[0]:
     st.markdown("### 🗺️ 실시간 주도 테마 히트맵")
     
     if raw_df is not None and not raw_df.empty:
-        # 테마별 평균 등락률 산출 연산 수송
         theme_df = raw_df.groupby('theme').agg({
             'rate': 'mean',
             'code': 'count'
@@ -194,7 +201,7 @@ with bottom_cols[0]:
         theme_df.columns = ['theme', 'avg_rate', 'stock_count']
         theme_df['theme_clean'] = theme_df['theme'].str.replace('ROOM_', '')
         
-        # Plotly 트리맵 엔진 구동 (순정 세팅 유지)
+        # Plotly 트리맵 엔진 구동
         import plotly.express as px
         fig = px.treemap(
             theme_df,
@@ -205,25 +212,24 @@ with bottom_cols[0]:
             color_continuous_midpoint=0.0
         )
         
-        # 🚨 [치명적 버그 수정]: 주말에 데이터가 없어도 에러 안 나게 서식을 날것 그대로 매핑
+        # Plotly 정품 문자열 복구로 주말 에러 완벽 소독
         fig.update_traces(
-            texttemplate="<b>{label}</b><br>{color}%",
+            texttemplate="<b>{label}</b><br>{color:.2f}%",
             textposition="inside",
             insidetextfont=dict(size=14, color='white'),
-            hovertemplate="<b>{label}</b><br>평균 등락률: {color}%"
+            hovertemplate="<b>{label}</b><br>평균 등락률: {color:.2f}%"
         )
         
         fig.update_layout(
             margin=dict(t=0, b=0, l=0, r=0),
-            height=520,
+            height=500,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             coloraxis_showscale=False
         )
         
-        # 클릭 이벤트 스트림릿 연동 가드
         from streamlit_plotly_events import plotly_events
-        selected_point = plotly_events(fig, click_event=True, hover_event=False, override_height=520)
+        selected_point = plotly_events(fig, click_event=True, hover_event=False, override_height=500)
         
         if selected_point:
             try:
@@ -234,51 +240,48 @@ with bottom_cols[0]:
                 pass
 
 # -----------------------------------------------------------------
-# 🗂️ [우측 칸]: 테마 포지션 + 💥 우측 날개 미니 라이브 채팅창 완공
+# 🗂️ [우측 칸]: 테마 포지션 가운데 밀기 + 💥 우측 날개 미니 채팅창 빌드
 # -----------------------------------------------------------------
 with bottom_cols[1]:
-    # 선택된 테마 대화방 가동 (기본값은 첫 번째 테마 강제 맵핑)
     if st.session_state.selected_theme_click:
         chosen_theme = st.session_state.selected_theme_click
     else:
         chosen_theme = theme_df.iloc[0]['theme_clean'] if 'theme_df' in locals() and not theme_df.empty else "IT 서비스"
         
-    st.markdown(f"### 🗂️ [{chosen_theme}] 테마 포지션 및 소통방")
+    st.markdown(f"### 🗂️ [{chosen_theme}] 테마 포지션 및 라이브 토크")
     
-    # 테마에 소속된 정품 종목 데이터 가로채기
     if raw_df is not None and not raw_df.empty:
         theme_detail_df = raw_df[raw_df['theme'].str.replace('ROOM_', '') == chosen_theme].copy()
         
         if not theme_detail_df.empty:
-            # 상승/하락 종목 분류 분기 가동
             up_stocks = theme_detail_df[theme_detail_df['rate'] >= 0].sort_values(by='rate', ascending=False)
             down_stocks = theme_detail_df[theme_detail_df['rate'] < 0].sort_values(by='rate', ascending=True)
             
-            # 🚨 가로 칸을 3개로 분할하여 상승, 하락, 채팅방을 칼대칭 배치합니다!
+            # 🚨 방 번호 인덱스 0, 1, 2를 명확히 지정해 정렬 에러를 완치합니다!
             sub_cols = st.columns([4.2, 4.2, 3.6], gap="small")
             
-            # 칸 1. 소속 상승 종목 렌더링
+            # [칸 0번]: 소속 상승 종목 정중앙 배치
             with sub_cols[0]:
-                st.markdown("<span style='color:#EF4444; font-weight:700; font-size:15px;'>🔺 소속 상승 종목</span>", unsafe_allow_html=True)
-                up_box_html = "<div style='height:460px; overflow-y:auto; border:1px solid #374151; padding:8px; border-radius:6px; background-color:#111827;'>"
+                st.markdown("<span style='color:#EF4444; font-weight:700; font-size:14px;'>🔺 소속 상승 종목</span>", unsafe_allow_html=True)
+                up_box_html = "<div style='height:440px; overflow-y:auto; border:1px solid #374151; padding:8px; border-radius:6px; background-color:#111827;'>"
                 for _, row in up_stocks.iterrows():
                     s_name = row.get('name', '종목명')
                     s_code = row.get('code', '000000')
                     s_price = int(row.get('price', 0))
                     s_rate = float(row.get('rate', 0.0))
                     up_box_html += f"""
-                    <div style='display:flex; justify-content:content; align-items:center; margin-bottom:8px; border-bottom:1px solid #1F2937; padding-bottom:4px;'>
-                        <span style='color:#FFF; font-weight:600; font-size:13px;'>{s_name} <small style='color:#9CA3AF;'>{s_code}</small></span>
-                        <span style='color:#EF4444; font-weight:700; font-size:13px; margin-left:auto;'>{s_price:,}원 (+{s_rate:.2f}%)</span>
+                    <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #1F2937; padding-bottom:4px;'>
+                        <span style='color:#FFF; font-weight:600; font-size:12px;'>{s_name} <small style='color:#9CA3AF;'>{s_code}</small></span>
+                        <span style='color:#EF4444; font-weight:700; font-size:12px; margin-left:auto;'>{s_price:,}원 (+{s_rate:.2f}%)</span>
                     </div>
                     """
                 up_box_html += "</div>"
                 st.markdown(up_box_html, unsafe_allow_html=True)
                 
-            # 칸 2. 소속 하락 종목 렌더링
+            # [칸 1번]: 소속 하락 종목 정중앙 배치
             with sub_cols[1]:
-                st.markdown("<span style='color:#3B82F6; font-weight:700; font-size:15px;'>🔹 소속 하락 종목</span>", unsafe_allow_html=True)
-                down_box_html = "<div style='height:460px; overflow-y:auto; border:1px solid #374151; padding:8px; border-radius:6px; background-color:#111827;'>"
+                st.markdown("<span style='color:#3B82F6; font-weight:700; font-size:14px;'>🔹 소속 하락 종목</span>", unsafe_allow_html=True)
+                down_box_html = "<div style='height:440px; overflow-y:auto; border:1px solid #374151; padding:8px; border-radius:6px; background-color:#111827;'>"
                 if down_stocks.empty:
                     down_box_html += "<div style='color:#9CA3AF; text-align:center; margin-top:20px; font-size:12px;'>당일 해당 테마에 하락 종목이 없습니다.</div>"
                 else:
@@ -288,22 +291,22 @@ with bottom_cols[1]:
                         s_price = int(row.get('price', 0))
                         s_rate = float(row.get('rate', 0.0))
                         down_box_html += f"""
-                        <div style='display:flex; justify-content:content; align-items:center; margin-bottom:8px; border-bottom:1px solid #1F2937; padding-bottom:4px;'>
-                            <span style='color:#FFF; font-weight:600; font-size:13px;'>{s_name} <small style='color:#9CA3AF;'>{s_code}</small></span>
-                            <span style='color:#3B82F6; font-weight:700; font-size:13px; margin-left:auto;'>{s_price:,}원 ({s_rate:.2f}%)</span>
+                        <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #1F2937; padding-bottom:4px;'>
+                            <span style='color:#FFF; font-weight:600; font-size:12px;'>{s_name} <small style='color:#9CA3AF;'>{s_code}</small></span>
+                            <span style='color:#3B82F6; font-weight:700; font-size:12px; margin-left:auto;'>{s_price:,}원 ({s_rate:.2f}%)</span>
                         </div>
                         """
                 down_box_html += "</div>"
                 st.markdown(down_box_html, unsafe_allow_html=True)
 
-            # 칸 3. 💥 [우측 날개 미니 라이브 채팅창] 관통 완공!
+            # [칸 2번]: 하락 종목 바로 우측 날개 옆방 무료 미니 채팅창 개통!
             with sub_cols[2]:
-                st.markdown("<span style='color:#10B981; font-weight:700; font-size:15px;'>💬 실시간 라이브 토크</span>", unsafe_allow_html=True)
+                st.markdown("<span style='color:#10B981; font-weight:700; font-size:14px;'>💬 실시간 라이브 토크</span>", unsafe_allow_html=True)
                 chat_html = """
-                <div style='border:1px solid #374151; border-radius:6px; overflow:hidden; background-color:#111827; height:460px;'>
+                <div style='border:1px solid #374151; border-radius:6px; overflow:hidden; background-color:#111827; height:440px;'>
                     <iframe src="https://cbox.ws" 
                             width="100%" 
-                            height="460" 
+                            height="440" 
                             allowtransparency="yes" 
                             allow="autoplay" 
                             frameborder="0" 
@@ -315,9 +318,8 @@ with bottom_cols[1]:
                 """
                 st.markdown(chat_html, unsafe_allow_html=True)
 
-# -----------------------------------------------------------------
-# 🔄 [15초 캐시 가드 오토 리프레시 엔진] (순정 상태 유지)
-# -----------------------------------------------------------------
+# =================================================================
+# 7. [오토 리프레시 엔진] 15초 단위 마켓 자동 동기화 수송 (순정 복구)
+# =================================================================
 from streamlit_autorefresh import st_autorefresh
 st_autorefresh(interval=15000, key="market_data_refresh")
-
