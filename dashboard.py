@@ -165,6 +165,19 @@ st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#
 # =================================================================
 # 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 수파베이스 금고 직통 관통 완공)
 # =================================================================
+@st.cache_data(ttl=15)
+def 조회_삼성_SK(종목명):
+    가격, 등락률, 로드성공 = 0, 0.0, False
+    try:
+        결과 = supabase.table("kiwoom_themes").select("*").eq("stock_name", 종목명).execute()
+        if 결과.data:
+            최신행 = 결과.data[-1]
+            가격 = int(최신행['current_price'])
+            등락률 = float(최신행['theme_flu_rt'])
+            로드성공 = True
+    except:
+        pass
+    return 가격, 등락률, 로드성공
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "삼성전자"), ("SK하이닉스", "SK하이닉스")]
 
