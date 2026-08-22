@@ -164,90 +164,60 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 영원불멸 종목코드 직통 관통본)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 5번 구역 단독 최종 완공본)
 # =================================================================
-# 🎯 [전광판 전용 독립 15초 캐시]: 하단 연산과 완벽히 격리하여 트래픽 부하를 분쇄하는 철옹성 기지입니다.
-@st.cache_data(ttl=15)
-def fetch_master_stock_direct(_df_packet):
-    # 전광판에 뿌려줄 기본값 세팅
-    result = {
-        "005930": {"price": 0, "rate": 0.0, "success": False},
-        "000660": {"price": 0, "rate": 0.0, "success": False}
-    }
-    
-    if _df_packet is not None and not _df_packet.empty:
-        try:
-            # 하단 리스트가 성공적으로 가동되는 데이터프레임 순회 루프 작동
-            for _, row in _df_packet.iterrows():
-                # 3번 수집기 내부에서 변환된 소문자 'code' 컬럼값을 안전하게 추출
-                db_code = str(row.get('code', '')).strip()
-                
-                # 🚨 [형님 특명 명세]: 영원히 바뀌지 않는 '005930'과 '000660' 코드만 발견 즉시 단가 탈취
-                if db_code == "005930" or db_code == "ROOM_005930":
-                    result["005930"] = {
-                        "price": int(row.get('price', 0)) if row.get('price') is not None else int(row.get('current_price', 0)),
-                        "rate": float(row.get('rate', 0.0)) if row.get('rate') is not None else float(row.get('theme_flu_rt', 0.0)),
-                        "success": True
-                    }
-                elif db_code == "000660" or db_code == "ROOM_000660":
-                    result["000660"] = {
-                        "price": int(row.get('price', 0)) if row.get('price') is not None else int(row.get('current_price', 0)),
-                        "rate": float(row.get('rate', 0.0)) if row.get('rate') is not None else float(row.get('theme_flu_rt', 0.0)),
-                        "success": True
-                    }
-        except:
-            pass
-            
-    return result
-
 master_2_cols = st.columns(2)
 
-# 💥 독립 캐시 함수를 직통 호출하여 수파베이스 최종 가격 쟁반을 수신합니다.
-master_data_pack = fetch_master_stock_direct(raw_df)
+# 영원히 바뀌지 않는 005930, 000660 종목코드로 타겟 정밀 타격 라인 배치
+m_targets = [
+    {"name": "삼성전자", "code": "005930", "col_idx": 0},
+    {"name": "SK하이닉스", "code": "000660", "col_idx": 1}
+]
 
-# 1. 삼성전자 대형 전광판 렌더링
-sam_info = master_data_pack["005930"]
-with master_2_cols[0]:
-    if sam_info["success"]:
-        p_disp = f"{sam_info['price']:,} 원"
-        s_str = "+" if sam_info['rate'] > 0 else ""
-        c_val = "#EF4444" if sam_info['rate'] >= 0 else "#3B82F6"
-        b_cls = 'master-box-custom-up' if sam_info['rate'] >= 0 else 'master-box-custom-down'
-        st.markdown(f"""
-            <div class='{b_cls}'>
-                <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ 삼성전자</span>
-                <span style='color:{c_val}; font-weight:900; font-size:26px; margin-left:auto;'>{p_disp} ({s_str}{sam_info['rate']:.2f}%)</span>
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-            <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
-                <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ 삼성전자</span>
-                <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>연결 대기중 (0원)</span>
-            </div>
-        """, unsafe_allow_html=True)
+for target in m_targets:
+    m_name = target["name"]
+    m_code = target["code"]
+    m_idx = target["col_idx"]
+    
+    m_price = 0  
+    m_rate = 0.0
+    is_data_loaded = False
 
-# 2. SK하이닉스 대형 전광판 렌더링
-sk_info = master_data_pack["000660"]
-with master_2_cols[1]:
-    if sk_info["success"]:
-        p_disp = f"{sk_info['price']:,} 원"
-        s_str = "+" if sk_info['rate'] > 0 else ""
-        c_val = "#EF4444" if sk_info['rate'] >= 0 else "#3B82F6"
-        b_cls = 'master-box-custom-up' if sk_info['rate'] >= 0 else 'master-box-custom-down'
-        st.markdown(f"""
-            <div class='{b_cls}'>
-                <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ SK하이닉스</span>
-                <span style='color:{c_val}; font-weight:900; font-size:26px; margin-left:auto;'>{p_disp} ({s_str}{sk_info['rate']:.2f}%)</span>
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-            <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
-                <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ SK하이닉스</span>
-                <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>연결 대기중 (0원)</span>
-            </div>
-        """, unsafe_allow_html=True)
+    # 🚨 [5번 단독 완공 수로]: 하단 리스트가 성공적으로 데이터를 출력하는 수로를 100% 동일하게 복사했습니다!
+    if raw_df is not None and not raw_df.empty:
+        for _, row in raw_df.iterrows():
+            db_code = str(row.get('code', '')).strip()
+            if not db_code:
+                db_code = str(row.get('stock_code', '')).strip()
+            
+            # 수집기 데이터 적재 방식(ROOM_ 접두사 포함)에 상관없이 무조건 잡아채는 2중 무결점 필터
+            if db_code == m_code or db_code == f"ROOM_{m_code}":
+                # 하단 리스트가 화면을 그릴 때 가져오는 실제 컬럼 수기값을 직통으로 강탈
+                m_price = int(row.get('price', 0)) if row.get('price') is not None else int(row.get('current_price', 0))
+                m_rate = float(row.get('rate', 0.0)) if row.get('rate') is not None else float(row.get('theme_flu_rt', 0.0))
+                is_data_loaded = True
+                break  # 타겟 데이터 최종 1줄 매칭 즉시 루프 탈출
+
+    # 🚨 [레이아웃 정밀 조율]: 상자가 깨지거나 연결 대기중으로 튕기는 원인을 완벽 수리했습니다.
+    with master_2_cols[m_idx]:
+        if is_data_loaded:
+            price_display = f"{m_price:,} 원"
+            sign_str = "+" if m_rate > 0 else ""
+            color_val = "#EF4444" if m_rate >= 0 else "#3B82F6"
+            box_cls = 'master-box-custom-up' if m_rate >= 0 else 'master-box-custom-down'
+            st.markdown(f"""
+                <div class='{box_cls}'>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:{color_val}; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
+                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
+                    <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>연결 대기중 (0원)</span>
+                </div>
+            """, unsafe_allow_html=True)
 
 st.markdown("---")
 
