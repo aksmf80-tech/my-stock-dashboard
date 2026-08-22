@@ -87,13 +87,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (🚨 캐시 좀비 청소 완공 버전)
+# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (🚨 쟁반 이름 싱크 완전 완공 버전)
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 🎯 [캐시 락 전면 철거]: 옛날 실패 찌꺼기를 물고 리부팅을 막던 캐시 데코레이터를 완전히 제거하여 생데이터를 퍼 올립니다.
 def load_market_data():
     try:
         response = supabase.table("kiwoom_themes").select("*").execute()
@@ -117,12 +116,13 @@ def load_market_data():
                 'rate': float(r_val) if r_val is not None else 0.0,
                 'price': int(p_val) if p_val is not None else 0  # 싱싱한 리얼 단가 안착
             })
-        base_df = pd.DataFrame(rows)
+        # 🎯 [동생 대가리 박고 영점 조절]: 쟁반 변수 이름을 하단 연산과 일치하도록 raw_df로 정품 완공합니다!
+        raw_df = pd.DataFrame(rows)
     except Exception as e:
-        base_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
+        raw_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
 
-    if not base_df.empty:
-        agg_df = base_df.groupby('theme')['rate'].mean().reset_index()
+    if not raw_df.empty:
+        agg_df = raw_df.groupby('theme')['rate'].mean().reset_index()
         kst_now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         current_time_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
         
@@ -136,16 +136,17 @@ def load_market_data():
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
-    return base_df, status_df
+    # 🚨 상·하단 수로가 완벽하게 일치된 진짜 정품 쟁반 데이터(raw_df)를 1번 인자로 전면 출격시킵니다!
+    return raw_df, status_df
 
-# 변수 매핑 무결점 싱크 연결 완료 (이제 리얼타임으로 쟁반 갈아 끼웁니다)
+# 변수 매핑 무결점 싱크 연결 완료 
 raw_df, status_df = load_market_data()
 
 kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
 
 # =================================================================
-# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출 (🚨 형님 정품 주소 철통 사수 완공)
+# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출 (정품 주소 사수)
 # =================================================================
 st.markdown(
     "<div class='cafe-banner-container'>\n"
@@ -162,7 +163,7 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 숫자형 영점 조절 완공 버전)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 아래 리스트와 100% 동일 수로 완공)
 # =================================================================
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
@@ -173,13 +174,13 @@ for idx, (m_name, m_code) in enumerate(m_targets):
     is_data_loaded = False
     
     try:
-        # 💡 아래 리스트가 가격 다 뿌려주는 똑똑한 raw_df 데이터판에서 날것 그대로 끄집어냅니다.
+        # 💡 드디어 이름이 완벽하게 싱크된 진짜 raw_df 데이터판을 통째로 뒤져서 사격합니다!
         if not raw_df.empty:
             for _, row in raw_df.iterrows():
-                # 🔥 [최종 영점 조절]: 코드가 '000660'이든, 앞자리 0이 다 잘린 '660'이든 상관없이 강제로 순정 숫자로 변환합니다!
+                # 숫자가 소수점으로 쪼그라들었든 말든 강제로 순정 숫자로 변환하여 영점을 일치시킵니다.
                 try:
                     s_code_numeric = int(float(str(row.get('code', '0')).strip()))
-                    target_numeric = int(m_code)  # '000660' -> 660 / '005930' -> 5930
+                    target_numeric = int(m_code)
                 except:
                     continue
                 
@@ -213,6 +214,7 @@ for idx, (m_name, m_code) in enumerate(m_targets):
             """, unsafe_allow_html=True)
 
 st.markdown("---")
+
 
 
 # =================================================================
