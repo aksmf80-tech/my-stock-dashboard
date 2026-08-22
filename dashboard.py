@@ -87,21 +87,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인
+# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (🚨 중복 박멸 철통 보안 버전)
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 🚨 [형님 특명] 무조건 여기에 박으셔야 30만 명 디도스 트래픽 방어막이 켜집니다!
-@st.cache_data(ttl=15)  # ⬅️ 방향키로 여기로 이동하셔서 딱 이 한 줄을 적으시면 됩니다!
-def load_market_data():
-    try:
-        response = supabase.table("kiwoom_themes").select("*").execute()
-        rows = []
-        # ... 하단 로직 동일 ...
-
-
+# 🎯 [형님 특명 가스관 완공]: 30만 명 디도스 트래픽 폭탄을 함마로 막아내는 15초 정품 캐시 락 부활!
+@st.cache_data(ttl=15)
 def load_market_data():
     try:
         response = supabase.table("kiwoom_themes").select("*").execute()
@@ -125,7 +118,6 @@ def load_market_data():
                 'rate': float(r_val) if r_val is not None else 0.0,
                 'price': int(p_val) if p_val is not None else 0  # 싱싱한 리얼 단가 안착
             })
-        # 🎯 [동생 대가리 박고 영점 조절]: 쟁반 변수 이름을 하단 연산과 일치하도록 raw_df로 정품 완공합니다!
         raw_df = pd.DataFrame(rows)
     except Exception as e:
         raw_df = pd.DataFrame(columns=['theme', 'name', 'code', 'rate', 'price'])
@@ -145,14 +137,8 @@ def load_market_data():
     else:
         status_df = pd.DataFrame(columns=['테마', '등락률', '화면크기_가중치', '업데이트시간'])
         
-    # 🚨 상·하단 수로가 완벽하게 일치된 진짜 정품 쟁반 데이터(raw_df)를 1번 인자로 전면 출격시킵니다!
     return raw_df, status_df
 
-# 변수 매핑 무결점 싱크 연결 완료 
-raw_df, status_df = load_market_data()
-
-kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
-update_time = kst_current.strftime('%H:%M:%S')
 
 # =================================================================
 # 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출 (정품 주소 사수)
