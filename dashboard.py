@@ -76,7 +76,7 @@ st.markdown("""
 # 2-2. 쿠팡 파트너스 광고 코드 직통 삽입 구역 (🚨 가로 600 황금 가치 고정 완료)
 # =================================================================
 HTML_AD_1 = """
-<iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
+<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020951&template=carousel&trackingCode=AF2178062&subId=&width=600&height=80&tsource=" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
 """
 
 HTML_AD_2 = """
