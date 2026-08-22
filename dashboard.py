@@ -90,8 +90,8 @@ RAW_JS_AD_3 = """
         atOptions = {
             'key' : '837653d89b5187fe6192be2c7b895798',
             'format' : 'iframe',
-            'height' : 60,
-            'width' : 468,
+            'height' : 80,
+            'width' : 600,
             'params' : {}
         };
     </script>
