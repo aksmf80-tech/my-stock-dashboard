@@ -203,11 +203,11 @@ if not status_df.empty and chosen_theme and not raw_df.empty:
         
     up_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r >= 0]
     down_stocks = [(n, r, p, c) for n, r, p, c in final_stock_list if r < 0]
-    up_stocks = sorted(up_stocks, key=lambda x: x[1], reverse=True)
-    down_stocks = sorted(down_stocks, key=lambda x: x[1], reverse=False)
+    up_stocks = sorted(up_stocks, key=lambda x: x, reverse=True)
+    down_stocks = sorted(down_stocks, key=lambda x: x, reverse=False)
 
 # -----------------------------------------------------------------
-# [2구역] 소속 종목 복층형 기둥 (순정 콤팩트 규격 복구 완료)
+# [2구역] 소속 종목 복층형 기둥 (순정 콤팩트 수평 일렬 종대)
 # -----------------------------------------------------------------
 with col_stock_double:
     st.markdown(f"### 🎯 [{chosen_theme}] 종목 포지션", unsafe_allow_html=True)
@@ -229,28 +229,35 @@ with col_stock_double:
         else: st.write("<p style='color:#64748B; padding:10px;'>당일 해당 테마에 하락 종목이 없습니다.</p>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------
-# [3구역] 무료 채팅방 날개 배너 (🚨 수평 일치를 위한 다운 보정)
+# [3구역] 🚨 형님 고유 실시간 익명 웹 채팅방 위젯 연동 완공
 # -----------------------------------------------------------------
 with col_chat_room:
-    # 🎯 가운데 종목창과 머리 높이를 맞추기 위해 상단에 미세 마진 12px 주입하여 다운
+    # 가운데 종목창과 머리 높이를 정밀 수평 동기화하기 위한 12px 다운 마진
     st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
-    st.markdown("### 💬  소통망", unsafe_allow_html=True)
+    st.markdown("### 💬 실시간 주주 대화방", unsafe_allow_html=True)
     
-    # 🚨 높이를 626px로 마감하여 아랫선을 칼같이 균등 일렬 종대 완성
+    # 🎯 src 주소 내부에 형님의 boxid(3559455)와 boxtag(p6H02s)를 완벽하게 직통 박제 완료했습니다.
     st.markdown("""
-        <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 20px 20px; text-align: center; height: 626px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
-            <div style="font-size: 36px; margin-bottom: 12px;">🔓</div>
-            <h3 style="color: #10B981; font-weight: 900; margin-bottom: 5px; font-size: 21px;">소통방</h3>
-            <p style="color: #94A3B8; font-size: 13px; margin-bottom: 20px; line-height: 1.5;">당일 실시간 주도주 테마 정보와<br>수파베이스 패킷 급등 시그널을<br>조건 없이 가장 빠르게 공유합니다.</p>
-            <div style="background-color: #0F172A; border: 1px dashed #34D399; padding: 10px; border-radius: 6px; width: 100%; color: #34D399; font-weight: 700; font-size: 14px; margin-bottom: 20px;">🔥 [참여 코드: 고정 대기 중]</div>
-            <a href="https://kakao.com" target="_blank" style="text-decoration: none; width: 100%;"><div style="background-color: #10B981; color: white; font-weight: 800; padding: 14px; border-radius: 6px; font-size: 16px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); cursor: pointer;">👉 무료 카카오톡방 입장하기</div></a>
-            <div style="margin-top: 15px; font-size: 11px; color: #64748B;">* 본 방은 일체의 유료 결제를 유도하지 않습니다.</div>
+        <div style="background-color: #1E293B; border: 2px solid #10B981; border-radius: 8px; padding: 8px; height: 626px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
+            <iframe 
+                src="https://cbox.ws" 
+                marginwidth="0" 
+                marginheight="0" 
+                frameborder="0" 
+                width="100%" 
+                height="100%" 
+                scrolling="auto"
+                allowtransparency="yes"
+                allow="autoplay"
+                style="border: none; border-radius: 6px; background-color: #0F172A;"
+            ></iframe>
         </div>
     """, unsafe_allow_html=True)
 
-# 5. 오토 리프레시 엔진 구동
+# 5. 오토 리프레시 엔진 구동 (15초 자동 브라우저 동기화)
 try:
     from streamlit_autorefresh import st_autorefresh
     st_autorefresh(interval=15000, key="market_data_refresh_engine_24h")
 except:
     pass
+
