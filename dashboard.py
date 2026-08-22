@@ -171,18 +171,32 @@ st.markdown("---")
 
 
 # =================================================================
-# 6. [하단 3분할 대수술] 🚨 상단 공백 바짝 당기기 + 주말 에러 원천 소독 완공본
+# 6. [하단 3분할 대수술] 🚨 카페 배너 규격 확장 및 히트맵 가로 축소 완공본
 # =================================================================
-# 🚨 [형님 특명 1]: 위쪽 광고판과 하단 히트맵 사이의 쓸데없는 빈 공간(머리끄댕이)을 위로 주루루룩 끌어올려 압축합니다!
+# 🚨 [형님 특명 명세 반영]: 깃허브 상단 투명 가두리에 맞춰 카페 배너 세로 사이즈를 
+# 대형 HTS 전광판 규격으로 키우고, 글자가 안 가려지도록 안전하게 안착시킵니다.
 st.markdown(
     """
     <style>
-    /* 상단 배너와 하단 컨텐츠 사이의 간격을 강제로 바짝 좁혀버리는 장치 */
+    /* 상단 기본 패딩 공간 압축 조율 */
     div.block-container {
         padding-top: 1.5rem !important;
     }
+    /* 초록색 네이버 카페 바로가기 통짜 배너를 묵직하게 두께 확장 마감 */
+    div[data-testid="stVerticalBlock"] > div:first-child a > div {
+        padding: 24px !important; 
+        border-radius: 12px !important;
+        margin-top: 10px !important;
+    }
+    /* 글자가 잘 노출되도록 폰트 크기 및 높이 대화면 세팅 */
+    div[data-testid="stVerticalBlock"] > div:first-child span {
+        font-size: 24px !important;
+        display: block !important;
+        line-height: 1.4 !important;
+    }
+    /* 1번 배너와 하단 컨텐츠 간격 칼대칭 정렬 가드 */
     div[data-testid="stVerticalBlock"] > div:has(div.master-banner-box) + div {
-        margin-top: -35px !important;
+        margin-top: -15px !important;
     }
     </style>
     """,
@@ -192,11 +206,12 @@ st.markdown(
 if 'selected_theme_click' not in st.session_state:
     st.session_state.selected_theme_click = None
 
-# 좌측 히트맵구역과 우측 리더보드구역의 순정 황금 비율(4.4 : 5.6) 교차 고정
-bottom_cols = st.columns([4.4, 5.6], gap="medium")
+# 🚨 [형님 특명 2]: 좌측 히트맵 가로 폭을 상단 1번 광고 배너 사이즈 규격만큼 콤팩트하게 축소!
+# 기존 [4.4 : 5.6] 비율에서 1번 배너 직통 라인인 [3.6 : 6.4] 황금 대칭 수로로 뼈대를 개조했습니다.
+bottom_cols = st.columns([3.6, 6.4], gap="medium")
 
 # -----------------------------------------------------------------
-# 🗺️ [좌측 칸]: 실시간 주도 테마 히트맵 (🚨 주말 ValueError 완전 박멸)
+# 🗺️ [좌측 칸]: 실시간 주도 테마 히트맵 (🚨 1번 배너 가로 매칭 축소 완료)
 # -----------------------------------------------------------------
 with bottom_cols[0]:
     st.markdown("### 🗺️ 실시간 주도 테마 히트맵")
@@ -210,7 +225,7 @@ with bottom_cols[0]:
         theme_df.columns = ['theme', 'avg_rate', 'stock_count']
         theme_df['theme_clean'] = theme_df['theme'].str.replace('ROOM_', '')
         
-        # Plotly 트리맵 엔진 구동 (순정 세팅 유지)
+        # Plotly 트리맵 엔진 구동
         import plotly.express as px
         fig = px.treemap(
             theme_df,
@@ -221,7 +236,7 @@ with bottom_cols[0]:
             color_continuous_midpoint=0.0
         )
         
-        # 🚨 [100% 무결점 안착]: 주말 데이터프레임 공백 에러를 완전히 진압하는 안전망 가드 정품 수식 고정
+        # 🚨 주말 데이터프레임 공백 에러를 완전히 박멸하는 안전망 가드 정품 수식 장착
         fig.update_traces(
             texttemplate="<b>{label}</b><br>{color:.2f}%",
             textposition="inside",
@@ -242,14 +257,14 @@ with bottom_cols[0]:
         
         if selected_point:
             try:
-                clicked_idx = selected_point[0]['point_number']
+                clicked_idx = selected_point['point_number']
                 chosen_theme = theme_df.iloc[clicked_idx]['theme_clean']
                 st.session_state.selected_theme_click = chosen_theme
             except:
                 pass
 
 # -----------------------------------------------------------------
-# 🗂️ [우측 칸]: 테마 포지션 가운데 밀기 + 💥 우측 날개 미니 채팅창 빌드 완료
+# 🗂️ [우측 칸]: 테마 포지션 정중앙 전진 밀기 + 💥 우측 날개 미니 채팅창 완공
 # -----------------------------------------------------------------
 with bottom_cols[1]:
     if st.session_state.selected_theme_click:
@@ -266,7 +281,7 @@ with bottom_cols[1]:
             up_stocks = theme_detail_df[theme_detail_df['rate'] >= 0].sort_values(by='rate', ascending=False)
             down_stocks = theme_detail_df[theme_detail_df['rate'] < 0].sort_values(by='rate', ascending=True)
             
-            # 🚨 [방 번호 마감]: 서랍장 3칸을 0, 1, 2번 상자로 완벽하게 명세하여 정렬 에러를 완치합니다!
+            # 히트맵이 축소된 만큼 상승·하락 종목과 우측 채팅방의 가로 상자가 웅장하고 칼정렬로 확장 정렬됩니다!
             sub_cols = st.columns([4.2, 4.2, 3.6], gap="small")
             
             # [칸 0번]: 소속 상승 종목 정중앙 배치
@@ -308,10 +323,9 @@ with bottom_cols[1]:
                 down_box_html += "</div>"
                 st.markdown(down_box_html, unsafe_allow_html=True)
 
-            # [칸 2번]: 💥 대망의 하락 종목 바로 우측 날개 옆방 무료 미니 채팅창 개통!
+            # [칸 2번]: 하락 종목 바로 우측 날개 옆방 무료 미니 채팅창 개통!
             with sub_cols[2]:
                 st.markdown("<span style='color:#10B981; font-weight:700; font-size:14px;'>💬 실시간 라이브 토크</span>", unsafe_allow_html=True)
-                # 로그인 필요 없는 100% 무료 익명 소통 엔진(Cbox) 수로 안착
                 chat_html = """
                 <div style='border:1px solid #374151; border-radius:6px; overflow:hidden; background-color:#111827; height:440px;'>
                     <iframe src="https://cbox.ws" 
@@ -330,6 +344,10 @@ with bottom_cols[1]:
 
 # =================================================================
 # 7. [오토 리프레시 엔진] 15초 단위 마켓 자동 동기화 수송 (순정 복구)
+# =================================================================
+from streamlit_autorefresh import st_autorefresh
+st_autorefresh(interval=15000, key="market_data_refresh")
+)
 # =================================================================
 from streamlit_autorefresh import st_autorefresh
 st_autorefresh(interval=15000, key="market_data_refresh")
