@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 균등 삼분할 원상복구 및 종목창 방어막 세팅)
+# 2. HTS 스타일 컴팩트 CSS 세팅 (🚨 3번 2줄 겹침 버그 완벽 파괴 및 1줄 수평 일렬종대 마감)
 st.markdown("""
     <style>
     /* 상단 기본 헤더 완전 제거 및 밀어올림 */
@@ -31,7 +31,7 @@ st.markdown("""
     [data-testid="stVerticalBlock"] { gap: 0.4rem !important; }
     hr { margin: 0.4rem 0 !important; }
     
-    /* 1번, 2번, 3번 광고판을 감싸는 순정 다크 챠콜 박스 규격 */
+    /* 🚨 1번, 2번, 3번 광고판을 감싸는 순정 다크 챠콜 박스 규격 (높이 80px 단층 강제 고정) */
     .coupang-ad-box {
         background-color: #1E293B !important;
         border: none !important; 
@@ -73,7 +73,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================================================
-# 2-2. 쿠팡 파트너스 & 애드스테라 광고 주입 구역 (순정 3대3대3 싱크 버전)
+# 2-2. 쿠팡 파트너스 & 애드스테라 광고 주입 구역 (단층 수평 원터치 버전)
 # =================================================================
 HTML_AD_1 = """
 <iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
@@ -99,20 +99,18 @@ RAW_JS_AD_3 = """
 </div>
 """
 
-# 🎯 [순정 복원]: 형님 지시대로 가로 기둥 뼈대를 다시 정확히 3등분(3, gap="medium")으로 복구했습니다!
+# 균등 삼분할 가로 3형제 배너 가동
 ad_col1, ad_col2, ad_col3 = st.columns(3, gap="medium")
 with ad_col1:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_1}</div>', unsafe_allow_html=True)
 with ad_col2:
     st.markdown(f'<div class="coupang-ad-box">{HTML_AD_2}</div>', unsafe_allow_html=True)
 with ad_col3:
-    # 3번 자리도 순정 박스 안에 안전하게 components 가두리 양식장으로 격리 출력합니다.
-    st.markdown(f'<div class="coupang-ad-box">', unsafe_allow_html=True)
+    # 🎯 [버그 완전 집도]: 기존에 위아래로 중복 출력되던 st.markdown 틀을 통째로 파괴하고,
+    # 오직 components.html 함수 단 1개만 깔끔하게 출격시켜 3번 자리를 무조건 '완벽한 1줄(단층)'로 고정 마감했습니다!
     components.html(RAW_JS_AD_3, height=80)
-    st.markdown(f'</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
-
 
 # 3. 수파베이스 직통 연결 및 데이터 파이프라인
 SUPABASE_URL = st.secrets["supabase"]["url"]
