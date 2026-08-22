@@ -78,7 +78,7 @@ st.markdown("""
 # 2-2. 쿠팡 파트너스 광고 코드 직통 삽입 구역 (가로 무제한 확장 버전)
 # =================================================================
 HTML_AD_1 = """
-<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020951&template=carousel&trackingCode=AF2178062&subId=&width=550&height=80&tsource=" width="550" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
+<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020951&template=carousel&trackingCode=AF2178062&subId=&width=550&height=80&tsource=" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
 """
 
 HTML_AD_2 = """
