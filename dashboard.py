@@ -96,7 +96,7 @@ RAW_JS_AD_3 = """
             'params' : {}
         };
     </script>
-    <script type="text/javascript" src="https://highrevenueformat.com"></script>
+    <script type="text/javascript" src="https://www.highrevenueformat.com/837653d89b5187fe6192be2c7b895798/invoke.js"></script>
 </div>
 """
 
