@@ -139,22 +139,6 @@ raw_df, status_df = load_market_data()
 
 kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
-# =================================================================
-# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
-# =================================================================
-st.markdown(
-    "<div class='cafe-banner-container'>\n"
-    "  <a href='https://cafe.naver.com/signalhub' target='_blank' style='text-decoration:none;'>\n"
-    "    <button style='background-color:#03C75A; color:white; font-weight:bold; font-size:18px; \n"
-    "    border:none; padding:15px 24px; border-radius:6px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width:100%; font-family:sans-serif;'>\n"
-    "      🏛️ 시그널공장 네이버 카페 바로가기\n"
-    "    </button>\n"
-    "  </a>\n"
-    "</div>", 
-    unsafe_allow_html=True
-)
-
-st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
 # 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 종목코드 고정 날것 직통 투과)
