@@ -77,11 +77,11 @@ st.markdown("""
 # 2-2. 쿠팡 파트너스 & 애드스테라 광고 주입 구역 (순정 3대3대3 싱크 버전)
 # =================================================================
 HTML_AD_1 = """
-<iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
+<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020951&template=carousel&trackingCode=AF2178062&subId=&width=600&height=80&tsource=" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
 """
 
 HTML_AD_2 = """
-<iframe src="https://coupang.com" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:none;"></iframe>
+<iframe src="https://ads-partners.coupang.com/widgets.html?id=1020953&template=carousel&trackingCode=AF2178062&subId=&width=600&height=80&tsource=" width="600" height="80" frameborder="0" scrolling="no" referrerpolicy="unsafe-url"></iframe>
 """
 
 # 🚨 [시스템 마비 차단 완료]: 굳어버리던 자바스크립트 강제 타이머 루프를 전면 소멸 처치했습니다!
