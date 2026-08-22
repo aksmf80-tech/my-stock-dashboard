@@ -303,7 +303,7 @@ with col_stock_double:
 # [3구역] 무료 채팅방 날개 자리 홍보 배너 보드
 # -----------------------------------------------------------------
 with col_chat_room:
-    st.markdown("### 💬 VIP 실시간 소통망", unsafe_allow_html=True)
+    st.markdown("### 💬 채팅방", unsafe_allow_html=True)
     
     st.markdown("""
         <div style="
@@ -320,7 +320,7 @@ with col_chat_room:
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         ">
             <div style="font-size: 45px; margin-bottom: 20px;">🔓</div>
-            <h3 style="color: #10B981; font-weight: 900; margin-bottom: 5px; font-size: 24px;">평생 무료 정보 리딩방</h3>
+            <h3 style="color: #10B981; font-weight: 900; margin-bottom: 5px; font-size: 24px;">채팅방 라인</h3>
             <p style="color: #94A3B8; font-size: 14px; margin-bottom: 30px; line-height: 1.5;">
                 당일 실시간 주도주 테마 정보와<br>
                 수파베이스 패킷 급등 시그널을<br>
