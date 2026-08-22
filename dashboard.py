@@ -159,63 +159,7 @@ st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#
 # =================================================================
 # 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 종목코드 고정 날것 직통 투과)
 # =================================================================
-master_2_cols = st.columns(2)
-m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
-
-for idx, (m_name, m_code) in enumerate(m_targets):
-    m_price = 0  
-    m_rate = 0.0
-    is_data_loaded = False
-
-    try:
-        # 🚨 [형님 절대 특명 명세]: 어떤 필터나 가두리 연산도 거치지 않고, 
-        # 오직 종목코드(005930, 000660)만 일치하면 DB 날것 그대로 강제 강탈합니다!
-        if not raw_df.empty:
-            raw_df['code_clean'] = raw_df['code'].astype(str).str.strip()
-            target_rows = raw_df[raw_df['code_clean'] == m_code]
-            
-            if not target_rows.empty:
-                latest_row = target_rows.iloc[-1]
-                
-                # 수파베이스에 날아와 박힌 가격과 등락률 원본 그대로 즉시 관통
-                p_live = int(latest_row['price'])
-                r_live = float(latest_row['rate'])
-                
-                m_price = p_live
-                m_rate = r_live
-                is_data_loaded = True
-    except:
-        pass
-
-    with master_2_cols[idx]:
-        # 💡 테마 분류 족쇄를 원천 파괴하여, 수파베이스 내부의 리얼 가격 패킷이 상단에 무조건 강제 표출됩니다!
-        if is_data_loaded:
-            price_display = f"{m_price:,}원"
-            sign_str = "+" if m_rate > 0 else ""
-            if m_rate >= 0:
-                st.markdown(f"""
-                    <div class='master-box-custom-up'>
-                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#EF4444; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
-                    </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                    <div class='master-box-custom-down'>
-                        <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                        <span style='color:#3B82F6; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate:.2f}%)</span>
-                    </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-                <div class='master-box-custom-up' style='border-left:8px solid #64748B !important;'>
-                    <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#94A3B8; font-weight:900; font-size:24px; margin-left:auto;'>대기중 (0원)</span>
-                </div>
-            """, unsafe_allow_html=True)
-
-st.markdown("---")
-
+mst.empty()
 
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
