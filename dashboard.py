@@ -87,13 +87,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # =================================================================
-# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (🚨 정품 필드명 싱크 완공 버전)
+# 3. 수파베이스 클라우드 직통 연결 인증 및 데이터 파이프라인 (🚨 캐시 좀비 청소 완공 버전)
 # =================================================================
 SUPABASE_URL = st.secrets["supabase"]["url"]
 SUPABASE_KEY = st.secrets["supabase"]["key"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-@st.cache_data(ttl=15)
+# 🎯 [캐시 락 전면 철거]: 옛날 실패 찌꺼기를 물고 리부팅을 막던 캐시 데코레이터를 완전히 제거하여 생데이터를 퍼 올립니다.
 def load_market_data():
     try:
         response = supabase.table("kiwoom_themes").select("*").execute()
@@ -107,7 +107,6 @@ def load_market_data():
                 continue
                 
             r_val = item.get('theme_flu_rt')
-            # 🎯 [동생 대가리 박고 영점 조절]: 엉뚱한 price가 아니라 진짜 DB 필드명인 'current_price' 수로 완전 개통!
             p_val = item.get('current_price')
             t_name = str(item.get('theme_name', '미분류')).strip()
             
@@ -116,7 +115,7 @@ def load_market_data():
                 'name': s_name,
                 'code': s_code,
                 'rate': float(r_val) if r_val is not None else 0.0,
-                'price': int(p_val) if p_val is not None else 0  # 싱싱한 리얼 단가 완벽 안착
+                'price': int(p_val) if p_val is not None else 0  # 싱싱한 리얼 단가 안착
             })
         base_df = pd.DataFrame(rows)
     except Exception as e:
@@ -139,14 +138,14 @@ def load_market_data():
         
     return base_df, status_df
 
-# 변수 매핑 무결점 싱크 연결 완료
+# 변수 매핑 무결점 싱크 연결 완료 (이제 리얼타임으로 쟁반 갈아 끼웁니다)
 raw_df, status_df = load_market_data()
 
 kst_current = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
 update_time = kst_current.strftime('%H:%M:%S')
 
 # =================================================================
-# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출
+# 4. 🏛️ 시그널공장 네이버 카페 대문 부활 표출 (🚨 형님 정품 주소 철통 사수 완공)
 # =================================================================
 st.markdown(
     "<div class='cafe-banner-container'>\n"
@@ -163,7 +162,7 @@ st.markdown(
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
 
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 자료형 엇박자 완벽 교정 완공)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 아래 리스트와 100% 완전 동기화 단순 버전)
 # =================================================================
 master_2_cols = st.columns(2)
 m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
@@ -171,31 +170,23 @@ m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
 for idx, (m_name, m_code) in enumerate(m_targets):
     m_price = 0  
     m_rate = 0.0
-    is_data_loaded = False
-
+    
     try:
-        # 💡 [순정 직통 수로]: 하단 연산에 절대 오염 안 된 raw_df 원본 풀에서 직통 타겟 사격
-        if 'raw_df' in globals() and not raw_df.empty:
-            check_df = raw_df.copy()
-            
-            # 🔥 [형님 특명 영점 조절]: 코드가 '000660' 문자열이든 '660' 정수형이든 상관없이 강제로 숫자로 통일해서 매칭 락(Lock)을 겁니다.
-            check_df['code_numeric'] = pd.to_numeric(check_df['code'], errors='coerce')
-            target_numeric_code = int(m_code)  # '005930' -> 5930 / '000660' -> 660 정수화
-            
-            target_rows = check_df[check_df['code_numeric'] == target_numeric_code]
-            
-            if not target_rows.empty:
-                latest_row = target_rows.iloc[-1]
+        # 💡 아래 리스트가 수파베이스 쟁반(raw_df)을 훑어내리는 메커니즘과 100% 똑같은 단순 수로 가동!
+        if not raw_df.empty:
+            for _, row in raw_df.iterrows():
+                s_code = str(row.get('code', '')).strip()
                 
-                # 3번 영역 쟁반에서 무결점으로 정제된 이름('price', 'rate')으로 데이터 관통
-                m_price = int(latest_row['price'])
-                m_rate = float(latest_row['rate'])
-                is_data_loaded = True
+                # 아래 종목 코드 매칭 방식과 완벽하게 일치시킵니다.
+                if s_code == m_code:
+                    m_price = int(row.get('price', 0))
+                    m_rate = float(row.get('rate', 0.0))
+                    break
     except:
         pass
 
-    # 가짜 가림막, 가짜 조회실패 문구 전면 철거하고 리얼 주가 화면 대문에 강제 표출
-    price_display = f"{m_price:,}원" if is_data_loaded else "조회실패"
+    # 아래 리스트 형식 포맷 그대로 상단 대문에 강제 강탈 표출
+    price_display = f"{m_price:,}원"
     sign_str = "+" if m_rate > 0 else ""
     
     with master_2_cols[idx]:
@@ -215,6 +206,7 @@ for idx, (m_name, m_code) in enumerate(m_targets):
             """, unsafe_allow_html=True)
 
 st.markdown("---")
+
 
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
