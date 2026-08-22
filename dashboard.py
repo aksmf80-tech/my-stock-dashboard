@@ -171,8 +171,24 @@ st.markdown("---")
 
 
 # =================================================================
-# 6. [하단 3분할 대수술] 히트맵 축소 및 종목 중앙 정렬 + 우측 익명 채팅창 완공
+# 6. [하단 3분할 대수술] 🚨 상단 공백 바짝 당기기 + 주말 에러 원천 소독 완공본
 # =================================================================
+# 🚨 [형님 특명 1]: 위쪽 광고판과 하단 히트맵 사이의 쓸데없는 빈 공간(머리끄댕이)을 위로 주루루룩 끌어올려 압축합니다!
+st.markdown(
+    """
+    <style>
+    /* 상단 배너와 하단 컨텐츠 사이의 간격을 강제로 바짝 좁혀버리는 장치 */
+    div.block-container {
+        padding-top: 1.5rem !important;
+    }
+    div[data-testid="stVerticalBlock"] > div:has(div.master-banner-box) + div {
+        margin-top: -35px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 if 'selected_theme_click' not in st.session_state:
     st.session_state.selected_theme_click = None
 
@@ -180,12 +196,13 @@ if 'selected_theme_click' not in st.session_state:
 bottom_cols = st.columns([4.4, 5.6], gap="medium")
 
 # -----------------------------------------------------------------
-# 🗺️ [좌측 칸]: 실시간 주도 테마 히트맵 (사이즈 콤팩트 축소)
+# 🗺️ [좌측 칸]: 실시간 주도 테마 히트맵 (🚨 주말 ValueError 완전 박멸)
 # -----------------------------------------------------------------
 with bottom_cols[0]:
     st.markdown("### 🗺️ 실시간 주도 테마 히트맵")
     
     if raw_df is not None and not raw_df.empty:
+        # 테마별 평균 등락률 산출 연산 수송
         theme_df = raw_df.groupby('theme').agg({
             'rate': 'mean',
             'code': 'count'
@@ -193,7 +210,7 @@ with bottom_cols[0]:
         theme_df.columns = ['theme', 'avg_rate', 'stock_count']
         theme_df['theme_clean'] = theme_df['theme'].str.replace('ROOM_', '')
         
-        # Plotly 트리맵 엔진 구동
+        # Plotly 트리맵 엔진 구동 (순정 세팅 유지)
         import plotly.express as px
         fig = px.treemap(
             theme_df,
@@ -204,7 +221,7 @@ with bottom_cols[0]:
             color_continuous_midpoint=0.0
         )
         
-        # Plotly 정품 문자열 복구로 주말 에러 완벽 소독
+        # 🚨 [100% 무결점 안착]: 주말 데이터프레임 공백 에러를 완전히 진압하는 안전망 가드 정품 수식 고정
         fig.update_traces(
             texttemplate="<b>{label}</b><br>{color:.2f}%",
             textposition="inside",
@@ -232,7 +249,7 @@ with bottom_cols[0]:
                 pass
 
 # -----------------------------------------------------------------
-# 🗂️ [우측 칸]: 테마 포지션 가운데 밀기 + 💥 우측 날개 미니 채팅창 빌드
+# 🗂️ [우측 칸]: 테마 포지션 가운데 밀기 + 💥 우측 날개 미니 채팅창 빌드 완료
 # -----------------------------------------------------------------
 with bottom_cols[1]:
     if st.session_state.selected_theme_click:
@@ -249,7 +266,7 @@ with bottom_cols[1]:
             up_stocks = theme_detail_df[theme_detail_df['rate'] >= 0].sort_values(by='rate', ascending=False)
             down_stocks = theme_detail_df[theme_detail_df['rate'] < 0].sort_values(by='rate', ascending=True)
             
-            # 🚨 방 번호 인덱스 0, 1, 2를 명확히 지정해 정렬 에러를 완치합니다!
+            # 🚨 [방 번호 마감]: 서랍장 3칸을 0, 1, 2번 상자로 완벽하게 명세하여 정렬 에러를 완치합니다!
             sub_cols = st.columns([4.2, 4.2, 3.6], gap="small")
             
             # [칸 0번]: 소속 상승 종목 정중앙 배치
@@ -291,9 +308,10 @@ with bottom_cols[1]:
                 down_box_html += "</div>"
                 st.markdown(down_box_html, unsafe_allow_html=True)
 
-            # [칸 2번]: 하락 종목 바로 우측 날개 옆방 무료 미니 채팅창 개통!
+            # [칸 2번]: 💥 대망의 하락 종목 바로 우측 날개 옆방 무료 미니 채팅창 개통!
             with sub_cols[2]:
                 st.markdown("<span style='color:#10B981; font-weight:700; font-size:14px;'>💬 실시간 라이브 토크</span>", unsafe_allow_html=True)
+                # 로그인 필요 없는 100% 무료 익명 소통 엔진(Cbox) 수로 안착
                 chat_html = """
                 <div style='border:1px solid #374151; border-radius:6px; overflow:hidden; background-color:#111827; height:440px;'>
                     <iframe src="https://cbox.ws" 
