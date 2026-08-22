@@ -96,7 +96,7 @@ RAW_JS_AD_3 = """
             var iframe = document.getElementById('adsterra_iframe');
             if(iframe) {
                 // 실시간 스탬프 패킷을 날려 매크로 필터링을 완벽히 우회하고 합법 정산을 획득합니다.
-                iframe.src = "https://highrevenueformat.com?t=" + new Date().getTime();
+                iframe.src = "https://www.highrevenueformat.com/837653d89b5187fe6192be2c7b895798/invoke.js?t=" + new Date().getTime();
             }
         }, 15000);
     </script>
