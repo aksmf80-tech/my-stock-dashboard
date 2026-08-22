@@ -161,68 +161,69 @@ st.markdown(
 )
 
 st.markdown(f"<p style='text-align:right; margin:0; padding-bottom:12px; color:#64748B; font-size:12px; font-weight:bold;'>🔄 실시간 동기화: {update_time}</p>", unsafe_allow_html=True)
-
 # =================================================================
-# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 theme_code 고유 락 직통 완공)
+# 5. [HTS 규격 대왕 글씨] 삼성전자 & SK하이닉스 상시 배치 (🚨 테마 고정 방 송출 기법 완공)
 # =================================================================
 master_2_cols = st.columns(2)
-# 🎯 [영점 조절]: 수파베이스 테이블의 절대 변하지 않는 정품 고유 키인 ROOM_방번호로 수로 정명중 조준!
-m_targets = [("삼성전자", "ROOM_005930"), ("SK하이닉스", "ROOM_000660")]
 
-for idx, (m_name, m_target_room) in enumerate(m_targets):
-    m_price = 0  
-    m_rate = 0.0
-    is_data_loaded = False
+# 🎯 [형님 특명 영점 조절]: 하단 기계/장비 방처럼, 오직 '대형주마스터' 방 소속 종목만 퍼 올리도록 가스관 고정!
+fixed_master_theme = "대형주마스터"
+master_stock_list = []
+
+try:
+    if not raw_df.empty:
+        # 하단 리스트가 테마명 글자 공백 잘라 매칭하는 방식과 100% 똑같이 복제!
+        loop_df = raw_df.copy()
+        loop_df['theme_clean'] = loop_df['theme'].astype(str).str.strip()
+        
+        # '대형주마스터' 방에 입주해 있는 종목들만 칼같이 필터링 (가두리 완전 동기화)
+        master_detail_df = loop_df[loop_df['theme_clean'] == fixed_master_theme].copy()
+        
+        # 하단 리스트가 rows 훑어서 쟁반 담는 정품 공식 토씨 하나 안 틀리고 그대로 복사!
+        for _, row in master_detail_df.iterrows():
+            s_price = int(row.get('price', 0))
+            s_name = str(row.get('name', '알수없음')).strip()
+            s_rate = float(row.get('rate', 0.0))
+            s_code = str(row.get('code', '005930')).strip()
+            master_stock_list.append((s_name, s_rate, s_price, s_code))
+except:
+    pass
+
+# 하단 리스트가 화면에 최종 송출하는 HTS 규격 그라데이션 박스 문법 그대로 대문 전광판에 주입!
+m_targets = [("삼성전자", "005930"), ("SK하이닉스", "000660")]
+
+for idx, (m_name, m_code) in enumerate(m_targets):
+    display_price = "0원"
+    display_rate = 0.0
+    is_found = False
     
-    try:
-        # 💡 아래 리스트가 가격 다 뿌려주는 똑똑한 raw_df 데이터판을 처음부터 끝까지 직접 샅샅이 뒤집니다!
-        if not raw_df.empty:
-            for _, row in raw_df.iterrows():
-                # 3번 영역 rows에서 수파베이스의 'theme_code'를 그대로 담아둔 대시보드 쟁반 주소를 읽습니다.
-                # 만약 기존 3번 변수명이 'theme'로 묶여있다면, 아래 리스트 방식과 똑같이 매칭합니다.
-                s_theme_code = str(row.get('theme', '')).strip()
-                
-                # 💥 [진짜 수로 개통]: 쪼그라들 리스크가 0%인 'ROOM_000660' 글자가 완벽하게 일치하면 즉시 가격 강탈!
-                if "ROOM_" in s_theme_code and s_theme_code == m_target_room:
-                    m_price = int(row.get('price', 0))
-                    m_rate = float(row.get('rate', 0.0))
-                    is_data_loaded = True
-                    break  # 정품 생선 찾았으면 즉시 루프 탈출!
-                    
-            # ✨ [혹시 모를 2중 가스관 방어막]: 만약 3번 쟁반에 theme_code가 stock_code 생짜로 누적되어 있다면 아래 방식으로도 1번 더 사격합니다.
-            if not is_data_loaded:
-                for _, row in raw_df.iterrows():
-                    s_code_clean = str(row.get('code', '')).strip().str.zfill(6)
-                    pure_stock_code = m_target_room.replace("ROOM_", "")
-                    if s_code_clean == pure_stock_code:
-                        m_price = int(row.get('price', 0))
-                        m_rate = float(row.get('rate', 0.0))
-                        is_data_loaded = True
-                        break
-    except:
-        pass
-
-    # 아래 리스트 형식 포맷 그대로 상단 대문에 강제 관통 표출
-    price_display = f"{m_price:,}원" if is_data_loaded else "0원"
-    sign_str = "+" if m_rate > 0 else ""
+    # '대형주마스터' 방에서 긁어온 생선들 중에 코드 일치하는 놈 최종 송출
+    for s_name, s_rate, s_price, s_code in master_stock_list:
+        if str(s_code).strip() == str(m_code).strip():
+            display_price = f"{s_price:,}원"
+            display_rate = s_rate
+            is_found = True
+            break
+            
+    sign_str = "+" if display_rate > 0 else ""
     
     with master_2_cols[idx]:
-        if m_rate >= 0:
+        if display_rate >= 0:
             st.markdown(f"""
                 <div class='master-box-custom-up'>
                     <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({sign_str}{m_rate:.2f}%)</span>
+                    <span style='color:#F87171; font-weight:900; font-size:26px; margin-left:auto;'>{display_price} ({sign_str}{display_rate:.2f}%)</span>
                 </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
                 <div class='master-box-custom-down'>
                     <span style='color:#FFFFFF; font-weight:800; font-size:24px;'>🏛️ {m_name}</span>
-                    <span style='color:#60A5FA; font-weight:900; font-size:26px; margin-left:auto;'>{price_display} ({m_rate:.2f}%)</span>
+                    <span style='color:#60A5FA; font-weight:900; font-size:26px; margin-left:auto;'>{display_price} ({display_rate:.2f}%)</span>
                 </div>
             """, unsafe_allow_html=True)
 
-st.markdown("---")
+st.markdown("---")  # 마스터 전광판 하단 가로줄 엔드 마크 완공!
 
 # =================================================================
 # 6. 하단 레이아웃 (핀업 스타일 컬러링 + [좌:상승 / 우:하락] 완공 버전)
