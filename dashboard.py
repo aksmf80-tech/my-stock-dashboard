@@ -109,14 +109,13 @@ def load_market_data():
 
 # 💥 메인 수송관 데이터프레임 쟁반 수신
 raw_df = load_market_data()
-
-# 🚨 [형님 특명 2]: 3배너 내부에 쓸데없는 기교 멘트 전부 도려내고 9글자 정품 수식 통일!
+# 🚨 [형님 특명]: 3배너 내부에 쓸데없는 기교 멘트 전부 도려내고 9글자 정품 수식 통일!
 # =================================================================
 # 5. [HTS 규격 3분할 광고판] 3칸 칼대칭 인덱스 상자 번호 정렬 완공 구역
 # =================================================================
 master_3_cols = st.columns(3)
 
-# 1. [좌측 광고 칸]: 0번 서랍장 정밀 고정
+# 1. [좌측 광고 칸]: 0번 서랍장 정밀 고정 [1.8]
 with master_3_cols[0]:
     st.markdown(
         """
@@ -129,7 +128,7 @@ with master_3_cols[0]:
         unsafe_allow_html=True
     )
 
-# 2. [중앙 광고 칸]: 1번 서랍장 정밀 고정
+# 2. [중앙 광고 칸]: 1번 서랍장 정밀 고정 [1.8]
 with master_3_cols[1]:
     st.markdown(
         """
@@ -142,7 +141,7 @@ with master_3_cols[1]:
         unsafe_allow_html=True
     )
 
-# 3. [우측 광고 칸]: 2번 서랍장 정밀 고정 (하단 채팅창 머리 위 칼대칭 정렬)
+# 3. [우측 광고 칸]: 2번 서랍장 정밀 고정 (하단 채팅창 머리 위 칼대칭 정렬) [1.8]
 with master_3_cols[2]:
     st.markdown(
         """
@@ -155,7 +154,7 @@ with master_3_cols[2]:
         unsafe_allow_html=True
     )
 
-# 법적 제재 제로! 쿠팡 파트너스 필수 대가성 명시 문구 방어막 자동 인입
+# 법적 제재 제로! 쿠팡 파트너스 필수 대가성 명시 문구 방어막 자동 인입 [1.8]
 st.markdown(
     """
     <div style="text-align: center; margin-top: 5px; margin-bottom: 20px;">
@@ -168,8 +167,6 @@ st.markdown(
 )
 
 st.markdown("---")
-
-
 # =================================================================
 # 6. [하단 3분할 대수술] 🚨 카페 배너 규격 확장 및 히트맵 가로 축소 완공본
 # =================================================================
@@ -206,8 +203,8 @@ st.markdown(
 if 'selected_theme_click' not in st.session_state:
     st.session_state.selected_theme_click = None
 
-# 🚨 [형님 특명 2]: 좌측 히트맵 가로 폭을 상단 1번 광고 배너 사이즈 규격만큼 콤팩트하게 축소!
-# 기존 [4.4 : 5.6] 비율에서 1번 배너 직통 라인인 [3.6 : 6.4] 황금 대칭 수로로 뼈대를 개조했습니다.
+# 🚨 [형님 특명]: 좌측 히트맵 가로 폭을 상단 1번 광고 배너 사이즈 규격만큼 콤팩트하게 축소!
+# 기존 [4.4 : 5.6] 비율에서 1번 배너 직통 라인인 [3.6 : 6.4] 황금 대칭 수로로 뼈대를 개조했습니다. [1.8]
 bottom_cols = st.columns([3.6, 6.4], gap="medium")
 
 # -----------------------------------------------------------------
@@ -225,7 +222,7 @@ with bottom_cols[0]:
         theme_df.columns = ['theme', 'avg_rate', 'stock_count']
         theme_df['theme_clean'] = theme_df['theme'].str.replace('ROOM_', '')
         
-        # Plotly 트리맵 엔진 구동
+        # Plotly 트리맵 엔진 구동 [1.8]
         import plotly.express as px
         fig = px.treemap(
             theme_df,
@@ -257,7 +254,7 @@ with bottom_cols[0]:
         
         if selected_point:
             try:
-                clicked_idx = selected_point['point_number']
+                clicked_idx = selected_point[0]['point_number']
                 chosen_theme = theme_df.iloc[clicked_idx]['theme_clean']
                 st.session_state.selected_theme_click = chosen_theme
             except:
@@ -281,10 +278,10 @@ with bottom_cols[1]:
             up_stocks = theme_detail_df[theme_detail_df['rate'] >= 0].sort_values(by='rate', ascending=False)
             down_stocks = theme_detail_df[theme_detail_df['rate'] < 0].sort_values(by='rate', ascending=True)
             
-            # 히트맵이 축소된 만큼 상승·하락 종목과 우측 채팅방의 가로 상자가 웅장하고 칼정렬로 확장 정렬됩니다!
+            # 히트맵이 축소된 만큼 상승·하락 종목과 우측 채팅방의 가로 상자가 웅장하고 칼정렬로 확장 정렬됩니다! [1.8]
             sub_cols = st.columns([4.2, 4.2, 3.6], gap="small")
             
-            # [칸 0번]: 소속 상승 종목 정중앙 배치
+            # [칸 0번]: 소속 상승 종목 정중앙 배치 [1.8]
             with sub_cols[0]:
                 st.markdown("<span style='color:#EF4444; font-weight:700; font-size:14px;'>🔺 소속 상승 종목</span>", unsafe_allow_html=True)
                 up_box_html = "<div style='height:440px; overflow-y:auto; border:1px solid #374151; padding:8px; border-radius:6px; background-color:#111827;'>"
@@ -302,7 +299,7 @@ with bottom_cols[1]:
                 up_box_html += "</div>"
                 st.markdown(up_box_html, unsafe_allow_html=True)
                 
-            # [칸 1번]: 소속 하락 종목 정중앙 배치
+            # [칸 1번]: 소속 하락 종목 정중앙 배치 [1.8]
             with sub_cols[1]:
                 st.markdown("<span style='color:#3B82F6; font-weight:700; font-size:14px;'>🔹 소속 하락 종목</span>", unsafe_allow_html=True)
                 down_box_html = "<div style='height:440px; overflow-y:auto; border:1px solid #374151; padding:8px; border-radius:6px; background-color:#111827;'>"
@@ -323,7 +320,7 @@ with bottom_cols[1]:
                 down_box_html += "</div>"
                 st.markdown(down_box_html, unsafe_allow_html=True)
 
-            # [칸 2번]: 하락 종목 바로 우측 날개 옆방 무료 미니 채팅창 개통!
+            # [칸 2번]: 하락 종목 바로 우측 날개 옆방 무료 미니 채팅창 개통! [1.8]
             with sub_cols[2]:
                 st.markdown("<span style='color:#10B981; font-weight:700; font-size:14px;'>💬 실시간 라이브 토크</span>", unsafe_allow_html=True)
                 chat_html = """
@@ -344,10 +341,6 @@ with bottom_cols[1]:
 
 # =================================================================
 # 7. [오토 리프레시 엔진] 15초 단위 마켓 자동 동기화 수송 (순정 복구)
-# =================================================================
-from streamlit_autorefresh import st_autorefresh
-st_autorefresh(interval=15000, key="market_data_refresh")
-)
 # =================================================================
 from streamlit_autorefresh import st_autorefresh
 st_autorefresh(interval=15000, key="market_data_refresh")
